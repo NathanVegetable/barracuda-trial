@@ -1,7 +1,9 @@
 package com.barracudatrial;
 
 import com.barracudatrial.game.*;
+import com.barracudatrial.game.route.JubblyJiveConfig;
 import com.barracudatrial.game.route.RouteWaypoint;
+import com.barracudatrial.game.route.TrialType;
 import com.google.inject.Provides;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
@@ -91,19 +93,25 @@ public class BarracudaTrialPlugin extends Plugin
 			return;
 		}
 
-		if (cachedConfig.isShowOptimalPath() || cachedConfig.isHighlightClouds())
+		var trial = gameState.getCurrentTrial();
+		if (trial != null && trial.getTrialType() == TrialType.TEMPOR_TANTRUM
+			&& (cachedConfig.isShowOptimalPath() || cachedConfig.isHighlightClouds()))
 		{
 			objectTracker.updateLightningCloudTracking();
 		}
 
-		if (cachedConfig.isShowOptimalPath() || cachedConfig.isHighlightRumLocations())
+		if (trial != null && trial.getTrialType() == TrialType.TEMPOR_TANTRUM
+			&& (cachedConfig.isShowOptimalPath() || cachedConfig.isHighlightObjectives()))
 		{
-			locationManager.updateRumLocations();
+			locationManager.updateTemporRumLocations();
 		}
 
-		if (cachedConfig.isShowOptimalPath() || cachedConfig.isHighlightRocks() || cachedConfig.isHighlightSpeedBoosts())
+		if (cachedConfig.isShowOptimalPath()
+			|| cachedConfig.isHighlightSpeedBoosts()
+		 	|| routeCapture.isCapturing()
+			|| cachedConfig.isHighlightObjectives())
 		{
-			objectTracker.updateRocksAndSpeedBoosts();
+			objectTracker.updateHazardsSpeedBoostsAndToadPillars();
 		}
 
 		progressTracker.updateTrialProgressFromWidgets();
@@ -132,11 +140,6 @@ public class BarracudaTrialPlugin extends Plugin
 			objectTracker.updateRouteCaptureSupplyLocations();
 			List<WorldPoint> collected = objectTracker.checkAllRouteCaptureShipmentsForCollection();
 			routeCapture.onShipmentsCollected(collected);
-		}
-
-		if (cachedConfig.isShowIDs())
-		{
-			objectTracker.updateAllRocksInScene();
 		}
 
 		if (cachedConfig.isShowOptimalPath())
@@ -171,7 +174,7 @@ public class BarracudaTrialPlugin extends Plugin
 		if (chatMessage.contains("You collect the rum"))
 		{
 			log.debug("Rum collected! Message: {}", chatMessage);
-			gameState.setHasRumOnUs(true);
+			gameState.setHasThrowableObjective(true);
 
 			if (routeCapture.isCapturing())
 			{
@@ -201,7 +204,7 @@ public class BarracudaTrialPlugin extends Plugin
 		else if (chatMessage.contains("You deliver the rum"))
 		{
 			log.debug("Rum delivered! Message: {}", chatMessage);
-			gameState.setHasRumOnUs(false);
+			gameState.setHasThrowableObjective(false);
 
 			var route = gameState.getCurrentStaticRoute();
 
@@ -241,6 +244,38 @@ public class BarracudaTrialPlugin extends Plugin
 			{
 				routeCapture.onRumDelivered(isCompletingFinalLap);
 			}
+		}
+		else if (chatMessage.contains("balloon toads. Time to lure"))
+		{
+			log.debug("Toads collected! Message: {}", chatMessage);
+			
+			gameState.setHasThrowableObjective(true);
+
+			if (routeCapture.isCapturing())
+			{
+				// TODO: Handle capturing
+				// routeCapture.onRumPickedUp();
+			}
+
+			var route = gameState.getCurrentStaticRoute();
+
+			if (route != null)
+			{
+				for (int i = 0, n = route.size(); i < n; i++)
+				{
+					var waypoint = route.get(i);
+
+					if (waypoint.getType() == RouteWaypoint.WaypointType.TOAD_PICKUP
+						&& !gameState.isWaypointCompleted(i))
+					{
+						gameState.markWaypointCompleted(i);
+						log.info("Marked TOAD_PICKUP waypoint as completed at index {}: {}", i, waypoint.getLocation());
+						break;
+					}
+				}
+			}
+
+			pathPlanner.recalculateOptimalPathFromCurrentState("chat: toads collected");
 		}
 	}
 
@@ -347,17 +382,16 @@ public class BarracudaTrialPlugin extends Plugin
 				WorldPoint rumLocation = boatWorldLocation != null ? boatWorldLocation : worldPoint;
 				routeCapture.onExamineRumDropoff(rumLocation, sceneX, sceneY, sceneBaseX, sceneBaseY, objectId, impostorInfo);
 			}
+			// else if (JubblyJiveConfig.TOAD_PILLAR_IDS.contains(objectId))
+			// {
+			// 	routeCapture.onExamineToadPillar(worldPoint, objectId);
+			// }
 		}
 	}
 
 	public boolean isPointInExclusionZone(WorldPoint point)
 	{
 		return locationManager.isPointInsideExclusionZone(point);
-	}
-
-	public List<GameObject> getAllRocksInScene()
-	{
-		return new java.util.ArrayList<>(gameState.getAllRocksInScene());
 	}
 
 	/**

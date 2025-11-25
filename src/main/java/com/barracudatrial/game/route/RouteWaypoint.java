@@ -3,51 +3,25 @@ package com.barracudatrial.game.route;
 import lombok.Getter;
 import net.runelite.api.coords.WorldPoint;
 
-/**
- * Represents a waypoint in a Barracuda Trial route.
- * Can be a shipment, rum pickup, or rum dropoff.
- * Rum waypoints don't store coordinates - they reference constants instead.
- */
+@Getter
 public class RouteWaypoint
 {
-	@Getter
-	private final WaypointType type;
-	private final WorldPoint storedLocation;
+	protected final WaypointType type;
+	private final int lap;
+	private final WorldPoint location;
 
 	public RouteWaypoint(WaypointType type, WorldPoint location)
 	{
+		this.lap = 1;
 		this.type = type;
-		this.storedLocation = location;
+		this.location = location;
 	}
 
-	public RouteWaypoint(WaypointType type)
+	public RouteWaypoint(int lap, WaypointType type, WorldPoint location)
 	{
+		this.lap = lap;
 		this.type = type;
-		this.storedLocation = null;
-	}
-
-	/**
-	 * Gets the world location for this waypoint.
-	 * For shipments, returns stored location.
-	 * For rum waypoints, returns hardcoded constants from RumLocations.
-	 */
-	public WorldPoint getLocation()
-	{
-		if (storedLocation != null)
-		{
-			return storedLocation;
-		}
-
-		if (type == WaypointType.RUM_PICKUP)
-		{
-			return RumLocations.TEMPOR_TANTRUM_PICKUP;
-		}
-		else if (type == WaypointType.RUM_DROPOFF)
-		{
-			return RumLocations.TEMPOR_TANTRUM_DROPOFF;
-		}
-
-		return null;
+		this.location = location;
 	}
 
 	@Getter
@@ -55,7 +29,9 @@ public class RouteWaypoint
 	{
 		SHIPMENT(2),
 		RUM_PICKUP(7),
-		RUM_DROPOFF(7);
+		RUM_DROPOFF(7),
+		TOAD_PICKUP(9),
+		TOAD_PILLAR(10);
 
 		private final int toleranceTiles;
 

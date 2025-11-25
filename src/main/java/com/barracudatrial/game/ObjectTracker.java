@@ -1,23 +1,21 @@
 package com.barracudatrial.game;
 
-import com.barracudatrial.game.route.RouteWaypoint;
+import com.barracudatrial.game.route.*;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.*;
 import net.runelite.api.coords.LocalPoint;
 import net.runelite.api.coords.WorldPoint;
-import net.runelite.api.gameval.NpcID;
 import net.runelite.api.gameval.ObjectID;
 
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
+import java.util.stream.Collectors;
 
 import static com.barracudatrial.game.RouteCapture.formatWorldPoint;
 
+
 /**
  * Handles tracking of game objects in the Barracuda Trial minigame
- * Tracks clouds, rocks, speed boosts, lost supplies, and boat location
+ * Tracks clouds, rocks, speed boosts, lost supplies, boat location, toad pillars, etc
  */
 @Slf4j
 public class ObjectTracker
@@ -25,54 +23,7 @@ public class ObjectTracker
 	private final Client client;
 	private final State state;
 
-	private static final int LIGHTNING_CLOUD_IDLE = NpcID.SAILING_SEA_STORMY_CLOUD;
-	private static final int LIGHTNING_CLOUD_ATTACKING = NpcID.SAILING_SEA_STORMY_LIGHTNING_STRIKE;
-
-	public static final Set<Integer> LOST_SUPPLIES_BASE_IDS = Set.of(
-		ObjectID.SAILING_BT_TEMPOR_TANTRUM_COLLECTABLE_1,
-		ObjectID.SAILING_BT_TEMPOR_TANTRUM_COLLECTABLE_2,
-		ObjectID.SAILING_BT_TEMPOR_TANTRUM_COLLECTABLE_3,
-		ObjectID.SAILING_BT_TEMPOR_TANTRUM_COLLECTABLE_4,
-		ObjectID.SAILING_BT_TEMPOR_TANTRUM_COLLECTABLE_5,
-		ObjectID.SAILING_BT_TEMPOR_TANTRUM_COLLECTABLE_6,
-		ObjectID.SAILING_BT_TEMPOR_TANTRUM_COLLECTABLE_7,
-		ObjectID.SAILING_BT_TEMPOR_TANTRUM_COLLECTABLE_8,
-		ObjectID.SAILING_BT_TEMPOR_TANTRUM_COLLECTABLE_9,
-		ObjectID.SAILING_BT_TEMPOR_TANTRUM_COLLECTABLE_10,
-		ObjectID.SAILING_BT_TEMPOR_TANTRUM_COLLECTABLE_11,
-		ObjectID.SAILING_BT_TEMPOR_TANTRUM_COLLECTABLE_12,
-		ObjectID.SAILING_BT_TEMPOR_TANTRUM_COLLECTABLE_13,
-		ObjectID.SAILING_BT_TEMPOR_TANTRUM_COLLECTABLE_14,
-		ObjectID.SAILING_BT_TEMPOR_TANTRUM_COLLECTABLE_15,
-		ObjectID.SAILING_BT_TEMPOR_TANTRUM_COLLECTABLE_16,
-		ObjectID.SAILING_BT_TEMPOR_TANTRUM_COLLECTABLE_17,
-		ObjectID.SAILING_BT_TEMPOR_TANTRUM_COLLECTABLE_18,
-		ObjectID.SAILING_BT_TEMPOR_TANTRUM_COLLECTABLE_19,
-		ObjectID.SAILING_BT_TEMPOR_TANTRUM_COLLECTABLE_20,
-		ObjectID.SAILING_BT_TEMPOR_TANTRUM_COLLECTABLE_21,
-		ObjectID.SAILING_BT_TEMPOR_TANTRUM_COLLECTABLE_22,
-		ObjectID.SAILING_BT_TEMPOR_TANTRUM_COLLECTABLE_23,
-		ObjectID.SAILING_BT_TEMPOR_TANTRUM_COLLECTABLE_24,
-		ObjectID.SAILING_BT_TEMPOR_TANTRUM_COLLECTABLE_25,
-		ObjectID.SAILING_BT_TEMPOR_TANTRUM_COLLECTABLE_26,
-		ObjectID.SAILING_BT_TEMPOR_TANTRUM_COLLECTABLE_27,
-		ObjectID.SAILING_BT_TEMPOR_TANTRUM_COLLECTABLE_28,
-		ObjectID.SAILING_BT_TEMPOR_TANTRUM_COLLECTABLE_29,
-		ObjectID.SAILING_BT_TEMPOR_TANTRUM_COLLECTABLE_30,
-		ObjectID.SAILING_BT_TEMPOR_TANTRUM_COLLECTABLE_31,
-		ObjectID.SAILING_BT_TEMPOR_TANTRUM_COLLECTABLE_32,
-		ObjectID.SAILING_BT_TEMPOR_TANTRUM_COLLECTABLE_33,
-		ObjectID.SAILING_BT_TEMPOR_TANTRUM_COLLECTABLE_34,
-		ObjectID.SAILING_BT_TEMPOR_TANTRUM_COLLECTABLE_35,
-		ObjectID.SAILING_BT_TEMPOR_TANTRUM_COLLECTABLE_36
-	);
-	public static final int LOST_SUPPLIES_IMPOSTOR_ID = ObjectID.SAILING_BT_TEMPOR_TANTRUM_COLLECTABLE_SUPPLIES;
-
-	// Most rock IDs don't have constants available
-	private static final Set<Integer> ROCK_IDS = Set.of(
-		59314, 59315, 60437, 60438, 60440, 60441, 60442, 60443, 60444
-	);
-
+	// Speed boosts are shared across all trials
 	private static final Set<Integer> SPEED_BOOST_IDS = Set.of(
 		ObjectID.SAILING_RAPIDS, ObjectID.SAILING_RAPIDS_STRONG,
 		ObjectID.SAILING_RAPIDS_POWERFUL, ObjectID.SAILING_RAPIDS_DEADLY
@@ -85,7 +36,7 @@ public class ObjectTracker
 	}
 
 	/**
-	 * Updates lightning cloud tracking by scanning all NPCs
+	 * Updates hazard NPC tracking (e.g., lightning clouds for Tempor Tantrum)
 	 * Spawn/despawn events are unreliable, so we actively scan instead
 	 */
 	public void updateLightningCloudTracking()
@@ -112,7 +63,7 @@ public class ObjectTracker
 			}
 
 			int npcId = npc.getId();
-			if (npcId == LIGHTNING_CLOUD_IDLE || npcId == LIGHTNING_CLOUD_ATTACKING)
+			if (TemporTantrumConfig.LIGHTNING_CLOUD_NPC_IDS.contains(npcId))
 			{
 				state.getLightningClouds().add(npc);
 			}
@@ -124,21 +75,12 @@ public class ObjectTracker
 		return animationId == State.CLOUD_ANIM_HARMLESS || animationId == State.CLOUD_ANIM_HARMLESS_ALT;
 	}
 
-	/**
-	 * Updates rocks and speed boosts by scanning the scene
-	 * Also maintains persistent storage of known locations
-	 */
-	public void updateRocksAndSpeedBoosts()
+	public void updateHazardsSpeedBoostsAndToadPillars()
 	{
 		if (!state.isInTrialArea())
 		{
-			state.getRocks().clear();
-			state.getSpeedBoosts().clear();
 			return;
 		}
-
-		state.getRocks().clear();
-		state.getSpeedBoosts().clear();
 
 		WorldView topLevelWorldView = client.getTopLevelWorldView();
 		if (topLevelWorldView == null)
@@ -152,144 +94,186 @@ public class ObjectTracker
 			return;
 		}
 
-		scanSceneForRocksAndSpeedBoosts(scene);
-	}
-
-	private void scanSceneForRocksAndSpeedBoosts(Scene scene)
-	{
 		Tile[][][] regularTiles = scene.getTiles();
 		if (regularTiles != null)
 		{
-			scanTileArrayForRocksAndSpeedBoosts(regularTiles);
+			scanTileArrayForHazardsSpeedBoostsAndToadPillars(regularTiles);
 		}
 
-		Tile[][][] extendedTiles = scene.getExtendedTiles();
-		if (extendedTiles != null)
-		{
-			scanTileArrayForRocksAndSpeedBoosts(extendedTiles);
-		}
+		// Skipping for performance - probably don't need to read extended for this
+		// Tile[][][] extendedTiles = scene.getExtendedTiles();
+		// if (extendedTiles != null)
+		// {
+		// 	scanTileArrayForHazardsSpeedBoostsAndToadPillars(extendedTiles);
+		// }
 	}
 
-	private void scanTileArrayForRocksAndSpeedBoosts(Tile[][][] tileArray)
+	private void scanTileArrayForHazardsSpeedBoostsAndToadPillars(Tile[][][] tileArray)
 	{
-        for (Tile[][] tiles : tileArray) {
-            if (tiles == null) {
-                continue;
-            }
-
-            for (Tile[] value : tiles) {
-                if (value == null) {
-                    continue;
-                }
-
-                for (Tile tile : value) {
-                    if (tile == null) {
-                        continue;
-                    }
-
-                    for (GameObject gameObject : tile.getGameObjects()) {
-                        if (gameObject == null) {
-                            continue;
-                        }
-
-                        int objectId = gameObject.getId();
-
-                        if (ROCK_IDS.contains(objectId)) {
-                            state.getRocks().add(gameObject);
-                            state.getKnownRockLocations().add(gameObject.getWorldLocation());
-                        } else if (SPEED_BOOST_IDS.contains(objectId)) {
-                            state.getSpeedBoosts().add(gameObject);
-                            state.getKnownSpeedBoostLocations().add(gameObject.getWorldLocation());
-                        }
-                    }
-                }
-            }
-        }
-	}
-
-	/**
-	 * Updates all rocks in scene for debug/ID display purposes
-	 * Includes both known rocks and potential unknown obstacle objects
-	 */
-	public void updateAllRocksInScene()
-	{
-		if (!state.isInTrialArea())
+		var trial = state.getCurrentTrial();
+		if (trial == null)
 		{
-			state.getAllRocksInScene().clear();
 			return;
 		}
+		var trialType = trial.getTrialType();
 
-		state.getAllRocksInScene().clear();
+		var rockIds = trial.getRockIds();
+		var speedBoostIds = trial.getSpeedBoostIds();
+		var fetidPoolIds = JubblyJiveConfig.FETID_POOL_IDS;
 
-		Scene scene = client.getScene();
-		Tile[][][] tileArray = scene.getTiles();
-		int currentPlane = client.getPlane();
+		var toadPillarParentIds = JubblyJiveConfig.TOAD_PILLARS;
 
-		if (tileArray != null && tileArray[currentPlane] != null)
+		var knownRockTiles = state.getKnownRockLocations();
+
+		var knownBoosts = state.getSpeedBoosts();
+		var knownBoostTiles = state.getKnownSpeedBoostLocations();
+
+		var knownFetidPools = state.getFetidPools();
+		var knownFetidPoolTiles = state.getKnownFetidPoolLocations();
+
+		var knownToadPillars = state.getKnownToadPillars();
+		var knownToadPillarTiles = state.getKnownToadPillarLocations();
+
+		for (var plane : tileArray)
 		{
-			for (int xIndex = 0; xIndex < tileArray[currentPlane].length; xIndex++)
+			if (plane == null) continue;
+
+			for (var column : plane)
 			{
-				for (int yIndex = 0; yIndex < tileArray[currentPlane][xIndex].length; yIndex++)
+				if (column == null) continue;
+
+				for (var tile : column)
 				{
-					Tile tile = tileArray[currentPlane][xIndex][yIndex];
-					if (tile == null)
+					if (tile == null) continue;
+
+					WorldPoint tileWp = tile.getWorldLocation();
+					for (var obj : tile.getGameObjects())
 					{
-						continue;
-					}
+						if (obj == null) continue;
 
-					GameObject[] gameObjects = tile.getGameObjects();
-					if (gameObjects == null)
-					{
-						continue;
-					}
-
-					for (GameObject gameObject : gameObjects)
-					{
-						if (gameObject == null)
+						int id = obj.getId();
+						var objTile = obj.getWorldLocation();
+						if (!objTile.equals(tileWp))
 						{
+							// Don't want to re-process multi-tile objects
 							continue;
 						}
 
-						int objectId = gameObject.getId();
+						if (!knownRockTiles.contains(tileWp) && rockIds.contains(id))
+						{
+							knownRockTiles.addAll(ObjectTracker.getObjectTiles(client, obj));
 
-						if (ROCK_IDS.contains(objectId))
-						{
-							state.getAllRocksInScene().add(gameObject);
-							continue;
-						}
-
-						if (LOST_SUPPLIES_BASE_IDS.contains(objectId) || objectId == LOST_SUPPLIES_IMPOSTOR_ID)
-						{
-							continue;
-						}
-						if (SPEED_BOOST_IDS.contains(objectId))
-						{
-							continue;
-						}
-						if (objectId == State.RUM_RETURN_BASE_OBJECT_ID || objectId == State.RUM_RETURN_IMPOSTOR_ID ||
-							objectId == State.RUM_PICKUP_BASE_OBJECT_ID || objectId == State.RUM_PICKUP_IMPOSTOR_ID)
-						{
 							continue;
 						}
 
-						ObjectComposition objectComposition = client.getObjectDefinition(objectId);
-						if (objectComposition != null)
+						if (!knownBoostTiles.containsKey(tileWp) && speedBoostIds.contains(id))
 						{
-							String objectName = objectComposition.getName();
-							if (objectName != null)
+							knownBoosts.add(obj);
+
+							// getObjectTiles is 5x5 but we want 3x3 to encourage getting closer
+							var speedTilesWithOneTolerance = ObjectTracker.getTilesWithTolerance(objTile, 1);
+							knownBoostTiles.put(objTile, speedTilesWithOneTolerance);
+							continue;
+						}
+
+						if (!knownFetidPoolTiles.contains(tileWp) && fetidPoolIds.contains(id))
+						{
+							knownFetidPools.add(obj);
+							knownFetidPoolTiles.addAll(ObjectTracker.getObjectTiles(client, obj));
+
+							continue;
+						}
+
+						var matchingToadPillarByParentId =
+								Arrays.stream(JubblyJiveConfig.TOAD_PILLARS)
+										.filter(v -> v.getClickboxParentObjectId() == id)
+										.findFirst()
+										.orElse(null);
+
+						if (matchingToadPillarByParentId != null)
+						{
+							if (!knownToadPillarTiles.contains(tileWp))
 							{
-								String objectNameLowerCase = objectName.toLowerCase();
-								if (objectNameLowerCase.contains("rock") || objectNameLowerCase.contains("boulder") ||
-									objectNameLowerCase.contains("obstacle") || objectNameLowerCase.contains("debris"))
-								{
-									state.getAllRocksInScene().add(gameObject);
-								}
+								knownToadPillarTiles.addAll(ObjectTracker.getObjectTiles(client, obj));
 							}
+
+							onToadPillarTick(knownToadPillars, obj, matchingToadPillarByParentId);
+							continue;
 						}
 					}
 				}
 			}
 		}
+	}
+
+	public void onToadPillarTick(Map<WorldPoint, Boolean> knownToadPillars, GameObject newToadPillarObj, JubblyJiveToadPillar toadPillar)
+	{
+		var objectComposition = client.getObjectDefinition(newToadPillarObj.getId());
+		if (objectComposition == null)
+			return;
+
+		var isInteractedWith = false;
+
+		var impostorIds = objectComposition.getImpostorIds();
+		if (impostorIds != null)
+		{
+			var imposter = objectComposition.getImpostor();
+			isInteractedWith = imposter.getId() == toadPillar.getClickboxNoopObjectId();
+		}
+
+		var previousIsInteractedWith = knownToadPillars.put(newToadPillarObj.getWorldLocation(), isInteractedWith);
+
+		if (previousIsInteractedWith == null) return; // first time
+		if (previousIsInteractedWith == isInteractedWith) return; // no change
+		if (previousIsInteractedWith && !isInteractedWith) return; // true -> false (reset)
+
+		var route = state.getCurrentStaticRoute();
+		if (route == null || route.isEmpty())
+		{
+			return;
+		}
+
+		var objectId = newToadPillarObj.getId();
+		log.info("Detected change in pillar. Trying to find id {} in list of waypoints", objectId);
+
+		for (int index = 0; index < route.size(); index++)
+		{
+			var waypoint = route.get(index);
+
+			if (!(waypoint instanceof JubblyJiveToadPillarWaypoint))
+			{
+				continue;
+			}
+
+			var pillarWaypoint = (JubblyJiveToadPillarWaypoint) waypoint;
+
+			if (!pillarWaypoint.getPillar().matchesAnyObjectId(objectId))
+			{
+				continue;
+			}
+
+			if (state.isWaypointCompleted(index))
+			{
+				log.info("Found match but it was already completed, seeing if there's more...");
+				continue;
+			}
+
+			log.info("Found match! Completing it in our waypoint list.");
+			state.markWaypointCompleted(index);
+
+			var waypointLap = waypoint.getLap();
+			if (state.getCurrentLap() < waypointLap)
+			{
+				var lapsRequired = state.getCurrentDifficulty().rumsRequired;
+
+				log.info("Advanced to lap {}/{}", waypointLap, lapsRequired);
+				state.setCurrentLap(waypointLap);
+			}
+
+			return;
+		}
+
+		log.warn("Couldn't find a match to update! That seems wrong - how did we update the imposter without it being in the list?");
 	}
 
 	/**
@@ -324,7 +308,6 @@ public class ObjectTracker
 
 	/**
 	 * Detects shipments that were collected (disappeared from scene while count increased)
-	 * DEPRECATED: This is the old scene-scanning approach. Use updateRouteWaypointShipmentTracking() instead.
 	 */
 	private void detectAndMarkCollectedShipments(Set<GameObject> currentSupplies)
 	{
@@ -337,7 +320,7 @@ public class ObjectTracker
 			}
 		}
 
-		// Game quirk: Shipments only disappear when collected
+		// Shipments only disappear when collected
 		if (!disappearedSupplyLocations.isEmpty())
 		{
 			for (WorldPoint location : disappearedSupplyLocations)
@@ -505,6 +488,15 @@ public class ObjectTracker
 			return foundSupplyLocations;
 		}
 
+		var trial = state.getCurrentTrial();
+		if (trial == null)
+		{
+			return foundSupplyLocations;
+		}
+
+		var shipmentIds = trial.getShipmentBaseIds();
+		int shipmentImpostorId = trial.getShipmentImpostorId();
+
 		for (var plane : tileArray)
 		{
 			if (plane == null) continue;
@@ -522,8 +514,8 @@ public class ObjectTracker
 						if (gameObject == null) continue;
 
 						int objectId = gameObject.getId();
-						if (!LOST_SUPPLIES_BASE_IDS.contains(objectId)
-							&& objectId != LOST_SUPPLIES_IMPOSTOR_ID)
+						if (!shipmentIds.contains(objectId)
+							&& objectId != shipmentImpostorId)
 						{
 							continue;
 						}
@@ -550,6 +542,15 @@ public class ObjectTracker
 	 */
 	private boolean hasBaseShipmentButNoImpostor(Scene scene, WorldPoint worldLocation)
 	{
+		var trial = state.getCurrentTrial();
+		if (trial == null)
+		{
+			return false;
+		}
+
+		var shipmentIds = trial.getShipmentBaseIds();
+		int shipmentImpostorId = trial.getShipmentImpostorId();
+
 		int plane = worldLocation.getPlane();
 		int sceneX = worldLocation.getX() - scene.getBaseX();
 		int sceneY = worldLocation.getY() - scene.getBaseY();
@@ -583,12 +584,12 @@ public class ObjectTracker
 
 			int objectId = gameObject.getId();
 
-			if (LOST_SUPPLIES_BASE_IDS.contains(objectId))
+			if (shipmentIds.contains(objectId))
 			{
 				hasBaseShipment = true;
 			}
 
-			if (objectId == LOST_SUPPLIES_IMPOSTOR_ID)
+			if (objectId == shipmentImpostorId)
 			{
 				hasImpostor = true;
 			}
@@ -637,6 +638,14 @@ public class ObjectTracker
 
 	public void processLostSupplyTile(Tile tile, Set<GameObject> newlyFoundLostSupplies)
 	{
+		var trial = state.getCurrentTrial();
+		if (trial == null)
+		{
+			return;
+		}
+
+		var shipmentIds = trial.getShipmentBaseIds();
+
 		GameObject[] gameObjects = tile.getGameObjects();
 		if (gameObjects == null)
 		{
@@ -650,7 +659,7 @@ public class ObjectTracker
 				continue;
 			}
 
-			if (!LOST_SUPPLIES_BASE_IDS.contains(gameObject.getId()))
+			if (!shipmentIds.contains(gameObject.getId()))
 			{
 				continue;
 			}
@@ -677,6 +686,14 @@ public class ObjectTracker
 	 */
 	public boolean isLostSupplyCurrentlyCollectible(GameObject gameObject)
 	{
+		var trial = state.getCurrentTrial();
+		if (trial == null)
+		{
+			return false;
+		}
+
+		int shipmentImpostorId = trial.getShipmentImpostorId();
+
 		try
 		{
 			ObjectComposition objectComposition = client.getObjectDefinition(gameObject.getId());
@@ -688,7 +705,7 @@ public class ObjectTracker
 			int[] impostorIds = objectComposition.getImpostorIds();
 			if (impostorIds == null)
 			{
-				return gameObject.getId() == LOST_SUPPLIES_IMPOSTOR_ID;
+				return gameObject.getId() == shipmentImpostorId;
 			}
 
 			ObjectComposition activeImpostor = objectComposition.getImpostor();
@@ -697,7 +714,7 @@ public class ObjectTracker
 				return false;
 			}
 
-			return activeImpostor.getId() == LOST_SUPPLIES_IMPOSTOR_ID;
+			return activeImpostor.getId() == shipmentImpostorId;
 		}
 		catch (Exception e)
 		{
@@ -916,4 +933,62 @@ public class ObjectTracker
 			log.debug("Error calculating front boat tile: {}", e.getMessage());
 		}
 	}
+
+	public static List<WorldPoint> getObjectTiles(Client client, GameObject obj)
+	{
+		Point min = obj.getSceneMinLocation();
+		Point max = obj.getSceneMaxLocation();
+
+		if (min == null || max == null)
+		{
+			// Fallback: treat as 1x1 anchored on world location
+			return Collections.singletonList(obj.getWorldLocation());
+		}
+
+		Scene scene = client.getScene();
+		int baseX = scene.getBaseX();
+		int baseY = scene.getBaseY();
+		int plane = obj.getPlane();
+
+		int width = max.getX() - min.getX() + 1;
+		int height = max.getY() - min.getY() + 1;
+
+		List<WorldPoint> result = new ArrayList<>(width * height);
+		for (int sx = min.getX(); sx <= max.getX(); sx++)
+		{
+			for (int sy = min.getY(); sy <= max.getY(); sy++)
+			{
+				int worldX = baseX + sx;
+				int worldY = baseY + sy;
+				result.add(new WorldPoint(worldX, worldY, plane));
+			}
+		}
+
+		return result;
+	}
+
+	/**
+	 * Computes all tiles within a given tolerance distance from target locations.
+	 * Uses Chebyshev distance (max of dx, dy) for square areas.
+	 *
+	 * @param center
+	 * @param tolerance Distance in tiles (1 = 3x3 area, 2 = 5x5 area, etc.)
+	 * @return Map from grabbable tile to its center point
+	 */
+	public static List<WorldPoint> getTilesWithTolerance(WorldPoint center, int tolerance)
+	{
+		List<WorldPoint> tiles = new ArrayList<>();
+		int plane = center.getPlane();
+
+		for (int dx = -tolerance; dx <= tolerance; dx++)
+		{
+			for (int dy = -tolerance; dy <= tolerance; dy++)
+			{
+				tiles.add(new WorldPoint(center.getX() + dx, center.getY() + dy, plane));
+			}
+		}
+
+		return tiles;
+	}
+
 }

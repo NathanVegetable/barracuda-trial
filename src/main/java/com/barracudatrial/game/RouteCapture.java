@@ -2,6 +2,7 @@ package com.barracudatrial.game;
 
 import com.barracudatrial.game.route.Difficulty;
 import com.barracudatrial.game.route.RouteWaypoint;
+import com.barracudatrial.game.route.TemporTantrumConfig;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.coords.WorldPoint;
@@ -60,6 +61,28 @@ public class RouteCapture
 	}
 
 	/**
+	 * Handle examine action on Toad Pillar for Jubbly Jive.
+	 * First examine starts capture, subsequent examines record pillar waypoints in order.
+	 */
+	public void onExamineToadPillar(WorldPoint location, int objectId)
+	{
+		log.info("[ROUTE CAPTURE] Toad Pillar examined:");
+		log.info("[ROUTE CAPTURE]   ObjectID: {}", objectId);
+		log.info("[ROUTE CAPTURE]   Location: {}", formatWorldPoint(location));
+
+		if (!isCapturing)
+		{
+			startCapture(location);
+		}
+		else
+		{
+			capturedWaypoints.add(new RouteWaypoint(RouteWaypoint.WaypointType.TOAD_PILLAR, location));
+			int waypointNumber = capturedWaypoints.size();
+			log.info("[ROUTE CAPTURE] Toad Pillar #{}: {}", waypointNumber, formatWorldPoint(location));
+		}
+	}
+
+	/**
 	 * Records shipments that were collected during route capture.
 	 * Called with the list of collected shipments detected by ObjectTracker.
 	 */
@@ -111,8 +134,14 @@ public class RouteCapture
 			return;
 		}
 
-		capturedWaypoints.add(new RouteWaypoint(RouteWaypoint.WaypointType.RUM_PICKUP));
-		log.info("[ROUTE CAPTURE] Rum pickup recorded (waypoint #{})", capturedWaypoints.size());
+		var trial = state.getCurrentTrial();
+		if (trial instanceof TemporTantrumConfig)
+		{
+			var location = state.getRumPickupLocation();
+			capturedWaypoints.add(new RouteWaypoint(RouteWaypoint.WaypointType.RUM_PICKUP, location));
+			log.info("[ROUTE CAPTURE] Rum pickup recorded (waypoint #{}): {}",
+				capturedWaypoints.size(), formatWorldPoint(location));
+		}
 	}
 
 	/**
@@ -126,8 +155,15 @@ public class RouteCapture
 			return;
 		}
 
-		capturedWaypoints.add(new RouteWaypoint(RouteWaypoint.WaypointType.RUM_DROPOFF));
-		log.info("[ROUTE CAPTURE] Rum dropoff recorded (waypoint #{})", capturedWaypoints.size());
+		var trial = state.getCurrentTrial();
+		if (trial instanceof TemporTantrumConfig)
+		{
+			var tempor = (TemporTantrumConfig) trial;
+			var location = tempor.getRumDropoffLocation();
+			capturedWaypoints.add(new RouteWaypoint(RouteWaypoint.WaypointType.RUM_DROPOFF, location));
+			log.info("[ROUTE CAPTURE] Rum dropoff recorded (waypoint #{}): {}",
+				capturedWaypoints.size(), formatWorldPoint(location));
+		}
 
 		if (isCompletingFinalLap)
 		{

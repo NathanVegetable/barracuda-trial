@@ -1,9 +1,7 @@
 package com.barracudatrial.game;
 
 import com.barracudatrial.CachedConfig;
-import com.barracudatrial.game.route.Difficulty;
-import com.barracudatrial.game.route.RouteWaypoint;
-import com.barracudatrial.game.route.TemporTantrumRoutes;
+import com.barracudatrial.game.route.*;
 import com.barracudatrial.pathfinding.AStarPathfinder;
 import com.barracudatrial.pathfinding.BarracudaTileCostCalculator;
 import com.barracudatrial.pathfinding.PathStabilizer;
@@ -11,6 +9,7 @@ import com.barracudatrial.rendering.ObjectRenderer;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.Client;
 import net.runelite.api.NPC;
+import net.runelite.api.World;
 import net.runelite.api.WorldView;
 import net.runelite.api.coords.LocalPoint;
 import net.runelite.api.coords.WorldPoint;
@@ -93,19 +92,28 @@ public class PathPlanner
 
 	private void loadStaticRouteForCurrentDifficulty()
 	{
+		var trial = state.getCurrentTrial();
+		if (trial == null)
+		{
+			log.warn("Trial config not initialized, cannot load route");
+			state.setCurrentStaticRoute(new ArrayList<>());
+			return;
+		}
+
 		Difficulty difficulty = state.getCurrentDifficulty();
-		List<RouteWaypoint> staticRoute = TemporTantrumRoutes.getRoute(difficulty);
+		List<RouteWaypoint> staticRoute = trial.getRoute(difficulty);
 
 		if (staticRoute == null || staticRoute.isEmpty())
 		{
-			log.warn("No static route found for difficulty: {}", difficulty);
+			log.warn("No static route found for trial {} difficulty: {}", trial.getTrialType(), difficulty);
 			state.setCurrentStaticRoute(new ArrayList<>());
 			return;
 		}
 
 		state.setCurrentStaticRoute(staticRoute);
 		state.setNextWaypointIndex(0);
-		log.debug("Loaded static route for difficulty {} with {} waypoints", difficulty, staticRoute.size());
+		log.debug("Loaded static route for {} difficulty {} with {} waypoints",
+			trial.getTrialType(), difficulty, staticRoute.size());
 	}
 
 	/**
@@ -172,7 +180,44 @@ public class PathPlanner
 			// If target is out of the extended scene, find the nearest in-scene tile along the path
 			WorldPoint pathfindingTarget = getInSceneTarget(currentPosition, target);
 
-			List<WorldPoint> segmentPath = pathToSingleTarget(currentPosition, pathfindingTarget, waypoint.getType().getToleranceTiles(), isPlayerCurrentlyOnPath);
+			int initialBoatDx;
+			int initialBoatDy;
+
+			if (fullPath.isEmpty())
+			{
+				// First segment: use actual boat heading from state
+				WorldPoint frontBoatTile = state.getFrontBoatTileEstimatedActual();
+				WorldPoint backBoatTile = state.getBoatLocation();
+				if (frontBoatTile != null && backBoatTile != null)
+				{
+					initialBoatDx = frontBoatTile.getX() - backBoatTile.getX();
+					initialBoatDy = frontBoatTile.getY() - backBoatTile.getY();
+				}
+				else
+				{
+					initialBoatDx = 0;
+					initialBoatDy = 0;
+				}
+			}
+			else
+			{
+				// Subsequent segments: derive heading from last step of the accumulated fullPath
+				if (fullPath.size() >= 2)
+				{
+					WorldPoint prev = fullPath.get(fullPath.size() - 2);
+					WorldPoint last = fullPath.get(fullPath.size() - 1);
+					initialBoatDx = last.getX() - prev.getX();
+					initialBoatDy = last.getY() - prev.getY();
+				}
+				else
+				{
+					// If we don't have two path points, prefer a neutral heading (0,0)
+					initialBoatDx = 0;
+					initialBoatDy = 0;
+				}
+			}
+
+			List<WorldPoint> segmentPath = pathToSingleTarget(currentPosition, pathfindingTarget, waypoint.getType().getToleranceTiles(), isPlayerCurrentlyOnPath, initialBoatDx, initialBoatDy);
 
 			if (fullPath.isEmpty())
 			{
@@ -199,7 +244,34 @@ public class PathPlanner
 	 * @param isPlayerCurrentlyOnPath Whether or not this is the path that the player is currently navigating
 	 * @return Path from start to target
 	 */
-	private List<WorldPoint> pathToSingleTarget(WorldPoint start, WorldPoint target, int goalTolerance, boolean isPlayerCurrentlyOnPath)
+	private List<WorldPoint> pathToSingleTarget(WorldPoint start, WorldPoint target, int goalTolerance, boolean isPlayerCurrentlyOnPath, int initialBoatDx, int initialBoatDy)
+	{
+		var tileCostCalculator = getBarracudaTileCostCalculator();
+
+		// Use provided initial heading (may be 0,0 for neutral)
+		int boatDirectionDx = initialBoatDx;
+		int boatDirectionDy = initialBoatDy;
+
+		int tileDistance = start.distanceTo(target); // Chebyshev distance in tiles
+		
+		// Never too high, but allow seeking longer on long paths
+		int maximumAStarSearchDistance = Math.max(50, Math.min(280, tileDistance * 20));
+
+		var currentStaticRoute = state.getCurrentStaticRoute();
+
+		List<WorldPoint> path = pathStabilizer.findPath(tileCostCalculator, cachedConfig.getRouteOptimization(), currentStaticRoute, start, target, maximumAStarSearchDistance, boatDirectionDx, boatDirectionDy, goalTolerance, isPlayerCurrentlyOnPath);
+
+		if (path.isEmpty())
+		{
+			List<WorldPoint> fallbackPath = new ArrayList<>();
+			fallbackPath.add(target);
+			return fallbackPath;
+		}
+
+		return path;
+	}
+
+	private BarracudaTileCostCalculator getBarracudaTileCostCalculator()
 	{
 		Set<NPC> currentlyDangerousClouds = new HashSet<>();
 		for (NPC lightningCloud : state.getLightningClouds())
@@ -210,52 +282,62 @@ public class PathPlanner
 			}
 		}
 
-		BarracudaTileCostCalculator tileCostCalculator = new BarracudaTileCostCalculator(
+		var trial = state.getCurrentTrial();
+		var boatExclusionWidth = trial != null && trial.getTrialType() == TrialType.TEMPOR_TANTRUM
+			? TemporTantrumConfig.BOAT_EXCLUSION_WIDTH
+			: JubblyJiveConfig.BOAT_EXCLUSION_WIDTH;
+		var boatExclusionHeight = trial != null && trial.getTrialType() == TrialType.TEMPOR_TANTRUM
+			? TemporTantrumConfig.BOAT_EXCLUSION_HEIGHT
+			: JubblyJiveConfig.BOAT_EXCLUSION_HEIGHT;
+
+		WorldPoint secondaryObjectiveLocation = null;
+
+		if (trial != null)
+		{
+			var trialType = trial.getTrialType();
+
+			if (trialType == TrialType.TEMPOR_TANTRUM)
+			{
+				secondaryObjectiveLocation = state.getRumReturnLocation();
+			}
+			else if (trialType == TrialType.JUBBLY_JIVE)
+			{
+				var route = state.getCurrentStaticRoute();
+				if (route != null && !route.isEmpty())
+				{
+					var completed = state.getCompletedWaypointIndices();
+					for (int i = 0; i < route.size(); i++)
+					{
+						if (completed.contains(i))
+							continue;
+
+						var waypoint = route.get(i);
+						if (waypoint.getType() == RouteWaypoint.WaypointType.TOAD_PILLAR)
+						{
+							secondaryObjectiveLocation = waypoint.getLocation();
+							break;
+						}
+					}
+				}
+			}
+		}
+
+		return new BarracudaTileCostCalculator(
 			state.getKnownSpeedBoostLocations(),
 			state.getKnownRockLocations(),
-			state.getRocks(),
+			state.getKnownFetidPoolLocations(),
+			state.getKnownToadPillarLocations(),
 			currentlyDangerousClouds,
 			state.getExclusionZoneMinX(),
 			state.getExclusionZoneMaxX(),
 			state.getExclusionZoneMinY(),
 			state.getExclusionZoneMaxY(),
-			cachedConfig.getRouteOptimization()
+			state.getRumPickupLocation(),
+			secondaryObjectiveLocation,
+			cachedConfig.getRouteOptimization(),
+			boatExclusionWidth,
+			boatExclusionHeight
 		);
-
-		// Calculate boat direction for A* forward constraint
-		// Direction = front tile - back tile (player position)
-		int boatDirectionDx = 0;
-		int boatDirectionDy = 0;
-		WorldPoint frontBoatTile = state.getFrontBoatTileEstimatedActual();
-		WorldPoint backBoatTile = state.getBoatLocation();
-		if (frontBoatTile != null && backBoatTile != null)
-		{
-			boatDirectionDx = frontBoatTile.getX() - backBoatTile.getX();
-			boatDirectionDy = frontBoatTile.getY() - backBoatTile.getY();
-		}
-
-		int maximumAStarSearchDistance = 70;
-
-		// If target is beyond the search distance, clamp it to the nearest point within range
-		WorldPoint pathfindingTarget = getTargetWithinSearchDistance(start, target, maximumAStarSearchDistance);
-
-		var currentStaticRoute = state.getCurrentStaticRoute();
-
-		List<WorldPoint> path = pathStabilizer.findPath(tileCostCalculator, cachedConfig.getRouteOptimization(), currentStaticRoute, start, pathfindingTarget, maximumAStarSearchDistance, boatDirectionDx, boatDirectionDy, goalTolerance, isPlayerCurrentlyOnPath);
-
-		if (path.isEmpty())
-		{
-			List<WorldPoint> fallbackPath = new ArrayList<>();
-			fallbackPath.add(pathfindingTarget);
-			return fallbackPath;
-		}
-
-		if (path.get(0).equals(start))
-		{
-			path.remove(0);
-		}
-
-		return path;
 	}
 
 	/**
@@ -284,36 +366,6 @@ public class PathPlanner
 		return findNearestValidPoint(start, target, candidate ->
 			ObjectRenderer.localPointFromWorldIncludingExtended(worldView, candidate) != null
 		);
-	}
-
-	/**
-	 * Returns the target if it's within the max search distance, otherwise finds the nearest tile
-	 * along the path from start to target using efficient binary search.
-	 * @param start Starting position
-	 * @param target Desired target position
-	 * @param maxSearchDistance Maximum distance in tiles from start
-	 * @return Target if within distance, otherwise nearest tile toward target within maxSearchDistance
-	 */
-	private WorldPoint getTargetWithinSearchDistance(WorldPoint start, WorldPoint target, int maxSearchDistance)
-	{
-		// Calculate distance from start to target
-		int dx = target.getX() - start.getX();
-		int dy = target.getY() - start.getY();
-		int actualDistance = Math.max(Math.abs(dx), Math.abs(dy));
-
-		// If target is within max distance, use it directly
-		if (actualDistance <= maxSearchDistance)
-		{
-			return target;
-		}
-
-		// Target is beyond max distance - binary search for the furthest tile within range
-		return findNearestValidPoint(start, target, candidate -> {
-			int candidateDx = candidate.getX() - start.getX();
-			int candidateDy = candidate.getY() - start.getY();
-			int candidateDistance = Math.max(Math.abs(candidateDx), Math.abs(candidateDy));
-			return candidateDistance <= maxSearchDistance;
-		});
 	}
 
 	/**

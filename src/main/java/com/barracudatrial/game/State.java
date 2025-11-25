@@ -2,6 +2,7 @@ package com.barracudatrial.game;
 
 import com.barracudatrial.game.route.Difficulty;
 import com.barracudatrial.game.route.RouteWaypoint;
+import com.barracudatrial.game.route.TrialConfig;
 import lombok.Getter;
 import lombok.Setter;
 import net.runelite.api.GameObject;
@@ -10,10 +11,7 @@ import net.runelite.api.coords.LocalPoint;
 import net.runelite.api.coords.WorldPoint;
 import net.runelite.api.gameval.ObjectID;
 
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 /**
  * Holds all game state for Barracuda Trial
@@ -21,6 +19,9 @@ import java.util.Set;
 @Getter
 public class State
 {
+	@Setter
+	private TrialConfig currentTrial = null;
+
 	public static final int CLOUD_ANIM_HARMLESS = -1;
 	public static final int CLOUD_ANIM_HARMLESS_ALT = 8879;
 
@@ -41,11 +42,9 @@ public class State
 
 	private final Set<NPC> lightningClouds = new HashSet<>();
 
-	private final Set<GameObject> rocks = new HashSet<>();
-
 	private final Set<GameObject> speedBoosts = new HashSet<>();
 
-	private final Set<GameObject> allRocksInScene = new HashSet<>();
+	private final Set<GameObject> fetidPools = new HashSet<>();
 
 	@Setter
 	private WorldPoint rumPickupLocation = null;
@@ -66,7 +65,7 @@ public class State
 	private int lostSuppliesTotal = 0;
 
 	@Setter
-	private boolean hasRumOnUs = false;
+	private boolean hasThrowableObjective = false;
 
 	@Setter
 	private int lastKnownDifficulty = 0;
@@ -84,7 +83,7 @@ public class State
 	private LocalPoint frontBoatTileLocal = null;
 
 	@Setter
-	private int currentLap = 0;
+	private int currentLap = 1;
 
 	@Setter
 	private List<WorldPoint> optimalPath = new ArrayList<>();
@@ -100,7 +99,14 @@ public class State
 
 	private final Set<WorldPoint> knownRockLocations = new HashSet<>();
 
-	private final Set<WorldPoint> knownSpeedBoostLocations = new HashSet<>();
+	private final Map<WorldPoint, List<WorldPoint>> knownSpeedBoostLocations = new HashMap<>();
+
+	private final Set<WorldPoint> knownFetidPoolLocations = new HashSet<>();
+
+	private final Set<WorldPoint> knownToadPillarLocations = new HashSet<>();
+
+	// True if interacted with
+	private final Map<WorldPoint, Boolean> knownToadPillars = new HashMap<>();
 
 	private final Set<WorldPoint> knownLostSuppliesSpawnLocations = new HashSet<>();
 
@@ -151,20 +157,19 @@ public class State
 	 */
 	public void resetAllTemporaryState()
 	{
+		currentTrial = null;
 		inTrialArea = false;
 		lostSupplies.clear();
 		routeCaptureSupplyLocations.clear();
 		lightningClouds.clear();
-		rocks.clear();
-		speedBoosts.clear();
-		allRocksInScene.clear();
+		knownToadPillars.clear();
 		rumPickupLocation = null;
 		rumReturnLocation = null;
 		rumsCollected = 0;
 		rumsNeeded = 0;
 		lostSuppliesCollected = 0;
 		lostSuppliesTotal = 0;
-		hasRumOnUs = false;
+		hasThrowableObjective = false;
 		currentTrialName = null;
 		boatLocation = null;
 		currentLap = 1;

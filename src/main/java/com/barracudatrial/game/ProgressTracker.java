@@ -1,5 +1,9 @@
 package com.barracudatrial.game;
 
+import com.barracudatrial.game.route.JubblyJiveConfig;
+import com.barracudatrial.game.route.TemporTantrumConfig;
+import com.barracudatrial.game.route.TrialConfig;
+import com.barracudatrial.game.route.TrialType;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.Client;
 import net.runelite.api.gameval.InterfaceID;
@@ -60,12 +64,37 @@ public class ProgressTracker
 			return;
 		}
 
-		// Detect and store trial name
-		String trialName = detectTrialType();
-		if (trialName != null && !trialName.equals(state.getCurrentTrialName()))
+		var title = client.getWidget(InterfaceID.SailingBtHud.BT_TITLE);
+		if (title != null && !title.isHidden())
 		{
-			log.debug("Detected trial: {}", trialName);
-			state.setCurrentTrialName(trialName);
+			var children = title.getChildren();
+			String trialName = null;
+			if (children != null)
+			{
+				for (var child : children) {
+					if (child == null || child.isHidden())
+						continue;
+					var text = child.getText();
+					if (text != null && !text.isEmpty())
+					{
+						trialName = text;
+						break;
+					}
+				}
+			}
+
+			if (trialName != null && !trialName.equals(state.getCurrentTrialName()))
+			{
+				log.info("Detected trial: {}", trialName);
+				state.setCurrentTrialName(trialName);
+
+				TrialType trialType = TrialType.fromDisplayName(trialName);
+				if (trialType != null) {
+					TrialConfig trialConfig = createTrialConfig(trialType);
+					state.setCurrentTrial(trialConfig);
+					log.info("Initialized trial config for: {}", trialType);
+				}
+			}
 		}
 
 		Widget rumProgressWidget = client.getWidget(InterfaceID.SailingBtHud.BT_TRACKER_PROGRESS);
@@ -79,7 +108,7 @@ public class ProgressTracker
 		if (lostSuppliesProgressWidget != null && !lostSuppliesProgressWidget.isHidden())
 		{
 			String lostSuppliesProgressText = lostSuppliesProgressWidget.getText();
-			parselostSuppliesProgressText(lostSuppliesProgressText);
+			parseLostSuppliesProgressText(lostSuppliesProgressText);
 		}
 
 		if (state.getLastKnownDifficulty() > 0 && state.getRumsNeeded() > 0
@@ -88,7 +117,7 @@ public class ProgressTracker
 			log.info("Difficulty changed from {} to {} rums - clearing persistent storage",
 				state.getLastKnownDifficulty(), state.getRumsNeeded());
 			state.clearPersistentStorage();
-			state.setCurrentLap(0);
+			state.setCurrentLap(1);
 		}
 		state.setLastKnownDifficulty(state.getRumsNeeded());
 	}
@@ -110,7 +139,7 @@ public class ProgressTracker
 		}
 	}
 
-	private void parselostSuppliesProgressText(String lostSuppliesProgressText)
+	private void parseLostSuppliesProgressText(String lostSuppliesProgressText)
 	{
 		try
 		{
@@ -128,73 +157,23 @@ public class ProgressTracker
 	}
 
 	/**
-	 * Detect the current trial type from HUD widget text.
-	 * Looks for trial names: "Tempor Tantrum", "Jubbly Jive", "Gwenith Glide"
-	 * @return The trial name if detected, or null if not found
+	 * Creates the appropriate trial configuration based on the trial type
 	 */
-	public String detectTrialType()
+	private TrialConfig createTrialConfig(TrialType trialType)
 	{
-		if (!state.isInTrialArea())
+		switch (trialType)
 		{
-			return null;
+			case TEMPOR_TANTRUM:
+				return new TemporTantrumConfig();
+			case JUBBLY_JIVE:
+				return new JubblyJiveConfig();
+			case GWENITH_GLIDE:
+				// TODO: Implement GwenithGlideConfig when needed
+				log.warn("Gwenith Glide config not yet implemented, using Tempor Tantrum as fallback");
+				return new TemporTantrumConfig();
+			default:
+				log.warn("Unknown trial type: {}, using Tempor Tantrum as fallback", trialType);
+				return new TemporTantrumConfig();
 		}
-
-		// Check main HUD widget for trial name
-		Widget barracudaTrialHudWidget = client.getWidget(InterfaceID.SailingBtHud.BARRACUDA_TRIALS);
-		if (barracudaTrialHudWidget != null && !barracudaTrialHudWidget.isHidden())
-		{
-			String trialName = checkWidgetForTrialName(barracudaTrialHudWidget);
-			if (trialName != null)
-			{
-				return trialName;
-			}
-
-			// Check child widgets if trial name not found in parent
-			Widget[] children = barracudaTrialHudWidget.getChildren();
-			if (children != null)
-			{
-				for (Widget child : children)
-				{
-					if (child != null && !child.isHidden())
-					{
-						trialName = checkWidgetForTrialName(child);
-						if (trialName != null)
-						{
-							return trialName;
-						}
-					}
-				}
-			}
-		}
-
-		return null;
-	}
-
-	/**
-	 * Check if a widget's text contains a trial name.
-	 */
-	private String checkWidgetForTrialName(Widget widget)
-	{
-		String text = widget.getText();
-		if (text == null || text.isEmpty())
-		{
-			return null;
-		}
-
-		// Check for known trial names
-		if (text.contains("Tempor Tantrum"))
-		{
-			return "Tempor Tantrum";
-		}
-		else if (text.contains("Jubbly Jive"))
-		{
-			return "Jubbly Jive";
-		}
-		else if (text.contains("Gwenith Glide"))
-		{
-			return "Gwenith Glide";
-		}
-
-		return null;
 	}
 }

@@ -20,25 +20,18 @@ public interface BarracudaTrialConfig extends Config
 	String pathSection = "pathSection";
 
 	@ConfigSection(
-		name = "Lost Supplies",
-		description = "Settings for lost supplies highlighting",
+		name = "Objectives",
+		description = "Settings for objective highlighting",
 		position = 1
 	)
-	String lostSuppliesSection = "lostSuppliesSection";
+	String objectivesSection = "objectivesSection";
 
 	@ConfigSection(
-		name = "Lightning Clouds (Storms)",
-		description = "Settings for lightning cloud highlighting",
+		name = "Object Hightlighting",
+		description = "Settings for object highlighting",
 		position = 2
 	)
-	String cloudSection = "cloudSection";
-
-	@ConfigSection(
-		name = "Other Hazards",
-		description = "Settings for rocks and other hazards",
-		position = 3
-	)
-	String hazardSection = "hazardSection";
+	String objectHighlightingSection = "objectHighlightingSection";
 
 	@ConfigSection(
 		name = "Debug",
@@ -111,61 +104,87 @@ public interface BarracudaTrialConfig extends Config
 	}
 
 	@ConfigItem(
-		keyName = "highlightLostSupplies",
-		name = "Highlight Lost Supplies",
-		description = "Highlight lost supplies in the trial area",
-		section = lostSuppliesSection,
+		keyName = "highlightObjectives",
+		name = "Highlight Objectives",
+		description = "Highlight objectives in the trial area",
+		section = objectivesSection,
 		position = 0
 	)
-	default boolean highlightLostSupplies()
+	default boolean highlightObjectives()
 	{
 		return true;
 	}
 
 	@ConfigItem(
-		keyName = "lostSuppliesColor",
-		name = "Lost Supplies Color",
-		description = "Color for lost supplies highlights",
-		section = lostSuppliesSection,
+		keyName = "objectivesColorCurrentWaypoint",
+		name = "Current Waypoint",
+		description = "Color for current waypoint",
+		section = objectivesSection,
 		position = 1
 	)
 	@Alpha
-	default Color lostSuppliesColor()
+	default Color objectivesColorCurrentWaypoint()
+	{
+		return new Color(0, 255, 0, 180);
+	}
+
+	@ConfigItem(
+		keyName = "objectivesColorCurrentLap",
+		name = "Current Lap",
+		description = "Color for objective highlights on current lap",
+		section = objectivesSection,
+		position = 2
+	)
+	@Alpha
+	default Color objectivesColorCurrentLap()
 	{
 		return new Color(255, 215, 0, 180);
 	}
 
 	@ConfigItem(
-		keyName = "highlightRumLocations",
-		name = "Highlight Rum Locations",
-		description = "Highlight rum pickup and dropoff locations",
-		section = lostSuppliesSection,
-		position = 2
-	)
-	default boolean highlightRumLocations()
-	{
-		return true;
-	}
-
-	@ConfigItem(
-		keyName = "rumLocationColor",
-		name = "Rum Location Color",
-		description = "Color for rum location highlights",
-		section = lostSuppliesSection,
+		keyName = "objectivesColorLaterLaps",
+		name = "Later Lap",
+		description = "Color for objective highlights on later laps",
+		section = objectivesSection,
 		position = 3
 	)
 	@Alpha
-	default Color rumLocationColor()
+	default Color objectivesColorLaterLaps()
 	{
-		return new Color(128, 0, 128, 180);
+		return new Color(255, 40, 0, 120);
+	}
+
+	@ConfigItem(
+		keyName = "highlightSpeedBoosts",
+		name = "Highlight Speed Boosts",
+		description = "Highlight speed boost areas",
+		section = objectHighlightingSection,
+		position = 0
+	)
+	default boolean highlightSpeedBoosts()
+	{
+		return false;
+	}
+
+	@ConfigItem(
+		keyName = "speedBoostColor",
+		name = "Speed Boost Color",
+		description = "Color for speed boost highlights",
+		section = objectHighlightingSection,
+		position = 1
+	)
+	@Alpha
+	default Color speedBoostColor()
+	{
+		return new Color(0, 255, 0, 150); // Bright green for speed!
 	}
 
 	@ConfigItem(
 		keyName = "highlightClouds",
 		name = "Highlight Lightning Clouds",
 		description = "Highlight dangerous lightning clouds",
-		section = cloudSection,
-		position = 0
+		section = objectHighlightingSection,
+		position = 2
 	)
 	default boolean highlightClouds()
 	{
@@ -176,8 +195,8 @@ public interface BarracudaTrialConfig extends Config
 		keyName = "cloudColor",
 		name = "Cloud Color",
 		description = "Color for lightning cloud highlights",
-		section = cloudSection,
-		position = 1
+		section = objectHighlightingSection,
+		position = 3
 	)
 	@Alpha
 	default Color cloudColor()
@@ -189,8 +208,8 @@ public interface BarracudaTrialConfig extends Config
 		keyName = "cloudDangerRadius",
 		name = "Cloud Danger Radius",
 		description = "Radius in tiles for the cloud danger area",
-		section = cloudSection,
-		position = 2
+		section = objectHighlightingSection,
+		position = 4
 	)
 	@Range(max = 5)
 	default int cloudDangerRadius()
@@ -199,53 +218,28 @@ public interface BarracudaTrialConfig extends Config
 	}
 
 	@ConfigItem(
-		keyName = "highlightRocks",
-		name = "Highlight Rocks",
-		description = "Rocks stop your momentum when hit",
-		section = hazardSection,
-		position = 0
+		keyName = "highlightFetidPools",
+		name = "Highlight Fetid Pools",
+		description = "Highlight fetid pools",
+		section = objectHighlightingSection,
+		position = 5
 	)
-	default boolean highlightRocks()
+	default boolean highlightFetidPools()
 	{
 		return false;
 	}
 
 	@ConfigItem(
-		keyName = "rockColor",
-		name = "Rock Color",
-		description = "Color for rock highlights",
-		section = hazardSection,
-		position = 1
+		keyName = "fetidPoolColor",
+		name = "Fetid Pool Color",
+		description = "Color for fetid pool highlights",
+		section = objectHighlightingSection,
+		position = 6
 	)
 	@Alpha
-	default Color rockColor()
+	default Color fetidPoolColor()
 	{
-		return new Color(128, 128, 128, 150);
-	}
-
-	@ConfigItem(
-		keyName = "highlightSpeedBoosts",
-		name = "Highlight Speed Boosts",
-		description = "Highlight speed boost areas",
-		section = hazardSection,
-		position = 2
-	)
-	default boolean highlightSpeedBoosts()
-	{
-		return false;
-	}
-
-	@ConfigItem(
-		keyName = "speedBoostColor",
-		name = "Speed Boost Color",
-		description = "Color for speed boost highlights",
-		section = hazardSection,
-		position = 3
-	)
-	@Alpha
-	default Color speedBoostColor()
-	{
-		return new Color(0, 255, 0, 150); // Bright green for speed!
+		return new Color(255, 0, 0, 80);
 	}
 
 	// Debug Settings
