@@ -2,7 +2,9 @@ package com.barracudatrial.rendering;
 
 import com.barracudatrial.CachedConfig;
 import com.barracudatrial.BarracudaTrialPlugin;
-import com.barracudatrial.game.route.RumLocations;
+import com.barracudatrial.game.route.JubblyJiveConfig;
+import com.barracudatrial.game.route.TemporTantrumConfig;
+import com.barracudatrial.game.route.TrialType;
 import lombok.Setter;
 import net.runelite.api.*;
 import net.runelite.api.coords.LocalPoint;
@@ -25,16 +27,14 @@ public class DebugRenderer
 {
 	private final Client client;
 	private final BarracudaTrialPlugin plugin;
-	private final ModelOutlineRenderer modelOutlineRenderer;
 
 	@Setter
 	private Map<Point, Integer> labelCountsByCanvasPosition;
 
-	public DebugRenderer(Client client, BarracudaTrialPlugin plugin, ModelOutlineRenderer modelOutlineRenderer)
+	public DebugRenderer(Client client, BarracudaTrialPlugin plugin)
 	{
 		this.client = client;
 		this.plugin = plugin;
-		this.modelOutlineRenderer = modelOutlineRenderer;
 	}
 
 	public void renderDebugInfo(Graphics2D graphics)
@@ -42,11 +42,6 @@ public class DebugRenderer
 		CachedConfig cachedConfig = plugin.getCachedConfig();
 		renderExclusionZoneVisualization(graphics);
 		renderBoatExclusionZones(graphics);
-
-		if (cachedConfig.isShowIDs())
-		{
-			renderAllRocksInSceneWithLabels(graphics);
-		}
 
 		renderFrontBoatTileDebug(graphics);
 		renderDebugTextOverlay(graphics);
@@ -112,19 +107,34 @@ public class DebugRenderer
 
 		Color boatExclusionColor = new Color(255, 100, 0, 60); // Orange
 
-		renderBoatExclusionZone(graphics, topLevelWorldView,
-			RumLocations.TEMPOR_TANTRUM_PICKUP,
-			"BOAT (PICKUP)", boatExclusionColor);
+		var trial = plugin.getGameState().getCurrentTrial();
+		if (trial != null)
+		{
+			if (trial.getTrialType() == TrialType.TEMPOR_TANTRUM && trial instanceof TemporTantrumConfig)
+			{
+				var tempor = (TemporTantrumConfig)trial;
+				renderBoatExclusionZone(graphics, topLevelWorldView,
+					tempor.getRumPickupLocation(),
+					"BOAT (PICKUP)", boatExclusionColor);
 
-		renderBoatExclusionZone(graphics, topLevelWorldView,
-			RumLocations.TEMPOR_TANTRUM_DROPOFF,
-			"BOAT (DROPOFF)", boatExclusionColor);
+				renderBoatExclusionZone(graphics, topLevelWorldView,
+					tempor.getRumDropoffLocation(),
+					"BOAT (DROPOFF)", boatExclusionColor);
+			}
+			if (trial.getTrialType() == TrialType.JUBBLY_JIVE && trial instanceof JubblyJiveConfig)
+			{
+				var jubbly = (JubblyJiveConfig)trial;
+				renderBoatExclusionZone(graphics, topLevelWorldView,
+					jubbly.getToadPickupLocation(),
+					"TOAD PICKUP", boatExclusionColor);
+			}
+		}
 	}
 
 	private void renderBoatExclusionZone(Graphics2D graphics, WorldView worldView, WorldPoint center, String label, Color color)
 	{
-		int width = RumLocations.BOAT_EXCLUSION_WIDTH;
-		int height = RumLocations.BOAT_EXCLUSION_HEIGHT;
+		int width = TemporTantrumConfig.BOAT_EXCLUSION_WIDTH;
+		int height = TemporTantrumConfig.BOAT_EXCLUSION_HEIGHT;
 
 		int halfWidth = width / 2;
 		int halfHeight = height / 2;
@@ -159,41 +169,6 @@ public class DebugRenderer
 			if (labelCanvasPoint != null)
 			{
 				OverlayUtil.renderTextLocation(graphics, labelCanvasPoint, label, new Color(255, 100, 0, 255));
-			}
-		}
-	}
-
-	private void renderAllRocksInSceneWithLabels(Graphics2D graphics)
-	{
-		Set<String> alreadyRenderedLabels = new HashSet<>();
-
-		for (GameObject rockObject : plugin.getAllRocksInScene())
-		{
-			LocalPoint rockLocalPoint = rockObject.getLocalLocation();
-
-			Color debugRockColor = new Color(255, 165, 0, 180);
-
-			Polygon tilePolygon = Perspective.getCanvasTilePoly(client, rockLocalPoint);
-			if (tilePolygon != null)
-			{
-				OverlayUtil.renderPolygon(graphics, tilePolygon, debugRockColor);
-			}
-
-			modelOutlineRenderer.drawOutline(rockObject, 2, debugRockColor, 4);
-
-			String rockLabel = buildObjectLabelWithImpostorInfo(rockObject);
-
-			boolean isLabelAlreadyRendered = alreadyRenderedLabels.contains(rockLabel);
-			if (!isLabelAlreadyRendered)
-			{
-				Point labelCanvasPoint = Perspective.getCanvasTextLocation(client, graphics, rockLocalPoint, rockLabel, 0);
-				if (labelCanvasPoint != null)
-				{
-					int yOffsetToAvoidLabelOverlap = calculateAndIncrementLabelOffset(labelCanvasPoint);
-					Point adjustedLabelPoint = new Point(labelCanvasPoint.getX(), labelCanvasPoint.getY() + yOffsetToAvoidLabelOverlap);
-					OverlayUtil.renderTextLocation(graphics, adjustedLabelPoint, rockLabel, debugRockColor);
-					alreadyRenderedLabels.add(rockLabel);
-				}
 			}
 		}
 	}
@@ -252,7 +227,7 @@ public class DebugRenderer
 	private void renderDebugTextOverlay(Graphics2D graphics)
 	{
 		int textStartX = 10;
-		int textStartY = 80;
+		int textStartY = 150;
 		int lineHeightInPixels = 15;
 
 		graphics.setFont(new Font("Arial", Font.BOLD, 12));
@@ -280,19 +255,20 @@ public class DebugRenderer
 		List<String> debugLines = new ArrayList<>();
 
 		debugLines.add("=== BARRACUDA TRIAL DEBUG ===");
-		debugLines.add(String.format("Lap: %d / %d", plugin.getGameState().getCurrentLap() + 1, plugin.getGameState().getRumsNeeded()));
+		debugLines.add(String.format("Lap: %d / %d", plugin.getGameState().getCurrentLap(), plugin.getGameState().getRumsNeeded()));
 		debugLines.add(String.format("Lost Supplies Visible: %d", plugin.getGameState().getLostSupplies().size()));
 		debugLines.add(String.format("LostSupplies: %d / %d", plugin.getGameState().getLostSuppliesCollected(), plugin.getGameState().getLostSuppliesTotal()));
 		debugLines.add(String.format("Rum: %d / %d", plugin.getGameState().getRumsCollected(), plugin.getGameState().getRumsNeeded()));
 		debugLines.add(String.format("Current Path: %d points", plugin.getGameState().getCurrentSegmentPath().size()));
+		debugLines.add(String.format("Waypoints in Route: %d", plugin.getGameState().getCurrentStaticRoute().size()));
+		debugLines.add(String.format("Completed Waypoints: %d", plugin.getGameState().getCompletedWaypointIndices().size()));
 		debugLines.add(String.format("Next Path: %d points", plugin.getGameState().getNextSegmentPath().size()));
 		debugLines.add(String.format("Last Path Recalc: %s", plugin.getGameState().getLastPathRecalcCaller()));
 		debugLines.add("");
 		debugLines.add("--- Visible Objects ---");
 		debugLines.add(String.format("Lightning Clouds: %d", plugin.getGameState().getLightningClouds().size()));
-		debugLines.add(String.format("Rocks (visible): %d", plugin.getGameState().getRocks().size()));
+		debugLines.add(String.format("Rocks (visible): %d", plugin.getGameState().getKnownRockLocations().size()));
 		debugLines.add(String.format("Speed Boosts (visible): %d", plugin.getGameState().getSpeedBoosts().size()));
-		debugLines.add(String.format("All Rocks (debug scan): %d", plugin.getAllRocksInScene().size()));
 		debugLines.add("");
 		debugLines.add("--- Persistent Storage ---");
 		debugLines.add(String.format("Known Rock Locations: %d", plugin.getGameState().getKnownRockLocations().size()));

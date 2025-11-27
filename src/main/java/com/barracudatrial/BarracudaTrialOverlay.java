@@ -1,5 +1,6 @@
 package com.barracudatrial;
 
+import com.barracudatrial.game.route.TrialType;
 import com.barracudatrial.rendering.DebugRenderer;
 import com.barracudatrial.rendering.ObjectRenderer;
 import com.barracudatrial.rendering.PathRenderer;
@@ -29,7 +30,7 @@ public class BarracudaTrialOverlay extends Overlay
 		this.plugin = plugin;
 		this.objectRenderer = new ObjectRenderer(client, plugin, modelOutlineRenderer);
 		this.pathRenderer = new PathRenderer(client, plugin, objectRenderer);
-		this.debugRenderer = new DebugRenderer(client, plugin, modelOutlineRenderer);
+		this.debugRenderer = new DebugRenderer(client, plugin);
 
 		setPosition(OverlayPosition.DYNAMIC);
 		setLayer(OverlayLayer.ABOVE_SCENE);
@@ -57,24 +58,26 @@ public class BarracudaTrialOverlay extends Overlay
 			pathRenderer.renderOptimalPath(graphics);
 		}
 
-		if (cachedConfig.isHighlightLostSupplies())
+		if (cachedConfig.isHighlightObjectives())
 		{
 			objectRenderer.renderLostSupplies(graphics);
 		}
 
-		if (cachedConfig.isDebugMode())
-		{
-			objectRenderer.renderRouteCaptureSupplyLocations(graphics);
-		}
-
-		if (cachedConfig.isHighlightClouds())
+		var trial = plugin.getGameState().getCurrentTrial();
+		if (cachedConfig.isHighlightClouds() && trial != null && trial.getTrialType() == TrialType.TEMPOR_TANTRUM)
 		{
 			objectRenderer.renderLightningClouds(graphics);
 		}
 
-		if (cachedConfig.isHighlightRocks())
+		if (cachedConfig.isHighlightFetidPools() && trial != null && trial.getTrialType() == TrialType.JUBBLY_JIVE)
 		{
-			objectRenderer.renderRocks(graphics);
+			objectRenderer.renderFetidPools(graphics);
+		}
+
+		if (cachedConfig.isHighlightObjectives() && trial != null && trial.getTrialType() == TrialType.JUBBLY_JIVE)
+		{
+			objectRenderer.renderToadPillars(graphics);
+			objectRenderer.renderToadPickup(graphics);
 		}
 
 		if (cachedConfig.isHighlightSpeedBoosts())
@@ -82,7 +85,7 @@ public class BarracudaTrialOverlay extends Overlay
 			objectRenderer.renderSpeedBoosts(graphics);
 		}
 
-		if (cachedConfig.isHighlightRumLocations())
+		if (cachedConfig.isHighlightObjectives() && trial != null && trial.getTrialType() == TrialType.TEMPOR_TANTRUM)
 		{
 			objectRenderer.renderRumLocations(graphics);
 		}

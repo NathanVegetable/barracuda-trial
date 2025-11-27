@@ -15,6 +15,7 @@ A RuneLite plugin for efficient Sailing skill training through Barracuda Trials.
 ### Tempor Tantrum
 
 **Supported difficulties:**
+
 - Swordfish
 - Shark
 - Marlin
@@ -24,6 +25,7 @@ A RuneLite plugin for efficient Sailing skill training through Barracuda Trials.
 ### Jubbly Jive
 
 **Supported difficulties:**
+
 - Swordfish
 - Shark
 

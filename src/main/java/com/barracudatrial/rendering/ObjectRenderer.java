@@ -3,22 +3,21 @@ package com.barracudatrial.rendering;
 import com.barracudatrial.CachedConfig;
 import com.barracudatrial.BarracudaTrialPlugin;
 import com.barracudatrial.game.ObjectTracker;
+import com.barracudatrial.game.route.JubblyJiveConfig;
 import com.barracudatrial.game.route.RouteWaypoint;
-import com.barracudatrial.game.route.RumLocations;
+import com.barracudatrial.game.route.TemporTantrumConfig;
+import com.barracudatrial.game.route.TrialType;
 import lombok.Setter;
 import net.runelite.api.*;
+import net.runelite.api.Point;
 import net.runelite.api.coords.LocalPoint;
 import net.runelite.api.coords.WorldPoint;
 import net.runelite.client.ui.overlay.OverlayUtil;
 import net.runelite.client.ui.overlay.outline.ModelOutlineRenderer;
 
-import java.awt.Color;
-import java.awt.Graphics2D;
-import java.awt.Polygon;
-import java.util.HashSet;
+import java.awt.*;
+import java.util.*;
 import java.util.List;
-import java.util.Map;
-import java.util.Set;
 
 public class ObjectRenderer
 {
@@ -38,8 +37,41 @@ public class ObjectRenderer
 
 	public void renderLostSupplies(Graphics2D graphics)
 	{
-		CachedConfig cachedConfig = plugin.getCachedConfig();
-		for (GameObject lostSupplyObject : plugin.getGameState().getLostSupplies())
+		var cachedConfig = plugin.getCachedConfig();
+		var gameState = plugin.getGameState();
+		var lostSupplies = gameState.getLostSupplies();
+		var route = gameState.getCurrentStaticRoute();
+		var currentLap = gameState.getCurrentLap();
+		var completedWaypointIndices = gameState.getCompletedWaypointIndices();
+
+		Set<WorldPoint> allRouteLocations = Collections.emptySet();
+		Set<WorldPoint> laterLapLocations = Collections.emptySet();
+		WorldPoint currentWaypointLocation = null;
+
+		if (route != null && !route.isEmpty())
+		{
+			allRouteLocations = new HashSet<>(route.size());
+			laterLapLocations = new HashSet<>(route.size());
+
+			for (int i = 0; i < route.size(); i++)
+			{
+				var waypoint = route.get(i);
+				var location = waypoint.getLocation();
+
+				allRouteLocations.add(location);
+
+				if (currentLap != waypoint.getLap())
+				{
+					laterLapLocations.add(location);
+				}
+				else if (currentWaypointLocation == null && !completedWaypointIndices.contains(i))
+				{
+					currentWaypointLocation = location;
+				}
+			}
+		}
+
+		for (var lostSupplyObject : lostSupplies)
 		{
 			String debugLabel = null;
 			if (cachedConfig.isShowIDs())
@@ -47,61 +79,53 @@ public class ObjectRenderer
 				debugLabel = buildObjectLabelWithImpostorInfo(lostSupplyObject, "Lost Supplies");
 			}
 
-			// Check if this shipment has been examined during route capture
-			Color renderColor = cachedConfig.getLostSuppliesColor();
-			if (plugin.getRouteCapture() != null && plugin.getRouteCapture().isCapturing())
+			var worldLocation = lostSupplyObject.getWorldLocation();
+
+			Color renderColor;
+			if (currentWaypointLocation != null && currentWaypointLocation.equals(worldLocation))
 			{
-				WorldPoint shipmentLocation = lostSupplyObject.getWorldLocation();
-				if (plugin.getRouteCapture().getExaminedShipmentLocations().contains(shipmentLocation))
-				{
-					// Invert RGB to show it's been examined
-					renderColor = new Color(
-						255 - renderColor.getRed(),
-						255 - renderColor.getGreen(),
-						255 - renderColor.getBlue(),
-						renderColor.getAlpha()
-					);
-				}
+				renderColor = cachedConfig.getObjectivesColorCurrentWaypoint();
+			}
+			else if (laterLapLocations.contains(worldLocation))
+			{
+				renderColor = cachedConfig.getObjectivesColorLaterLaps();
+			}
+			else
+			{
+				renderColor = cachedConfig.getObjectivesColorCurrentLap();
+			}
+
+			if (cachedConfig.isDebugMode() && (allRouteLocations.isEmpty() || !allRouteLocations.contains(worldLocation)))
+			{
+				renderColor = Color.RED;
+				debugLabel = (debugLabel == null ? "" : debugLabel + " ") + "(not in route)";
 			}
 
 			renderGameObjectWithHighlight(graphics, lostSupplyObject, renderColor, false, debugLabel);
 		}
 	}
 
-	public void renderRouteCaptureSupplyLocations(Graphics2D graphics)
+	public void renderSpeedBoosts(Graphics2D graphics)
 	{
 		CachedConfig cachedConfig = plugin.getCachedConfig();
-		Color highlightColor = cachedConfig.getLostSuppliesColor();
+		var color = cachedConfig.getSpeedBoostColor();
 
-		// Build a set of lost supply locations for quick lookup
-		Set<WorldPoint> lostSupplyLocations = new HashSet<>();
-		for (GameObject lostSupply : plugin.getGameState().getLostSupplies())
+		for (GameObject speedBoostObject : plugin.getGameState().getSpeedBoosts())
 		{
-			lostSupplyLocations.add(lostSupply.getWorldLocation());
+			String debugLabel = null;
+			if (cachedConfig.isShowIDs())
+			{
+				debugLabel = buildObjectLabelWithImpostorInfo(speedBoostObject, "Speed Boost");
+			}
+			renderGameObjectWithHighlight(graphics, speedBoostObject, color, true, debugLabel);
 		}
 
-		for (WorldPoint supplyLocation : plugin.getGameState().getRouteCaptureSupplyLocations())
+		if (cachedConfig.isDebugMode())
 		{
-			renderTileHighlightAtWorldPoint(graphics, supplyLocation, highlightColor);
-
-			// If showIDs is on and this location doesn't have a lost supply, show the object ID
-			if (cachedConfig.isShowIDs() && !lostSupplyLocations.contains(supplyLocation))
+			var map = plugin.getGameState().getKnownSpeedBoostLocations();
+			for (var speedBoostObject : map.keySet())
 			{
-				GameObject gameObject = findGameObjectAtWorldPoint(client, supplyLocation);
-				if (gameObject != null)
-				{
-					String debugLabel = buildObjectLabelWithImpostorInfo(gameObject, "Visible Supply") +
-						String.format(" @ (%d, %d)", supplyLocation.getX(), supplyLocation.getY());
-					WorldView topLevelWorldView = client.getTopLevelWorldView();
-					if (topLevelWorldView != null)
-					{
-						LocalPoint localPoint = localPointFromWorldIncludingExtended(topLevelWorldView, supplyLocation);
-						if (localPoint != null)
-						{
-							renderLabelAtLocalPoint(graphics, localPoint, debugLabel, highlightColor, 0);
-						}
-					}
-				}
+				renderTileHighlightAtWorldPoint(graphics, speedBoostObject, Color.GREEN, "Boost Location");
 			}
 		}
 	}
@@ -109,6 +133,7 @@ public class ObjectRenderer
 	public void renderLightningClouds(Graphics2D graphics)
 	{
 		CachedConfig cachedConfig = plugin.getCachedConfig();
+		Color color = cachedConfig.getCloudColor();
 		for (NPC cloudNpc : plugin.getGameState().getLightningClouds())
 		{
 			int currentAnimation = cloudNpc.getAnimation();
@@ -119,53 +144,185 @@ public class ObjectRenderer
 				continue;
 			}
 
-			Color dangerousCloudColor = cachedConfig.getCloudColor();
-
-			renderCloudDangerAreaOnGround(graphics, cloudNpc, dangerousCloudColor);
+			renderCloudDangerAreaOnGround(graphics, cloudNpc, color);
 
 			String debugLabel = null;
 			if (cachedConfig.isShowIDs())
 			{
 				debugLabel = String.format("Cloud (ID: %d, Anim: %d)", cloudNpc.getId(), cloudNpc.getAnimation());
 			}
-			renderNpcWithHighlight(graphics, cloudNpc, dangerousCloudColor, debugLabel);
+			renderNpcWithHighlight(graphics, cloudNpc, color, debugLabel);
 		}
 	}
 
-	public void renderRocks(Graphics2D graphics)
+	public void renderFetidPools(Graphics2D graphics)
 	{
 		CachedConfig cachedConfig = plugin.getCachedConfig();
-		for (GameObject rockObject : plugin.getGameState().getRocks())
+		var color = cachedConfig.getFetidPoolColor();
+		for (GameObject fetidPool : plugin.getGameState().getFetidPools())
 		{
 			String debugLabel = null;
 			if (cachedConfig.isShowIDs())
 			{
-				debugLabel = buildObjectLabelWithImpostorInfo(rockObject, "Rock");
+				debugLabel = buildObjectLabelWithImpostorInfo(fetidPool, "Fetid Pool");
 			}
-			renderGameObjectWithHighlight(graphics, rockObject, cachedConfig.getRockColor(), true, debugLabel);
+			// TODO: slowdowns & exceptions
+			// renderGameObjectWithHighlight(graphics, fetidPool, color, false, debugLabel);
 		}
 	}
 
-	public void renderSpeedBoosts(Graphics2D graphics)
+	public void renderToadPickup(Graphics2D graphics)
 	{
-		CachedConfig cachedConfig = plugin.getCachedConfig();
-		for (GameObject speedBoostObject : plugin.getGameState().getSpeedBoosts())
+		var cached = plugin.getCachedConfig();
+		var state = plugin.getGameState();
+		var route = state.getCurrentStaticRoute();
+		if (route == null || route.isEmpty())
+			return;
+
+		int currentLap = state.getCurrentLap();
+		var completed = state.getCompletedWaypointIndices();
+		int nextWaypointIndex = state.getNextWaypointIndex();
+
+		for (int i = 0; i < route.size(); i++)
 		{
-			String debugLabel = null;
-			if (cachedConfig.isShowIDs())
+			var waypoint = route.get(i);
+			if (waypoint.getType() != RouteWaypoint.WaypointType.TOAD_PICKUP)
+				continue;
+
+			if (completed.contains(i))
+				continue; // already completed, don't show
+
+			var loc = waypoint.getLocation();
+
+			Color color;
+			if (i == nextWaypointIndex)
 			{
-				debugLabel = buildObjectLabelWithImpostorInfo(speedBoostObject, "Speed Boost");
+				color = cached.getObjectivesColorCurrentWaypoint();
 			}
-			renderGameObjectWithHighlight(graphics, speedBoostObject, cachedConfig.getSpeedBoostColor(), true, debugLabel);
+			else if (waypoint.getLap() != currentLap)
+			{
+				color = cached.getObjectivesColorLaterLaps();
+			}
+			else
+			{
+				color = cached.getObjectivesColorCurrentLap();
+			}
+
+			var toadObject = ObjectRenderer.findGameObjectAtWorldPoint(client, loc);
+			if (toadObject == null)
+				continue;
+
+			String label = cached.isShowIDs()
+					? buildObjectLabelWithImpostorInfo(toadObject, "Toad Pickup")
+					: null;
+
+			renderBoatZoneRectangle(graphics, loc, color);
+			renderGameObjectWithHighlight(graphics, toadObject, color, true, label);
 		}
+	}
+
+	public void renderToadPillars(Graphics2D graphics)
+	{
+		var cached = plugin.getCachedConfig();
+		var state = plugin.getGameState();
+		var route = state.getCurrentStaticRoute();
+		if (route == null)
+			return;
+
+		if (!state.isHasThrowableObjective())
+			return;
+
+		int currentLap = state.getCurrentLap();
+		var completed = state.getCompletedWaypointIndices();
+
+		int currentWaypointIndex = -1;
+		var currentLapLocations = new HashSet<WorldPoint>();
+		var laterLapLocations = new HashSet<WorldPoint>();
+
+		for (int i = 0; i < route.size(); i++)
+		{
+			if (completed.contains(i))
+				continue;
+
+			if (currentWaypointIndex == -1)
+			{
+				currentWaypointIndex = i;
+			}
+
+			var wp = route.get(i);
+			if (wp.getType() != RouteWaypoint.WaypointType.TOAD_PILLAR)
+				continue;
+
+			var loc = wp.getLocation();
+			if (wp.getLap() == currentLap)
+			{
+				currentLapLocations.add(loc);
+			}
+			else
+			{
+				laterLapLocations.add(loc);
+			}
+		}
+
+		List<WorldPoint> currentWaypointLocations;
+		if (currentWaypointIndex >= 0)
+		{
+			// Special case - display pillars as "current" if they are the current OR NEXT waypoint
+			var currentWp = route.get(currentWaypointIndex);
+			currentWaypointLocations = new ArrayList<>();
+			currentWaypointLocations.add(currentWp.getLocation());
+			if (currentWaypointIndex + 1 < route.size())
+			{
+				var nextWp = route.get(currentWaypointIndex + 1);
+				currentWaypointLocations.add(nextWp.getLocation());
+			}
+		} else {
+            currentWaypointLocations = List.of();
+        }
+
+        state.getKnownToadPillars().entrySet().stream()
+				.filter(e -> !e.getValue())
+				.map(Map.Entry::getKey)
+				.map(p -> ObjectRenderer.findGameObjectAtWorldPoint(client, p))
+				.filter(Objects::nonNull)
+				.forEach(pillar -> {
+					var loc = pillar.getWorldLocation();
+
+					Color color;
+					if (currentWaypointLocations.contains(loc))
+					{
+						color = cached.getObjectivesColorCurrentWaypoint();
+					}
+					else if (currentLapLocations.contains(loc))
+					{
+						color = cached.getObjectivesColorCurrentLap();
+					}
+					else if (laterLapLocations.contains(loc))
+					{
+						// Clearer to leave them unhighlighted
+						// color = cached.getObjectivesColorLaterLaps();
+						return;
+					}
+					else
+					{
+						// Already completed or not in route
+						return;
+					}
+
+					String label = cached.isShowIDs()
+							? buildObjectLabelWithImpostorInfo(pillar, "Toad Pillar")
+							: null;
+
+					renderGameObjectWithHighlight(graphics, pillar, color, false, label);
+				});
 	}
 
 	public void renderRumLocations(Graphics2D graphics)
 	{
 		CachedConfig cachedConfig = plugin.getCachedConfig();
-		Color rumHighlightColor = cachedConfig.getRumLocationColor();
+		Color rumHighlightColor = cachedConfig.getObjectivesColorCurrentLap();
 
-		boolean isCarryingRum = plugin.getGameState().isHasRumOnUs();
+		var isCarryingRum = plugin.getGameState().isHasThrowableObjective();
 		WorldPoint targetRumLocation;
 
 		if (isCarryingRum)
@@ -184,12 +341,7 @@ public class ObjectRenderer
 
 			if (isNextWaypoint)
 			{
-				// Draw filled rectangle around entire boat exclusion zone
 				renderBoatZoneRectangle(graphics, targetRumLocation, rumHighlightColor);
-			}
-			else
-			{
-				// Fallback: try to highlight the game object (doesn't work well currently)
 				renderRumLocationHighlight(graphics, targetRumLocation, rumHighlightColor);
 			}
 		}
@@ -208,9 +360,9 @@ public class ObjectRenderer
 		}
 	}
 
-	private void renderGameObjectWithHighlight(Graphics2D graphics, GameObject gameObject, Color highlightColor, boolean shouldHighlightTile, String debugLabel)
+	private void renderGameObjectWithHighlight(Graphics2D graphics, TileObject tileObject, Color highlightColor, boolean shouldHighlightTile, String debugLabel)
 	{
-		LocalPoint objectLocalPoint = gameObject.getLocalLocation();
+		LocalPoint objectLocalPoint = tileObject.getLocalLocation();
 
 		if (shouldHighlightTile)
 		{
@@ -221,7 +373,7 @@ public class ObjectRenderer
 			}
 		}
 
-		modelOutlineRenderer.drawOutline(gameObject, 2, highlightColor, 4);
+		drawTileObjectHull(graphics, tileObject, highlightColor);
 
 		if (debugLabel != null)
 		{
@@ -249,6 +401,48 @@ public class ObjectRenderer
 		{
 			int heightOffsetAboveNpc = npc.getLogicalHeight() + 40;
 			renderLabelAtLocalPoint(graphics, npcLocalPoint, debugLabel, highlightColor, heightOffsetAboveNpc);
+		}
+	}
+
+	private void drawTileObjectHull(Graphics2D g, TileObject object, Color borderColor)
+	{
+		Stroke stroke = new BasicStroke(2f);
+		Shape poly = null;
+		Shape poly2 = null;
+
+		if (object instanceof GameObject)
+		{
+			poly = ((GameObject) object).getConvexHull();
+		}
+		else if (object instanceof WallObject)
+		{
+			poly = ((WallObject) object).getConvexHull();
+			poly2 = ((WallObject) object).getConvexHull2();
+		}
+		else if (object instanceof DecorativeObject)
+		{
+			poly = ((DecorativeObject) object).getConvexHull();
+			poly2 = ((DecorativeObject) object).getConvexHull2();
+		}
+		else if (object instanceof GroundObject)
+		{
+			poly = ((GroundObject) object).getConvexHull();
+		}
+
+		if (poly == null)
+		{
+			poly = object.getCanvasTilePoly();
+		}
+
+		Color fillColor = new Color(borderColor.getRed(), borderColor.getGreen(), borderColor.getBlue(), 50);
+
+		if (poly != null)
+		{
+			OverlayUtil.renderPolygon(g, poly, borderColor, fillColor, stroke);
+		}
+		if (poly2 != null)
+		{
+			OverlayUtil.renderPolygon(g, poly2, borderColor, fillColor, stroke);
 		}
 	}
 
@@ -352,44 +546,49 @@ public class ObjectRenderer
 
 	private String buildObjectLabelWithImpostorInfo(GameObject gameObject, String typeName)
 	{
-		ObjectComposition objectComposition = client.getObjectDefinition(gameObject.getId());
+		ObjectComposition comp = client.getObjectDefinition(gameObject.getId());
 
-		String displayName;
-		if (typeName != null)
-		{
-			displayName = typeName;
-		}
-		else if (objectComposition != null && objectComposition.getName() != null)
-		{
-			displayName = objectComposition.getName();
-		}
-		else
-		{
-			displayName = "Unknown";
-		}
+		String name =
+				typeName != null
+				? typeName
+				: comp != null && comp.getName() != null
+					? comp.getName()
+					: "Unknown";
 
-		StringBuilder labelBuilder = new StringBuilder();
-		labelBuilder.append(displayName).append(" (ID: ").append(gameObject.getId());
+		WorldPoint wp = gameObject.getWorldLocation();
+		int sceneX = gameObject.getSceneMinLocation().getX();
+		int sceneY = gameObject.getSceneMinLocation().getY();
 
-		if (objectComposition != null)
+		StringBuilder sb = new StringBuilder();
+		sb.append(name)
+				.append(" (ID: ").append(gameObject.getId());
+
+		if (comp != null)
 		{
-			int[] impostorIds = objectComposition.getImpostorIds();
-			boolean hasImpostorIds = (impostorIds != null && impostorIds.length > 0);
-			if (hasImpostorIds)
+			int[] ids = comp.getImpostorIds();
+			if (ids != null && ids.length > 0)
 			{
-				ObjectComposition impostorComposition = objectComposition.getImpostor();
-				if (impostorComposition != null)
+				ObjectComposition imp = comp.getImpostor();
+				if (imp != null)
 				{
-					labelBuilder.append(", Imp: ").append(impostorComposition.getId());
+					sb.append(", Imp: ").append(imp.getId());
 				}
 			}
 		}
 
-		labelBuilder.append(")");
-		return labelBuilder.toString();
+		sb.append(", W: ").append(wp.getX()).append("/").append(wp.getY()).append("/").append(wp.getPlane());
+		sb.append(", S: ").append(sceneX).append("/").append(sceneY);
+		sb.append(")");
+
+		return sb.toString();
 	}
 
 	public static GameObject findGameObjectAtWorldPoint(Client client, WorldPoint worldPoint)
+	{
+		return findGameObjectAtWorldPoint(client, worldPoint, null);
+	}
+
+	public static GameObject findGameObjectAtWorldPoint(Client client, WorldPoint worldPoint, Integer objectId)
 	{
 		WorldView topLevelWorldView = client.getTopLevelWorldView();
 		if (topLevelWorldView == null)
@@ -420,6 +619,10 @@ public class ObjectRenderer
 		{
 			if (gameObject != null)
 			{
+				if (objectId != null && gameObject.getId() != objectId)
+				{
+					continue;
+				}
 				return gameObject;
 			}
 		}
@@ -483,8 +686,28 @@ public class ObjectRenderer
 			return;
 		}
 
-		int width = RumLocations.BOAT_EXCLUSION_WIDTH;
-		int height = RumLocations.BOAT_EXCLUSION_HEIGHT;
+		var trial = plugin.getGameState().getCurrentTrial();
+		if (trial == null)
+		{
+			return;
+		}
+
+		int width;
+		int height;
+		if (trial.getTrialType() == TrialType.TEMPOR_TANTRUM)
+		{
+			width = TemporTantrumConfig.BOAT_EXCLUSION_WIDTH;
+			height = TemporTantrumConfig.BOAT_EXCLUSION_HEIGHT;
+		}
+		else if (trial.getTrialType() == TrialType.JUBBLY_JIVE)
+		{
+			width = JubblyJiveConfig.BOAT_EXCLUSION_WIDTH;
+			height = JubblyJiveConfig.BOAT_EXCLUSION_HEIGHT;
+		}
+		else
+		{
+			return;
+		}
 
 		int halfWidth = width / 2;
 		int halfHeight = height / 2;

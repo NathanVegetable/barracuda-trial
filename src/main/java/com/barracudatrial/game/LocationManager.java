@@ -1,28 +1,18 @@
 package com.barracudatrial.game;
 
+import com.barracudatrial.game.route.TemporTantrumConfig;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.*;
 import net.runelite.api.coords.WorldPoint;
-import net.runelite.api.gameval.ObjectID;
 
 /**
- * Manages rum locations and exclusion zone calculations for Barracuda Trial
+ * Manages objective locations (rum for Tempor, etc.) and exclusion zone calculations
  */
 @Slf4j
 public class LocationManager
 {
 	private final Client client;
 	private final State state;
-
-	private static final int RUM_RETURN_BASE_OBJECT_ID = 59237; // No constant available
-	private static final int RUM_RETURN_IMPOSTOR_ID = ObjectID.SAILING_BT_TEMPOR_TANTRUM_NORTH_LOC_CHILD;
-	private static final int RUM_PICKUP_BASE_OBJECT_ID = 59240; // No constant available
-	private static final int RUM_PICKUP_IMPOSTOR_ID = ObjectID.SAILING_BT_TEMPOR_TANTRUM_SOUTH_LOC_CHILD;
-
-	private static final int EXCLUSION_MIN_X_OFFSET = -26;
-	private static final int EXCLUSION_MAX_X_OFFSET = 22;
-	private static final int EXCLUSION_MIN_Y_OFFSET = -106;
-	private static final int EXCLUSION_MAX_Y_OFFSET = -53;
 
 	public LocationManager(Client client, State state)
 	{
@@ -34,17 +24,17 @@ public class LocationManager
 	 * Updates rum locations by searching WorldEntity scenes
 	 * Should be called every game tick while in trial area
 	 */
-	public void updateRumLocations()
+	public void updateTemporRumLocations()
 	{
 		if (!state.isInTrialArea())
 		{
 			return;
 		}
 
-		searchForRumLocationsInWorldEntities();
+		searchForTemporRumLocationsInWorldEntities();
 	}
 
-	private void searchForRumLocationsInWorldEntities()
+	private void searchForTemporRumLocationsInWorldEntities()
 	{
 		WorldView topLevelWorldView = client.getTopLevelWorldView();
 		if (topLevelWorldView == null)
@@ -79,12 +69,17 @@ public class LocationManager
 			}
 
 			// Pass the WorldEntity so we can get its real world location
-			scanSceneForRumReturnAndPickupLocations(entityScene, worldEntity);
+			scanSceneForTemporRumReturnAndPickupLocations(entityScene, worldEntity);
 		}
 	}
 
-	private void scanSceneForRumReturnAndPickupLocations(Scene scene, WorldEntity worldEntity)
+	private void scanSceneForTemporRumReturnAndPickupLocations(Scene scene, WorldEntity worldEntity)
 	{
+		var trial = state.getCurrentTrial();
+		if (!(trial instanceof TemporTantrumConfig)) {
+			return;
+		}
+
 		Tile[][][] tileArray = scene.getTiles();
 		if (tileArray == null)
 		{
@@ -145,15 +140,16 @@ public class LocationManager
 						boolean isRumReturnObject = false;
 						boolean isRumPickupObject = false;
 
-						if (objectId == RUM_RETURN_BASE_OBJECT_ID)
+						if (objectId == TemporTantrumConfig.RUM_DROPOFF_BASE_ID)
 						{
 							isRumReturnObject = true;
 						}
-						else if (objectId == RUM_PICKUP_BASE_OBJECT_ID)
+						else if (objectId == TemporTantrumConfig.RUM_PICKUP_BASE_ID)
 						{
 							isRumPickupObject = true;
 						}
 
+						// Check impostor IDs if not found in base IDs
 						if (!isRumReturnObject && !isRumPickupObject)
 						{
 							try
@@ -165,11 +161,11 @@ public class LocationManager
 									if (activeImpostor != null)
 									{
 										int impostorId = activeImpostor.getId();
-										if (impostorId == RUM_RETURN_IMPOSTOR_ID)
+										if (impostorId == TemporTantrumConfig.RUM_DROPOFF_IMPOSTOR_ID)
 										{
 											isRumReturnObject = true;
 										}
-										else if (impostorId == RUM_PICKUP_IMPOSTOR_ID)
+										else if (impostorId == TemporTantrumConfig.RUM_PICKUP_IMPOSTOR_ID)
 										{
 											isRumPickupObject = true;
 										}
@@ -183,22 +179,24 @@ public class LocationManager
 
 						if (isRumReturnObject)
 						{
+							// Secondary objective (rum dropoff for Tempor, etc.)
 							// Use the boat's real world location, not the gameObject's location
 							if (state.getRumReturnLocation() == null || !state.getRumReturnLocation().equals(boatWorldLocation))
 							{
 								state.setRumReturnLocation(boatWorldLocation);
-								log.info("Found rum return location: {} (ObjectID: {}, Plane: {}, SceneTile: [{},{}])",
+								log.info("Found secondary objective location: {} (ObjectID: {}, Plane: {}, SceneTile: [{},{}])",
 									boatWorldLocation, objectId, planeIndex, xIndex, yIndex);
-								calculateExclusionZoneBounds(boatWorldLocation);
+								calculateTemporExclusionZoneBounds(boatWorldLocation);
 							}
 						}
 						else if (isRumPickupObject)
 						{
+							// Primary objective (rum pickup for Tempor, etc.)
 							// Use the boat's real world location, not the gameObject's location
 							if (state.getRumPickupLocation() == null || !state.getRumPickupLocation().equals(boatWorldLocation))
 							{
 								state.setRumPickupLocation(boatWorldLocation);
-								log.info("Found rum pickup location: {} (ObjectID: {}, Plane: {}, SceneTile: [{},{}])",
+								log.info("Found primary objective location: {} (ObjectID: {}, Plane: {}, SceneTile: [{},{}])",
 									boatWorldLocation, objectId, planeIndex, xIndex, yIndex);
 							}
 						}
@@ -209,15 +207,20 @@ public class LocationManager
 	}
 
 	/**
-	 * Calculates exclusion zone boundaries from rum return location
+	 * Calculates exclusion zone boundaries from secondary objective location
 	 * The exclusion zone is the center island area we circle around
 	 */
-	private void calculateExclusionZoneBounds(WorldPoint rumReturnWorldLocation)
+	private void calculateTemporExclusionZoneBounds(WorldPoint secondaryObjectiveLocation)
 	{
-		int exclusionZoneMinX = rumReturnWorldLocation.getX() + EXCLUSION_MIN_X_OFFSET;
-		int exclusionZoneMaxX = rumReturnWorldLocation.getX() + EXCLUSION_MAX_X_OFFSET;
-		int exclusionZoneMinY = rumReturnWorldLocation.getY() + EXCLUSION_MIN_Y_OFFSET;
-		int exclusionZoneMaxY = rumReturnWorldLocation.getY() + EXCLUSION_MAX_Y_OFFSET;
+		var trial = state.getCurrentTrial();
+		if (!(trial instanceof TemporTantrumConfig)) {
+			return;
+		}
+
+		int exclusionZoneMinX = secondaryObjectiveLocation.getX() + TemporTantrumConfig.EXCLUSION_MIN_X_OFFSET;
+		int exclusionZoneMaxX = secondaryObjectiveLocation.getX() + TemporTantrumConfig.EXCLUSION_MAX_X_OFFSET;
+		int exclusionZoneMinY = secondaryObjectiveLocation.getY() + TemporTantrumConfig.EXCLUSION_MIN_Y_OFFSET;
+		int exclusionZoneMaxY = secondaryObjectiveLocation.getY() + TemporTantrumConfig.EXCLUSION_MAX_Y_OFFSET;
 
 		state.setExclusionZoneMinX(exclusionZoneMinX);
 		state.setExclusionZoneMaxX(exclusionZoneMaxX);

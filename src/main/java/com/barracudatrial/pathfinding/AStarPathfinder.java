@@ -13,96 +13,155 @@ public class AStarPathfinder
 {
 	public PathResult findPath(BarracudaTileCostCalculator costCalculator, RouteOptimization routeOptimization, WorldPoint start, WorldPoint goal, int maxSearchDistance, int boatDirectionDx, int boatDirectionDy, int goalTolerance)
 	{
-		// Compute grabbable area around goal based on tolerance
-		Set<WorldPoint> goalTiles = new HashSet<>();
-		if (goalTolerance > 0)
-		{
-			goalTiles.addAll(BarracudaTileCostCalculator.computeGrabbableTiles(Set.of(goal), goalTolerance).keySet());
-		}
-		else
-		{
-			goalTiles.add(goal);
-		}
-
 		PriorityQueue<Node> openSet = new PriorityQueue<>(
 			Comparator.comparingDouble((Node n) -> n.fScore)
-				.thenComparingDouble(n -> manhattanDistance(n.position, goal))
 		);
-		Map<WorldPoint, Node> allNodes = new HashMap<>();
+		Map<StateKey, Node> allNodes = new HashMap<>();
 
 		Node startNode = new Node(start);
 		startNode.gScore = 0;
 		startNode.hScore = heuristic(start, goal);
 		startNode.fScore = startNode.hScore;
+		// Start heading: map provided 8-way boat direction into a 24-heading index (15° steps)
+		startNode.headingIdx = -1;
+		if (boatDirectionDx != 0 || boatDirectionDy != 0)
+		{
+			int snappedDx = Integer.signum(boatDirectionDx);
+			int snappedDy = Integer.signum(boatDirectionDy);
+			int baseDir8 = dirIndex(snappedDx, snappedDy);
+			if (baseDir8 != -1)
+			{
+				startNode.headingIdx = DIR8_TO_HEADING24[baseDir8];
+			}
+		}
 
 		openSet.add(startNode);
-		allNodes.put(start, startNode);
+		allNodes.put(new StateKey(start, startNode.headingIdx), startNode);
 
-		Set<WorldPoint> closedSet = new HashSet<>();
+		Set<StateKey> closedSet = new HashSet<>();
 		int nodesExplored = 0;
 
 		while (!openSet.isEmpty())
 		{
 			Node current = openSet.poll();
 
-			if (closedSet.contains(current.position))
+			StateKey currentKey = new StateKey(current.position, current.headingIdx);
+			if (closedSet.contains(currentKey))
 			{
 				continue;
 			}
 
-			if (goalTiles.contains(current.position))
+			// Goal check uses Chebyshev distance (max of dx, dy) so a tile radius counts as reached
+			int dx = Math.abs(current.position.getX() - goal.getX());
+			int dy = Math.abs(current.position.getY() - goal.getY());
+			int distanceToGoal = Math.max(dx, dy);
+
+			if (distanceToGoal <= goalTolerance)
 			{
 				return new PathResult(reconstructPath(current), current.gScore);
 			}
 
-			closedSet.add(current.position);
+			closedSet.add(currentKey);
 			nodesExplored++;
 
-			// Prevent infinite search
+			// Prevent runaway search
 			if (nodesExplored > maxSearchDistance * maxSearchDistance)
 			{
 				break;
 			}
 
-			// Check all 8 neighbors (including diagonals)
-			for (WorldPoint neighbor : getNeighbors(current.position))
+			// Steering neighbors: delta heading -1,0,+1 (±15°) and move one tile in the heading's dominant 8-way direction
+			for (int deltaH : new int[] { -1, 0, 1 })
 			{
-				if (closedSet.contains(neighbor))
-				{
-					continue;
-				}
+				int currentHeading = current.headingIdx;
 
-				// For first move from start: enforce boat's forward direction constraint
-				// The boat cannot turn in place - it must move forward first
-				if (current.parent == null && (boatDirectionDx != 0 || boatDirectionDy != 0))
+				// If unknown heading, treat each 8-way direction as a possible base heading
+				if (currentHeading == -1)
 				{
-					if (!isInForwardCone(current.position, neighbor, boatDirectionDx, boatDirectionDy))
+					for (int baseDir8 = 0; baseDir8 < 8; baseDir8++)
 					{
-						continue; // Skip neighbors not in forward cone
+						int nextHeading = DIR8_TO_HEADING24[baseDir8];
+						int moveDir = headingToDir8(nextHeading);
+						int nx = current.position.getX() + DIRS[moveDir][0];
+						int ny = current.position.getY() + DIRS[moveDir][1];
+						WorldPoint neighbor = new WorldPoint(nx, ny, current.position.getPlane());
+
+						StateKey neighborKey = new StateKey(neighbor, nextHeading);
+						if (closedSet.contains(neighborKey))
+						{
+							continue;
+						}
+
+						double tileCost = costCalculator.getTileCost(current.position, neighbor);
+						if (tileCost > 50000)
+						{
+							continue;
+						}
+
+						boolean isDiagonal = Math.abs(nx - current.position.getX()) == 1 && Math.abs(ny - current.position.getY()) == 1;
+						double geometricDistance = isDiagonal ? Math.sqrt(2) : 1.0;
+
+						int absDelta = 0; // starting from unknown, count as no extra turning penalty for first move
+						double turningCost = calculateTurningCost(routeOptimization, absDelta);
+
+						double tentativeGScore = current.gScore + (tileCost * geometricDistance) + turningCost;
+
+						Node neighborNode = allNodes.get(neighborKey);
+						if (neighborNode == null)
+						{
+							neighborNode = new Node(neighbor);
+							neighborNode.headingIdx = nextHeading;
+							allNodes.put(neighborKey, neighborNode);
+						}
+
+						if (tentativeGScore < neighborNode.gScore)
+						{
+							neighborNode.parent = current;
+							neighborNode.gScore = tentativeGScore;
+							neighborNode.hScore = heuristic(neighbor, goal);
+							neighborNode.fScore = neighborNode.gScore + neighborNode.hScore;
+
+							openSet.add(neighborNode);
+						}
 					}
+
+					continue; // processed all initial headings
 				}
 
-				// Get tile cost for this neighbor
-				double tileCost = costCalculator.getTileCost(current.position, neighbor);
+				int nextHeading = (currentHeading + deltaH + 24) % 24;
+				int moveDir = headingToDir8(nextHeading);
+				int nx = current.position.getX() + DIRS[moveDir][0];
+				int ny = current.position.getY() + DIRS[moveDir][1];
+				WorldPoint neighbor = new WorldPoint(nx, ny, current.position.getPlane());
 
-				// If tile is impassable (very high cost), skip it
-				if (tileCost > 1000)
+				StateKey neighborKey = new StateKey(neighbor, nextHeading);
+				if (closedSet.contains(neighborKey))
 				{
 					continue;
 				}
 
-				// Boat moves in continuous space at constant speed, so distance matters
-				boolean isDiagonal = Math.abs(neighbor.getX() - current.position.getX()) == 1
-								  && Math.abs(neighbor.getY() - current.position.getY()) == 1;
+				double tileCost = costCalculator.getTileCost(current.position, neighbor);
+				if (tileCost > 50000)
+				{
+					continue;
+				}
+
+				boolean isDiagonal = Math.abs(nx - current.position.getX()) == 1 && Math.abs(ny - current.position.getY()) == 1;
 				double geometricDistance = isDiagonal ? Math.sqrt(2) : 1.0;
 
-				double turningCost = calculateTurningCost(routeOptimization, current, neighbor);
+				int absDelta = Math.abs(deltaH);
+				double turningCost = calculateTurningCost(routeOptimization, absDelta);
 
 				double tentativeGScore = current.gScore + (tileCost * geometricDistance) + turningCost;
 
-                Node neighborNode = allNodes.computeIfAbsent(neighbor, Node::new);
+				Node neighborNode = allNodes.get(neighborKey);
+				if (neighborNode == null)
+				{
+					neighborNode = new Node(neighbor);
+					neighborNode.headingIdx = nextHeading;
+					allNodes.put(neighborKey, neighborNode);
+				}
 
-                // If this path to neighbor is better than previous, update it
 				if (tentativeGScore < neighborNode.gScore)
 				{
 					neighborNode.parent = current;
@@ -110,8 +169,6 @@ public class AStarPathfinder
 					neighborNode.hScore = heuristic(neighbor, goal);
 					neighborNode.fScore = neighborNode.gScore + neighborNode.hScore;
 
-					// Always add to openSet (allows duplicates)
-					// The closedSet check at the top of loop handles duplicates efficiently
 					openSet.add(neighborNode);
 				}
 			}
@@ -120,145 +177,59 @@ public class AStarPathfinder
 		return new PathResult(new ArrayList<>(), Double.POSITIVE_INFINITY);
 	}
 
-	private double calculateTurningCost(RouteOptimization routeOptimization, Node current, WorldPoint neighbor)
+	private double calculateTurningCost(RouteOptimization routeOptimization, int absDelta)
 	{
-		// No turning cost for first move (no previous direction)
-		if (current.parent == null)
+		// absDelta is the absolute heading step change (in 24-heading units: 0 or 1 here)
+		if (absDelta == 0)
 		{
 			return 0.0;
 		}
 
-		double prevDx = current.position.getX() - current.parent.position.getX();
-		double prevDy = current.position.getY() - current.parent.position.getY();
-
-		double newDx = neighbor.getX() - current.position.getX();
-		double newDy = neighbor.getY() - current.position.getY();
-
-		double prevLength = Math.sqrt(prevDx * prevDx + prevDy * prevDy);
-		double newLength = Math.sqrt(newDx * newDx + newDy * newDy);
-
-		if (prevLength == 0 || newLength == 0)
-		{
-			return 0.0;
-		}
-
-		prevDx /= prevLength;
-		prevDy /= prevLength;
-		newDx /= newLength;
-		newDy /= newLength;
-
-		double dotProduct = prevDx * newDx + prevDy * newDy;
-
-		// Clamp to [-1, 1] to avoid floating point errors
-		dotProduct = Math.max(-1.0, Math.min(1.0, dotProduct));
-
-		return getWastedMovement(routeOptimization, dotProduct);
-	}
-
-	private double getWastedMovement(RouteOptimization routeOptimization, double dotProduct) {
-		double turnAngleRadians = Math.acos(dotProduct);
-		double turnAngleDegrees = Math.toDegrees(turnAngleRadians);
-
-		// Calculate ticks needed to turn (15°/tick turn rate)
-		double ticksToTurn = turnAngleDegrees / 15.0;
-
-		var maxTurnAngle = routeOptimization == RouteOptimization.EFFICIENT ? 105 : 90;
-
-		double wastedMovement;
-		if (turnAngleDegrees < maxTurnAngle)
-		{
-			if (routeOptimization == RouteOptimization.EFFICIENT)
-			{
-				// Efficient: Willing to turn for boosts, but prefer gentle curves
-				wastedMovement = Math.pow(ticksToTurn, 1.3) * 0.6;
-			}
-			else
-			{
-				// Relaxed: Pick up boosts along the way, avoid sharp corrections
-				wastedMovement = Math.pow(ticksToTurn, 1.5) * 1.2;
-			}
-		}
-		else
-		{
-			// Sharp turns are very expensive with boat momentum
-			double ticksOver = ticksToTurn - 6.0;
-			wastedMovement = 8.0 + Math.pow(Math.max(0, ticksOver), 2.8) * 20.0;
-		}
-		return wastedMovement;
+		// Single 15° step cost (tunable)
+		return routeOptimization == RouteOptimization.EFFICIENT ? 1.0 : 2.0;
 	}
 
 	/**
-	 * Checks if a neighbor tile is within the boat's forward cone of movement
-	 * The boat must move forward - it cannot turn in place
-	 * We use a generous cone (90 degrees / dot product > 0) to account for grid quantization
-	 *
-	 * @param current Current position
-	 * @param neighbor Neighbor being evaluated
-	 * @param boatDx Boat's forward direction X component
-	 * @param boatDy Boat's forward direction Y component
-	 * @return true if neighbor is "forward enough" to be reachable on first move
-	 */
-	private boolean isInForwardCone(WorldPoint current, WorldPoint neighbor, int boatDx, int boatDy)
-	{
-		// Calculate movement direction from current to neighbor
-		int moveDx = neighbor.getX() - current.getX();
-		int moveDy = neighbor.getY() - current.getY();
-
-		// Calculate dot product between boat direction and movement direction
-		// Dot product > 0 means angle < 90 degrees (forward-ish)
-		// Dot product = 0 means perpendicular
-		// Dot product < 0 means angle > 90 degrees (backwards)
-		int dotProduct = moveDx * boatDx + moveDy * boatDy;
-
-		// Allow any tile in the forward hemisphere (dot product > 0)
-		// This is a 180-degree cone, which is generous but accounts for:
-		// - Grid quantization errors (boat rotates in 15° but tiles are 90° aligned)
-		// - Estimation errors in front tile position
-		// We still reject pure backwards movement (dot product <= 0)
-		return dotProduct > 0;
-	}
-
-	/**
-	 * Heuristic function
-	 * Returns 0 (Dijkstra mode) because we have negative edge costs (speed boosts = -5.0)
-	 * Manhattan distance is NOT admissible with negative costs
+	 * Heuristic: returns 0 (Dijkstra mode).
+	 * Rationale: tile costs may be negative (speed boosts), so admissible heuristics like
+	 * Manhattan/Chebyshev are not safe; Dijkstra guarantees optimality.
 	 */
 	private double heuristic(WorldPoint from, WorldPoint to)
 	{
-		return 0; // Dijkstra mode - guarantees optimal paths with negative costs
+		return 0;
 	}
 
-	/**
-	 * Manhattan distance for tie-breaking
-	 * Not used as heuristic (due to negative costs), but used to break ties
-	 * towards the goal when f-scores are equal
-	 */
-	private double manhattanDistance(WorldPoint from, WorldPoint to)
+	private int dirIndex(int dx, int dy)
 	{
-		return Math.abs(from.getX() - to.getX()) + Math.abs(from.getY() - to.getY());
+		for (int i = 0; i < DIRS.length; i++)
+		{
+			if (DIRS[i][0] == dx && DIRS[i][1] == dy)
+			{
+				return i;
+			}
+		}
+		return -1;
 	}
 
-	/**
-	 * Gets all 8 neighboring tiles (including diagonals)
-	 */
-	private List<WorldPoint> getNeighbors(WorldPoint point)
+	// Map 24 headings (15° each) to the dominant 8-way movement direction
+	private static final int[] HEADING_TO_DIR8 = {
+		0, 0,    // 0°, 15° -> E
+		1, 1, 1, // 30°,45°,60° -> NE
+		2, 2, 2, // 75°,90°,105° -> N
+		3, 3, 3, // 120°,135°,150° -> NW
+		4, 4, 4, // 165°,180°,195° -> W
+		5, 5, 5, // 210°,225°,240° -> SW
+		6, 6, 6, // 255°,270°,285° -> S
+		7, 7, 7, // 300°,315°,330° -> SE
+		0        // 345° -> E
+	};
+
+	private static final int[] DIR8_TO_HEADING24 = {0, 2, 5, 8, 12, 15, 18, 21};
+
+	private int headingToDir8(int headingIdx)
 	{
-		List<WorldPoint> neighbors = new ArrayList<>();
-		int x = point.getX();
-		int y = point.getY();
-		int plane = point.getPlane();
-
-		// 8 directions: N, NE, E, SE, S, SW, W, NW
-		neighbors.add(new WorldPoint(x, y + 1, plane));     // N
-		neighbors.add(new WorldPoint(x + 1, y + 1, plane)); // NE
-		neighbors.add(new WorldPoint(x + 1, y, plane));     // E
-		neighbors.add(new WorldPoint(x + 1, y - 1, plane)); // SE
-		neighbors.add(new WorldPoint(x, y - 1, plane));     // S
-		neighbors.add(new WorldPoint(x - 1, y - 1, plane)); // SW
-		neighbors.add(new WorldPoint(x - 1, y, plane));     // W
-		neighbors.add(new WorldPoint(x - 1, y + 1, plane)); // NW
-
-		return neighbors;
+		int idx = (headingIdx % 24 + 24) % 24;
+		return HEADING_TO_DIR8[idx];
 	}
 
 	private List<PathNode> reconstructPath(Node goalNode)
@@ -278,12 +249,77 @@ public class AStarPathfinder
 	}
 
 	/**
-	 * Node class for A* algorithm
+	 * Computes all tiles within a given tolerance distance from target locations.
+	 * Uses Chebyshev distance (max of dx, dy) for square areas.
+	 *
+	 * @param locations Center points
+	 * @param tolerance Distance in tiles (1 = 3x3 area, 2 = 5x5 area, etc.)
+	 * @return Map from grabbable tile to its center point
 	 */
+	public static Map<WorldPoint, WorldPoint> computeGrabbableTiles(Set<WorldPoint> locations, int tolerance)
+	{
+		Map<WorldPoint, WorldPoint> grabbableTiles = new HashMap<>();
+
+		for (WorldPoint center : locations)
+		{
+			int plane = center.getPlane();
+
+			for (int dx = -tolerance; dx <= tolerance; dx++)
+			{
+				for (int dy = -tolerance; dy <= tolerance; dy++)
+				{
+					WorldPoint tile = new WorldPoint(center.getX() + dx, center.getY() + dy, plane);
+					grabbableTiles.put(tile, center);
+				}
+			}
+		}
+
+		return grabbableTiles;
+	}
+
+	private static final int[][] DIRS = {
+		{1, 0},   // 0: E
+		{1, 1},   // 1: NE
+		{0, 1},   // 2: N
+		{-1, 1},  // 3: NW
+		{-1, 0},  // 4: W
+		{-1, -1}, // 5: SW
+		{0, -1},  // 6: S
+		{1, -1}   // 7: SE
+	};
+
+	private static final class StateKey
+	{
+		private final WorldPoint pos;
+		private final int headingIdx;
+
+		StateKey(WorldPoint pos, int headingIdx)
+		{
+			this.pos = pos;
+			this.headingIdx = headingIdx;
+		}
+
+		@Override
+		public boolean equals(Object o)
+		{
+			if (this == o) return true;
+			if (o == null || getClass() != o.getClass()) return false;
+			StateKey stateKey = (StateKey) o;
+			return headingIdx == stateKey.headingIdx && pos.equals(stateKey.pos);
+		}
+
+		@Override
+		public int hashCode()
+		{
+			return Objects.hash(pos, headingIdx);
+		}
+	}
+	
 	private static class Node
 	{
 		WorldPoint position;
 		Node parent;
+		int headingIdx = -1; // 0..23 or -1 for unknown
 		double gScore = Double.POSITIVE_INFINITY; // Cost from start to this node
 		double hScore = 0; // Heuristic cost from this node to goal
 		double fScore = Double.POSITIVE_INFINITY; // Total cost (g + h)
@@ -291,21 +327,6 @@ public class AStarPathfinder
 		Node(WorldPoint position)
 		{
 			this.position = position;
-		}
-
-		@Override
-		public boolean equals(Object obj)
-		{
-			if (this == obj) return true;
-			if (!(obj instanceof Node)) return false;
-			Node other = (Node) obj;
-			return position.equals(other.position);
-		}
-
-		@Override
-		public int hashCode()
-		{
-			return position.hashCode();
 		}
 	}
 }

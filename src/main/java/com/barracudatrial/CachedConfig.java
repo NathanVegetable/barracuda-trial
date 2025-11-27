@@ -19,22 +19,20 @@ public class CachedConfig
 	@Getter private int pathWidth;
 	@Getter private int pathLookahead;
 
-	// Lost supplies settings
-	@Getter private boolean highlightLostSupplies;
-	@Getter private Color lostSuppliesColor;
-	@Getter private boolean highlightRumLocations;
-	@Getter private Color rumLocationColor;
+	// Objective settings
+	@Getter private boolean highlightObjectives;
+	@Getter private Color objectivesColorCurrentWaypoint;
+	@Getter private Color objectivesColorCurrentLap;
+	@Getter private Color objectivesColorLaterLaps;
 
-	// Cloud settings
+	// Object highlighting settings
+	@Getter private boolean highlightSpeedBoosts;
+	@Getter private Color speedBoostColor;
 	@Getter private boolean highlightClouds;
 	@Getter private Color cloudColor;
 	@Getter private int cloudDangerRadius;
-
-	// Hazard settings
-	@Getter private boolean highlightRocks;
-	@Getter private Color rockColor;
-	@Getter private boolean highlightSpeedBoosts;
-	@Getter private Color speedBoostColor;
+	@Getter private boolean highlightFetidPools;
+	@Getter private Color fetidPoolColor;
 
 	// Debug settings
 	@Getter private boolean debugMode;
@@ -58,19 +56,18 @@ public class CachedConfig
 		pathWidth = config.pathWidth();
 		pathLookahead = config.pathLookahead();
 
-		highlightLostSupplies = config.highlightLostSupplies();
-		lostSuppliesColor = config.lostSuppliesColor();
-		highlightRumLocations = config.highlightRumLocations();
-		rumLocationColor = config.rumLocationColor();
+		highlightObjectives = config.highlightObjectives();
+		objectivesColorCurrentWaypoint = config.objectivesColorCurrentWaypoint();
+		objectivesColorCurrentLap = config.objectivesColorCurrentLap();
+		objectivesColorLaterLaps = config.objectivesColorLaterLaps();
 
+		highlightSpeedBoosts = config.highlightSpeedBoosts();
+		speedBoostColor = config.speedBoostColor();
 		highlightClouds = config.highlightClouds();
 		cloudColor = config.cloudColor();
 		cloudDangerRadius = config.cloudDangerRadius();
-
-		highlightRocks = config.highlightRocks();
-		rockColor = config.rockColor();
-		highlightSpeedBoosts = config.highlightSpeedBoosts();
-		speedBoostColor = config.speedBoostColor();
+		highlightFetidPools = config.highlightFetidPools();
+		fetidPoolColor = config.fetidPoolColor();
 
 		debugMode = config.debugMode();
 		showIDs = config.showIDs();
