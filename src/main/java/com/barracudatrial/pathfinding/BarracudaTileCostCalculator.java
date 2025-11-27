@@ -20,6 +20,7 @@ public class BarracudaTileCostCalculator
 	private final WorldPoint secondaryObjectiveLocation;
 	private final int boatExclusionWidth;
 	private final int boatExclusionHeight;
+	private final Set<WorldPoint> pathfindingHintTiles;
 
 	private int speedBoostTilesRemaining = 0;
 	private WorldPoint lastTile = null;
@@ -48,7 +49,8 @@ public class BarracudaTileCostCalculator
 		WorldPoint secondaryObjectiveLocation,
 		RouteOptimization routeOptimization,
 		int boatExclusionWidth,
-		int boatExclusionHeight)
+		int boatExclusionHeight,
+		Set<WorldPoint> pathfindingHintTiles)
 	{
 		this.exclusionZoneMinX = exclusionZoneMinX;
 		this.exclusionZoneMaxX = exclusionZoneMaxX;
@@ -59,6 +61,7 @@ public class BarracudaTileCostCalculator
 		this.routeOptimization = routeOptimization;
 		this.boatExclusionWidth = boatExclusionWidth;
 		this.boatExclusionHeight = boatExclusionHeight;
+		this.pathfindingHintTiles = pathfindingHintTiles != null ? pathfindingHintTiles : new HashSet<>();
 
 		this.rockLocations = knownRockLocations;
 		this.closeToRocks = precomputeTileProximity(rockLocations, 1);
@@ -80,7 +83,7 @@ public class BarracudaTileCostCalculator
 		}
 		lastTile = to;
 
-		double cost = 1.0;
+		double cost = pathfindingHintTiles.contains(to) ? 0.1 : 1.0;
 
 		WorldPoint unconsumedBoost = getUnconsumedBoost(to);
 		if (unconsumedBoost != null)

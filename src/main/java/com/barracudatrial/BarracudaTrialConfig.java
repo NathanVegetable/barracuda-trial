@@ -155,6 +155,19 @@ public interface BarracudaTrialConfig extends Config
 	}
 
 	@ConfigItem(
+		keyName = "windCatcherColor",
+		name = "Wind Catcher Color",
+		description = "Color for wind catcher path segments and tile highlights",
+		section = objectivesSection,
+		position = 4
+	)
+	@Alpha
+	default Color windCatcherColor()
+	{
+		return new Color(173, 216, 230, 180); // Light blue
+	}
+
+	@ConfigItem(
 		keyName = "highlightSpeedBoosts",
 		name = "Highlight Speed Boosts",
 		description = "Highlight speed boost areas",

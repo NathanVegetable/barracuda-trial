@@ -33,7 +33,9 @@ public class RouteWaypoint
 		TOAD_PICKUP(9),
 		TOAD_PILLAR(10),
 		CRYSTAL_MOTE(5),
-		PORTAL(7);
+		PORTAL(7),
+		PATHFINDING_HINT(0),
+		USE_WIND_CATCHER(0);
 
 		private final int toleranceTiles;
 

@@ -53,12 +53,14 @@ public class PathRenderer
 		List<WorldPoint> trimmedPath = getTrimmedPathForRendering(visualFrontPositionTransformed, currentSegmentPath);
 
 		drawSmoothPathWithBezier(graphics, trimmedPath, visualFrontPositionTransformed);
+		renderWindCatcherHighlights(graphics);
 
 		// Render debug visualizations
 		if (cachedConfig.isDebugMode())
 		{
 			renderPathTiles(graphics, currentSegmentPath);
 			renderWaypointLabels(graphics);
+			renderPathfindingHints(graphics);
 		}
 	}
 
@@ -236,10 +238,34 @@ public class PathRenderer
 			}
 		}
 
+		Color pathColor = getPathColorForNextWaypoint();
+
 		// Draw the path
 		graphics.setStroke(new BasicStroke(cachedConfig.getPathWidth(), BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
-		graphics.setColor(cachedConfig.getPathColor());
+		graphics.setColor(pathColor);
 		graphics.draw(path);
+	}
+
+	private Color getPathColorForNextWaypoint()
+	{
+		CachedConfig cachedConfig = plugin.getCachedConfig();
+		List<RouteWaypoint> staticRoute = plugin.getGameState().getCurrentStaticRoute();
+
+		if (staticRoute == null || staticRoute.isEmpty())
+		{
+			return cachedConfig.getPathColor();
+		}
+
+		int nextWaypointIndex = plugin.getGameState().getNextWaypointIndex();
+		if (nextWaypointIndex < 0 || nextWaypointIndex >= staticRoute.size())
+		{
+			return cachedConfig.getPathColor();
+		}
+
+		RouteWaypoint nextWaypoint = staticRoute.get(nextWaypointIndex);
+		boolean pathingToWindCatcher = nextWaypoint.getType() == RouteWaypoint.WaypointType.USE_WIND_CATCHER;
+
+		return pathingToWindCatcher ? cachedConfig.getWindCatcherColor() : cachedConfig.getPathColor();
 	}
 
 	private void renderPathTiles(Graphics2D graphics, List<WorldPoint> path)
@@ -290,6 +316,62 @@ public class PathRenderer
 				}
 			}
 			index++;
+		}
+	}
+
+	private void renderWindCatcherHighlights(Graphics2D graphics)
+	{
+		List<RouteWaypoint> staticRoute = plugin.getGameState().getCurrentStaticRoute();
+		if (staticRoute == null || staticRoute.isEmpty())
+		{
+			return;
+		}
+
+		CachedConfig cachedConfig = plugin.getCachedConfig();
+		Color windCatcherColor = cachedConfig.getWindCatcherColor();
+
+		WorldPoint lastWindCatcherTile = null;
+		for (RouteWaypoint waypoint : staticRoute)
+		{
+			if (waypoint.getType() == RouteWaypoint.WaypointType.USE_WIND_CATCHER)
+			{
+				WorldPoint loc = waypoint.getLocation();
+				if (loc != null)
+				{
+					// Only highlight the first wind catcher in a sequence
+					if (lastWindCatcherTile == null)
+					{
+						objectRenderer.renderTileHighlightAtWorldPoint(graphics, loc, windCatcherColor, "USE WIND CATCHER");
+					}
+					lastWindCatcherTile = loc;
+				}
+			}
+			else
+			{
+				lastWindCatcherTile = null;
+			}
+		}
+	}
+
+	private void renderPathfindingHints(Graphics2D graphics)
+	{
+		List<RouteWaypoint> staticRoute = plugin.getGameState().getCurrentStaticRoute();
+		if (staticRoute == null || staticRoute.isEmpty())
+		{
+			return;
+		}
+
+		Color hintColor = new Color(255, 255, 0, 100);
+		for (RouteWaypoint waypoint : staticRoute)
+		{
+			if (waypoint.getType() == RouteWaypoint.WaypointType.PATHFINDING_HINT)
+			{
+				WorldPoint loc = waypoint.getLocation();
+				if (loc != null)
+				{
+					objectRenderer.renderTileHighlightAtWorldPoint(graphics, loc, hintColor, null);
+				}
+			}
 		}
 	}
 }

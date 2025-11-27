@@ -24,6 +24,7 @@ public class CachedConfig
 	@Getter private Color objectivesColorCurrentWaypoint;
 	@Getter private Color objectivesColorCurrentLap;
 	@Getter private Color objectivesColorLaterLaps;
+	@Getter private Color windCatcherColor;
 
 	// Object highlighting settings
 	@Getter private boolean highlightSpeedBoosts;
@@ -60,6 +61,7 @@ public class CachedConfig
 		objectivesColorCurrentWaypoint = config.objectivesColorCurrentWaypoint();
 		objectivesColorCurrentLap = config.objectivesColorCurrentLap();
 		objectivesColorLaterLaps = config.objectivesColorLaterLaps();
+		windCatcherColor = config.windCatcherColor();
 
 		highlightSpeedBoosts = config.highlightSpeedBoosts();
 		speedBoostColor = config.speedBoostColor();
