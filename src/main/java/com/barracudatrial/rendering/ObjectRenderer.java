@@ -64,7 +64,7 @@ public class ObjectRenderer
 				{
 					laterLapLocations.add(location);
 				}
-				else if (currentWaypointLocation == null && !completedWaypointIndices.contains(i))
+				else if (currentWaypointLocation == null && !completedWaypointIndices.contains(i) && !waypoint.getType().isNonNavigatableHelper())
 				{
 					currentWaypointLocation = location;
 				}
@@ -235,7 +235,7 @@ public class ObjectRenderer
 		int currentLap = state.getCurrentLap();
 		var completed = state.getCompletedWaypointIndices();
 
-		int currentWaypointIndex = -1;
+		int currentWaypointIndex = state.getNextNavigatableWaypointIndex();
 		var currentLapLocations = new HashSet<WorldPoint>();
 		var laterLapLocations = new HashSet<WorldPoint>();
 
@@ -243,11 +243,6 @@ public class ObjectRenderer
 		{
 			if (completed.contains(i))
 				continue;
-
-			if (currentWaypointIndex == -1)
-			{
-				currentWaypointIndex = i;
-			}
 
 			var wp = route.get(i);
 			if (wp.getType() != RouteWaypoint.WaypointType.TOAD_PILLAR)
@@ -265,16 +260,23 @@ public class ObjectRenderer
 		}
 
 		List<WorldPoint> currentWaypointLocations;
-		if (currentWaypointIndex >= 0)
+		if (currentWaypointIndex >= 0 && currentWaypointIndex < route.size())
 		{
-			// Special case - display pillars as "current" if they are the current OR NEXT waypoint
+			// Special case - display pillars as "current" if they are the current OR NEXT navigatable waypoint
 			var currentWp = route.get(currentWaypointIndex);
 			currentWaypointLocations = new ArrayList<>();
 			currentWaypointLocations.add(currentWp.getLocation());
-			if (currentWaypointIndex + 1 < route.size())
+
+			// Find next navigatable waypoint
+			for (int offset = 1; offset < route.size(); offset++)
 			{
-				var nextWp = route.get(currentWaypointIndex + 1);
-				currentWaypointLocations.add(nextWp.getLocation());
+				int nextIndex = (currentWaypointIndex + offset) % route.size();
+				var nextWp = route.get(nextIndex);
+				if (!completed.contains(nextIndex) && !nextWp.getType().isNonNavigatableHelper())
+				{
+					currentWaypointLocations.add(nextWp.getLocation());
+					break;
+				}
 			}
 		} else {
             currentWaypointLocations = List.of();
