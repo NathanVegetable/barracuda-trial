@@ -373,7 +373,13 @@ public class ObjectRenderer
 			}
 		}
 
-		drawTileObjectHull(graphics, tileObject, highlightColor);
+		try
+		{
+			drawTileObjectHull(graphics, tileObject, highlightColor);
+		} catch (Exception e)
+		{
+			renderTileHighlightAtWorldPoint(graphics, tileObject.getWorldLocation(), highlightColor);
+		}
 
 		if (debugLabel != null)
 		{
