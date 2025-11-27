@@ -121,8 +121,8 @@ public class PathPlanner
 	 * Routes to waypoints even if not yet visible (game only reveals nearby shipments).
 	 * Supports backtracking if a waypoint was missed.
 	 *
-	 * @param count Maximum number of uncompleted waypoints to return
-	 * @return List of uncompleted waypoints in route order
+	 * @param count Maximum number of uncompleted navigatable waypoints (excludes PATHFINDING_HINT and USE_WIND_CATCHER)
+	 * @return List of uncompleted waypoints in route order (includes all helper waypoints between real waypoints)
 	 */
 	private List<RouteWaypoint> findNextUncompletedWaypoints(int count)
 	{
@@ -136,8 +136,9 @@ public class PathPlanner
 
 		int routeSize = route.size();
 		boolean foundFirst = false;
+		int navigatableWaypointCount = 0;
 
-		for (int offset = 0; offset < routeSize && uncompletedWaypoints.size() < count; offset++)
+		for (int offset = 0; offset < routeSize && navigatableWaypointCount < count; offset++)
 		{
 			int checkIndex = (state.getNextWaypointIndex() + offset) % routeSize;
 			RouteWaypoint waypoint = route.get(checkIndex);
@@ -150,6 +151,12 @@ public class PathPlanner
 					foundFirst = true;
 				}
 				uncompletedWaypoints.add(waypoint);
+
+				if (waypoint.getType() != RouteWaypoint.WaypointType.PATHFINDING_HINT &&
+					waypoint.getType() != RouteWaypoint.WaypointType.USE_WIND_CATCHER)
+				{
+					navigatableWaypointCount++;
+				}
 			}
 		}
 
