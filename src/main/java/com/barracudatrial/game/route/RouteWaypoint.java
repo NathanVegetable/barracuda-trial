@@ -31,7 +31,9 @@ public class RouteWaypoint
 		RUM_PICKUP(7),
 		RUM_DROPOFF(7),
 		TOAD_PICKUP(9),
-		TOAD_PILLAR(10);
+		TOAD_PILLAR(10),
+		CRYSTAL_MOTE(5),
+		PORTAL(7);
 
 		private final int toleranceTiles;
 
