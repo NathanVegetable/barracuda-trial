@@ -254,6 +254,9 @@ public class PathPlanner
 				segmentPath = pathToSingleTarget(currentPosition, pathfindingTarget, waypoint.getType().getToleranceTiles(), isPlayerCurrentlyOnPath, initialBoatDx, initialBoatDy, pathfindingHints);
 			}
 
+			// Clear hints after use - they only apply to this segment
+			pathfindingHints.clear();
+
 			if (fullPath.isEmpty())
 			{
 				fullPath.addAll(segmentPath);
