@@ -172,12 +172,21 @@ public class PathPlanner
 		List<WorldPoint> fullPath = new ArrayList<>();
 		WorldPoint currentPosition = start;
 		boolean isPlayerCurrentlyOnPath = true;
+		Set<WorldPoint> pathfindingHints = new HashSet<>();
 
-		for (RouteWaypoint waypoint : waypoints)
+		for (int i = 0; i < waypoints.size(); i++)
 		{
-			WorldPoint target = waypoint.getLocation();
+			RouteWaypoint waypoint = waypoints.get(i);
+			var waypointType = waypoint.getType();
 
-			// If target is out of the extended scene, find the nearest in-scene tile along the path
+			// Skip PATHFINDING_HINT waypoints but collect their tiles
+			if (waypointType == RouteWaypoint.WaypointType.PATHFINDING_HINT)
+			{
+				pathfindingHints.add(waypoint.getLocation());
+				continue;
+			}
+
+			WorldPoint target = waypoint.getLocation();
 			WorldPoint pathfindingTarget = getInSceneTarget(currentPosition, target);
 
 			int initialBoatDx;
@@ -217,7 +226,33 @@ public class PathPlanner
 				}
 			}
 
-			List<WorldPoint> segmentPath = pathToSingleTarget(currentPosition, pathfindingTarget, waypoint.getType().getToleranceTiles(), isPlayerCurrentlyOnPath, initialBoatDx, initialBoatDy);
+			List<WorldPoint> segmentPath;
+
+			// Handle USE_WIND_CATCHER transitions
+			// Find the previous non-PATHFINDING_HINT waypoint
+			RouteWaypoint prevWaypoint = null;
+			for (int j = i - 1; j >= 0; j--)
+			{
+				if (waypoints.get(j).getType() != RouteWaypoint.WaypointType.PATHFINDING_HINT)
+				{
+					prevWaypoint = waypoints.get(j);
+					break;
+				}
+			}
+
+			boolean currentIsWindCatcher = waypointType == RouteWaypoint.WaypointType.USE_WIND_CATCHER;
+			boolean prevIsWindCatcher = prevWaypoint != null && prevWaypoint.getType() == RouteWaypoint.WaypointType.USE_WIND_CATCHER;
+
+			if (currentIsWindCatcher && prevIsWindCatcher)
+			{
+				// Wind catcher to wind catcher: direct 2-tile path (no pathfinding)
+				segmentPath = List.of(currentPosition, target);
+			}
+			else
+			{
+				// Normal pathfinding
+				segmentPath = pathToSingleTarget(currentPosition, pathfindingTarget, waypoint.getType().getToleranceTiles(), isPlayerCurrentlyOnPath, initialBoatDx, initialBoatDy, pathfindingHints);
+			}
 
 			if (fullPath.isEmpty())
 			{
@@ -242,11 +277,12 @@ public class PathPlanner
 	 * @param target Target position
 	 * @param goalTolerance Number of tiles away from target that counts as reaching it (0 = exact)
 	 * @param isPlayerCurrentlyOnPath Whether or not this is the path that the player is currently navigating
+	 * @param pathfindingHints Set of tiles that should have reduced cost during pathfinding
 	 * @return Path from start to target
 	 */
-	private List<WorldPoint> pathToSingleTarget(WorldPoint start, WorldPoint target, int goalTolerance, boolean isPlayerCurrentlyOnPath, int initialBoatDx, int initialBoatDy)
+	private List<WorldPoint> pathToSingleTarget(WorldPoint start, WorldPoint target, int goalTolerance, boolean isPlayerCurrentlyOnPath, int initialBoatDx, int initialBoatDy, Set<WorldPoint> pathfindingHints)
 	{
-		var tileCostCalculator = getBarracudaTileCostCalculator();
+		var tileCostCalculator = getBarracudaTileCostCalculator(pathfindingHints);
 
 		// Use provided initial heading (may be 0,0 for neutral)
 		int boatDirectionDx = initialBoatDx;
@@ -271,7 +307,7 @@ public class PathPlanner
 		return path;
 	}
 
-	private BarracudaTileCostCalculator getBarracudaTileCostCalculator()
+	private BarracudaTileCostCalculator getBarracudaTileCostCalculator(Set<WorldPoint> pathfindingHints)
 	{
 		Set<NPC> currentlyDangerousClouds = new HashSet<>();
 		for (NPC lightningCloud : state.getLightningClouds())
@@ -336,7 +372,8 @@ public class PathPlanner
 			secondaryObjectiveLocation,
 			cachedConfig.getRouteOptimization(),
 			boatExclusionWidth,
-			boatExclusionHeight
+			boatExclusionHeight,
+			pathfindingHints
 		);
 	}
 
