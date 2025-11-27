@@ -32,6 +32,59 @@ public class GwenithGlideConfig implements TrialConfig
 		ObjectID.SAILING_BT_GWENITH_GLIDE_TELEPORT_MARKER_TRAHAEARN // 59093
 	);
 
+	// Portal locations with exact WorldPoints
+	public static final GwenithGlidePortal[] PORTALS =
+	{
+		// TODO: Capture portal location for Ithell
+		new GwenithGlidePortal(
+				new WorldPoint(0, 0, 0),
+				ObjectID.SAILING_BT_GWENITH_GLIDE_TELEPORT_MARKER_ITHELL,
+				"Ithell"
+		),
+		// TODO: Capture portal location for Amlodd
+		new GwenithGlidePortal(
+				new WorldPoint(0, 0, 0),
+				ObjectID.SAILING_BT_GWENITH_GLIDE_TELEPORT_MARKER_AMLODD,
+				"Amlodd"
+		),
+		// TODO: Capture portal location for Cadarn
+		new GwenithGlidePortal(
+				new WorldPoint(0, 0, 0),
+				ObjectID.SAILING_BT_GWENITH_GLIDE_TELEPORT_MARKER_CADARN,
+				"Cadarn"
+		),
+		// TODO: Capture portal location for Crwys
+		new GwenithGlidePortal(
+				new WorldPoint(0, 0, 0),
+				ObjectID.SAILING_BT_GWENITH_GLIDE_TELEPORT_MARKER_CRWYS,
+				"Crwys"
+		),
+		// TODO: Capture portal location for Hefin
+		new GwenithGlidePortal(
+				new WorldPoint(0, 0, 0),
+				ObjectID.SAILING_BT_GWENITH_GLIDE_TELEPORT_MARKER_HEFIN,
+				"Hefin"
+		),
+		// TODO: Capture portal location for Iorwerth
+		new GwenithGlidePortal(
+				new WorldPoint(0, 0, 0),
+				ObjectID.SAILING_BT_GWENITH_GLIDE_TELEPORT_MARKER_IORWERTH,
+				"Iorwerth"
+		),
+		// TODO: Capture portal location for Meilyr
+		new GwenithGlidePortal(
+				new WorldPoint(0, 0, 0),
+				ObjectID.SAILING_BT_GWENITH_GLIDE_TELEPORT_MARKER_MEILYR,
+				"Meilyr"
+		),
+		// TODO: Capture portal location for Trahaearn
+		new GwenithGlidePortal(
+				new WorldPoint(0, 0, 0),
+				ObjectID.SAILING_BT_GWENITH_GLIDE_TELEPORT_MARKER_TRAHAEARN,
+				"Trahaearn"
+		)
+	};
+
 	// Lost supplies - collectables scattered throughout the trial
 	private static final Set<Integer> SHIPMENT_IDS = Set.of(
 			ObjectID.SAILING_BT_GWENITH_GLIDE_COLLECTABLE_1, // 58982
