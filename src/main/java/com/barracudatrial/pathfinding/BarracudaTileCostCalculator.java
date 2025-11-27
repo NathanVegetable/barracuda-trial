@@ -75,6 +75,11 @@ public class BarracudaTileCostCalculator
 
 	public double getTileCost(WorldPoint from, WorldPoint to)
 	{
+		if (pathfindingHintTiles.contains(to))
+		{
+			return 0.1;
+		}
+
 		int maxTileCost = 100000;
 
 		if (lastTile == null || !lastTile.equals(from))
@@ -83,7 +88,7 @@ public class BarracudaTileCostCalculator
 		}
 		lastTile = to;
 
-		double cost = pathfindingHintTiles.contains(to) ? 0.1 : 1.0;
+		double cost = 1.0;
 
 		WorldPoint unconsumedBoost = getUnconsumedBoost(to);
 		if (unconsumedBoost != null)
