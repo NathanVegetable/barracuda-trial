@@ -256,7 +256,7 @@ public class PathRenderer
 			return cachedConfig.getPathColor();
 		}
 
-		int nextWaypointIndex = plugin.getGameState().getNextWaypointIndex();
+		int nextWaypointIndex = plugin.getGameState().getNextNavigatableWaypointIndex();
 		if (nextWaypointIndex < 0 || nextWaypointIndex >= staticRoute.size())
 		{
 			return cachedConfig.getPathColor();

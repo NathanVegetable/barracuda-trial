@@ -87,7 +87,7 @@ public class PathPlanner
 		state.setOptimalPath(new ArrayList<>(fullPath));
 		state.setNextSegmentPath(new ArrayList<>());
 
-		log.debug("Pathing through {} waypoints starting at index {}", nextWaypoints.size(), state.getNextWaypointIndex());
+		log.debug("Pathing through {} waypoints starting at index {}", nextWaypoints.size(), state.getNextNavigatableWaypointIndex());
 	}
 
 	private void loadStaticRouteForCurrentDifficulty()
@@ -121,7 +121,7 @@ public class PathPlanner
 	 * Routes to waypoints even if not yet visible (game only reveals nearby shipments).
 	 * Supports backtracking if a waypoint was missed.
 	 *
-	 * @param count Maximum number of uncompleted navigatable waypoints (excludes PATHFINDING_HINT and USE_WIND_CATCHER)
+	 * @param count Maximum number of uncompleted navigatable waypoints
 	 * @return List of uncompleted waypoints in route order (includes all helper waypoints between real waypoints)
 	 */
 	private List<RouteWaypoint> findNextUncompletedWaypoints(int count)
@@ -140,20 +140,19 @@ public class PathPlanner
 
 		for (int offset = 0; offset < routeSize && navigatableWaypointCount < count; offset++)
 		{
-			int checkIndex = (state.getNextWaypointIndex() + offset) % routeSize;
+			int checkIndex = (state.getNextNavigatableWaypointIndex() + offset) % routeSize;
 			RouteWaypoint waypoint = route.get(checkIndex);
 
 			if (!state.isWaypointCompleted(checkIndex))
 			{
-				if (!foundFirst)
+				if (!foundFirst && !waypoint.getType().isNonNavigatableHelper())
 				{
 					state.setNextWaypointIndex(checkIndex);
 					foundFirst = true;
 				}
 				uncompletedWaypoints.add(waypoint);
 
-				if (waypoint.getType() != RouteWaypoint.WaypointType.PATHFINDING_HINT &&
-					waypoint.getType() != RouteWaypoint.WaypointType.USE_WIND_CATCHER)
+				if (!waypoint.getType().isNonNavigatableHelper())
 				{
 					navigatableWaypointCount++;
 				}
@@ -236,11 +235,11 @@ public class PathPlanner
 			List<WorldPoint> segmentPath;
 
 			// Handle USE_WIND_CATCHER transitions
-			// Find the previous non-PATHFINDING_HINT waypoint
+			// Find the previous navigatable waypoint
 			RouteWaypoint prevWaypoint = null;
 			for (int j = i - 1; j >= 0; j--)
 			{
-				if (waypoints.get(j).getType() != RouteWaypoint.WaypointType.PATHFINDING_HINT)
+				if (!waypoints.get(j).getType().isNonNavigatableHelper())
 				{
 					prevWaypoint = waypoints.get(j);
 					break;

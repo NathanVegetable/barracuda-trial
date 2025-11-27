@@ -41,6 +41,11 @@ public class RouteWaypoint
 		{
 			this.toleranceTiles = toleranceTiles;
 		}
+
+		public boolean isNonNavigatableHelper()
+		{
+			return this == PATHFINDING_HINT || this == USE_WIND_CATCHER;
+		}
 	}
 
 	@Override

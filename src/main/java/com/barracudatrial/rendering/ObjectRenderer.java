@@ -181,7 +181,7 @@ public class ObjectRenderer
 
 		int currentLap = state.getCurrentLap();
 		var completed = state.getCompletedWaypointIndices();
-		int nextWaypointIndex = state.getNextWaypointIndex();
+		int nextWaypointIndex = state.getNextNavigatableWaypointIndex();
 
 		for (int i = 0; i < route.size(); i++)
 		{
@@ -672,7 +672,7 @@ public class ObjectRenderer
 			return false;
 		}
 
-		int nextWaypointIndex = plugin.getGameState().getNextWaypointIndex();
+		int nextWaypointIndex = plugin.getGameState().getNextNavigatableWaypointIndex();
 		if (nextWaypointIndex >= staticRoute.size())
 		{
 			return false;
