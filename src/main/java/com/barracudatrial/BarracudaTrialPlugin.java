@@ -20,9 +20,9 @@ import java.util.List;
 
 @Slf4j
 @PluginDescriptor(
-	name = "Barracuda Trial",
-	description = "Displays optimal paths and highlights for Barracuda Trial minigame",
-	tags = {"sailing", "barracuda", "minigame", "overlay"}
+	name = "Barracuda Trials Pathfinder",
+	description = "Displays optimal paths and highlights for Sailing Barracuda Trials training",
+	tags = {"sailing", "barracuda", "trials", "training", "overlay", "pathfinder"}
 )
 public class BarracudaTrialPlugin extends Plugin
 {
