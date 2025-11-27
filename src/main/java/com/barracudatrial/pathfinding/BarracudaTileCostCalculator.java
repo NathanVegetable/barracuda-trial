@@ -77,7 +77,7 @@ public class BarracudaTileCostCalculator
 	{
 		if (pathfindingHintTiles.contains(to))
 		{
-			return 0.1;
+			return -1.5;
 		}
 
 		int maxTileCost = 100000;
