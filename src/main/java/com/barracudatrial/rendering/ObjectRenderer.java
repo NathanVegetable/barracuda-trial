@@ -262,20 +262,18 @@ public class ObjectRenderer
 		List<WorldPoint> currentWaypointLocations;
 		if (currentWaypointIndex >= 0 && currentWaypointIndex < route.size())
 		{
-			// Special case - display pillars as "current" if they are the current OR NEXT navigatable waypoint
-			var currentWp = route.get(currentWaypointIndex);
+			// Display pillars as "current" if they are in the next 2 navigatable waypoints
 			currentWaypointLocations = new ArrayList<>();
-			currentWaypointLocations.add(currentWp.getLocation());
+			int foundCount = 0;
 
-			// Find next navigatable waypoint
-			for (int offset = 1; offset < route.size(); offset++)
+			for (int offset = 0; offset < route.size() && foundCount < 2; offset++)
 			{
-				int nextIndex = (currentWaypointIndex + offset) % route.size();
-				var nextWp = route.get(nextIndex);
-				if (!completed.contains(nextIndex) && !nextWp.getType().isNonNavigatableHelper())
+				int checkIndex = (currentWaypointIndex + offset) % route.size();
+				var wp = route.get(checkIndex);
+				if (!completed.contains(checkIndex) && !wp.getType().isNonNavigatableHelper())
 				{
-					currentWaypointLocations.add(nextWp.getLocation());
-					break;
+					currentWaypointLocations.add(wp.getLocation());
+					foundCount++;
 				}
 			}
 		} else {
