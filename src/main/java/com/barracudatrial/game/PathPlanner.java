@@ -414,22 +414,28 @@ public class PathPlanner
 			return targetLocation;
 		}
 
-		LocalPoint targetLocal = LocalPoint.fromWorld(worldView, targetLocation);
-		if (targetLocal != null)
+		var worldPlane = worldView.getPlane();
+
+		if (worldPlane == targetLocation.getPlane())
 		{
-			return targetLocation;
+			LocalPoint targetLocal = LocalPoint.fromWorld(worldView, targetLocation);
+			if (targetLocal != null) {
+				return targetLocation;
+			}
 		}
 
 		for (var alternateLocation : target.getFallbackLocations())
 		{
-			LocalPoint alternateLocationLocal = LocalPoint.fromWorld(worldView, alternateLocation);
-			if (alternateLocationLocal != null)
+			if (worldPlane == alternateLocation.getPlane())
 			{
-				return alternateLocation;
+				LocalPoint alternateLocationLocal = ObjectRenderer.localPointFromWorldIncludingExtended(worldView, alternateLocation);
+				if (alternateLocationLocal != null) {
+					return alternateLocation;
+				}
 			}
 		}
 
-		targetLocal = ObjectRenderer.localPointFromWorldIncludingExtended(worldView, targetLocation);
+		var targetLocal = ObjectRenderer.localPointFromWorldIncludingExtended(worldView, targetLocation);
 		if (targetLocal != null)
 		{
 			return targetLocation;
