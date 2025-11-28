@@ -1,10 +1,7 @@
 package com.barracudatrial.game.route;
 
-import net.runelite.api.coords.WorldPoint;
-
 import java.util.List;
 import java.util.Set;
-import java.util.regex.Pattern;
 
 public interface TrialConfig
 {

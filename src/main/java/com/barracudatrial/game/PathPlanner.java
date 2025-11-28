@@ -260,7 +260,6 @@ public class PathPlanner
 				segmentPath = pathToSingleTarget(currentPosition, pathfindingTarget, waypoint.getType().getToleranceTiles(), isPlayerCurrentlyOnPath, initialBoatDx, initialBoatDy, pathfindingHints);
 			}
 
-			// Clear hints after use - they only apply to this segment
 			pathfindingHints.clear();
 
 			if (fullPath.isEmpty())
@@ -269,11 +268,23 @@ public class PathPlanner
 			}
 			else if (!segmentPath.isEmpty())
 			{
-				// Skip first point to avoid duplicates (end of previous segment = start of next segment)
 				fullPath.addAll(segmentPath.subList(1, segmentPath.size()));
 			}
 
-			currentPosition = segmentPath.isEmpty() ? currentPosition : segmentPath.get(segmentPath.size() - 1);
+			// A* might have only reached an in-scene target, not the wind catcher itself
+			if (currentIsWindCatcher)
+			{
+				WorldPoint lastPointInPath = fullPath.isEmpty() ? null : fullPath.get(fullPath.size() - 1);
+				if (!target.equals(lastPointInPath))
+				{
+					fullPath.add(target);
+				}
+				currentPosition = target;
+			}
+			else
+			{
+				currentPosition = segmentPath.isEmpty() ? currentPosition : segmentPath.get(segmentPath.size() - 1);
+			}
 			isPlayerCurrentlyOnPath = false;
 		}
 
