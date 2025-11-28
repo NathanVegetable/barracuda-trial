@@ -424,13 +424,17 @@ public class PathPlanner
 			}
 		}
 
-		for (var alternateLocation : target.getFallbackLocations())
+		var fallbackLocations = target.getFallbackLocations();
+		if (fallbackLocations != null)
 		{
-			if (worldPlane == alternateLocation.getPlane())
+			for (var alternateLocation : fallbackLocations)
 			{
-				LocalPoint alternateLocationLocal = ObjectRenderer.localPointFromWorldIncludingExtended(worldView, alternateLocation);
-				if (alternateLocationLocal != null) {
-					return alternateLocation;
+				if (worldPlane == alternateLocation.getPlane())
+				{
+					LocalPoint alternateLocationLocal = ObjectRenderer.localPointFromWorldIncludingExtended(worldView, alternateLocation);
+					if (alternateLocationLocal != null) {
+						return alternateLocation;
+					}
 				}
 			}
 		}
@@ -441,12 +445,15 @@ public class PathPlanner
 			return targetLocation;
 		}
 
-		for (var alternateLocation : target.getFallbackLocations())
+		if (fallbackLocations != null)
 		{
-			LocalPoint alternateLocationLocal = ObjectRenderer.localPointFromWorldIncludingExtended(worldView, alternateLocation);
-			if (alternateLocationLocal != null)
+			for (var alternateLocation : fallbackLocations)
 			{
-				return alternateLocation;
+				LocalPoint alternateLocationLocal = ObjectRenderer.localPointFromWorldIncludingExtended(worldView, alternateLocation);
+				if (alternateLocationLocal != null)
+				{
+					return alternateLocation;
+				}
 			}
 		}
 
