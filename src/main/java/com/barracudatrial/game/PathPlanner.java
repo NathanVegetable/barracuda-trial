@@ -397,6 +397,13 @@ public class PathPlanner
 		);
 	}
 
+	/**
+	 * Returns the target if it's in the extended scene, otherwise finds the nearest in-scene tile
+	 * along the path from start to target using efficient binary search.
+	 * @param start Starting position
+	 * @param target Desired target position
+	 * @return Target if in scene, otherwise nearest in-scene tile toward target
+	 */
 	private WorldPoint getInSceneTarget(WorldPoint start, RouteWaypoint target)
 	{
 		var targetLocation = target.getLocation();
@@ -407,7 +414,22 @@ public class PathPlanner
 			return targetLocation;
 		}
 
-		LocalPoint targetLocal = ObjectRenderer.localPointFromWorldIncludingExtended(worldView, targetLocation);
+		LocalPoint targetLocal = LocalPoint.fromWorld(worldView, targetLocation);
+		if (targetLocal != null)
+		{
+			return targetLocation;
+		}
+
+		for (var alternateLocation : target.getFallbackLocations())
+		{
+			LocalPoint alternateLocationLocal = LocalPoint.fromWorld(worldView, alternateLocation);
+			if (alternateLocationLocal != null)
+			{
+				return alternateLocation;
+			}
+		}
+
+		targetLocal = ObjectRenderer.localPointFromWorldIncludingExtended(worldView, targetLocation);
 		if (targetLocal != null)
 		{
 			return targetLocation;
@@ -424,34 +446,6 @@ public class PathPlanner
 
 		return findNearestValidPoint(start, targetLocation, candidate ->
 				ObjectRenderer.localPointFromWorldIncludingExtended(worldView, candidate) != null
-		);
-	}
-
-	/**
-	 * Returns the target if it's in the extended scene, otherwise finds the nearest in-scene tile
-	 * along the path from start to target using efficient binary search.
-	 * @param start Starting position
-	 * @param target Desired target position
-	 * @return Target if in scene, otherwise nearest in-scene tile toward target
-	 */
-	private WorldPoint getInSceneTarget(WorldPoint start, WorldPoint target)
-	{
-		WorldView worldView = client.getTopLevelWorldView();
-		if (worldView == null)
-		{
-			return target;
-		}
-
-		// Check if target is already in extended scene
-		LocalPoint targetLocal = ObjectRenderer.localPointFromWorldIncludingExtended(worldView, target);
-		if (targetLocal != null)
-		{
-			return target;
-		}
-
-		// Target is out of extended scene - binary search for the furthest visible tile
-		return findNearestValidPoint(start, target, candidate ->
-			ObjectRenderer.localPointFromWorldIncludingExtended(worldView, candidate) != null
 		);
 	}
 
