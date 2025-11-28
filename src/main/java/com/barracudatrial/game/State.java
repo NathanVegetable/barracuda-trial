@@ -129,6 +129,7 @@ public class State
 	private List<RouteWaypoint> currentStaticRoute = null;
 
 	@Setter
+	@Getter(lombok.AccessLevel.NONE)
 	private int nextWaypointIndex = 0;
 
 	private final Set<Integer> completedWaypointIndices = new HashSet<>();
@@ -194,6 +195,34 @@ public class State
 	public boolean isWaypointCompleted(int waypointIndex)
 	{
 		return completedWaypointIndices.contains(waypointIndex);
+	}
+
+	/**
+	 * Gets the next navigatable waypoint index.
+	 * nextWaypointIndex should always point to a navigatable waypoint, but this method
+	 * provides a safety check in case it somehow points to a helper waypoint.
+	 * @return Index of next navigatable waypoint
+	 */
+	public int getNextNavigatableWaypointIndex()
+	{
+		if (currentStaticRoute == null || currentStaticRoute.isEmpty())
+		{
+			return nextWaypointIndex;
+		}
+
+		int routeSize = currentStaticRoute.size();
+		for (int offset = 0; offset < routeSize; offset++)
+		{
+			int checkIndex = (nextWaypointIndex + offset) % routeSize;
+			RouteWaypoint waypoint = currentStaticRoute.get(checkIndex);
+
+			if (!waypoint.getType().isNonNavigatableHelper())
+			{
+				return checkIndex;
+			}
+		}
+
+		return nextWaypointIndex;
 	}
 
 	/**

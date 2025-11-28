@@ -64,7 +64,7 @@ public class ObjectRenderer
 				{
 					laterLapLocations.add(location);
 				}
-				else if (currentWaypointLocation == null && !completedWaypointIndices.contains(i))
+				else if (currentWaypointLocation == null && !completedWaypointIndices.contains(i) && !waypoint.getType().isNonNavigatableHelper())
 				{
 					currentWaypointLocation = location;
 				}
@@ -181,7 +181,7 @@ public class ObjectRenderer
 
 		int currentLap = state.getCurrentLap();
 		var completed = state.getCompletedWaypointIndices();
-		int nextWaypointIndex = state.getNextWaypointIndex();
+		int nextWaypointIndex = state.getNextNavigatableWaypointIndex();
 
 		for (int i = 0; i < route.size(); i++)
 		{
@@ -235,7 +235,7 @@ public class ObjectRenderer
 		int currentLap = state.getCurrentLap();
 		var completed = state.getCompletedWaypointIndices();
 
-		int currentWaypointIndex = -1;
+		int currentWaypointIndex = state.getNextNavigatableWaypointIndex();
 		var currentLapLocations = new HashSet<WorldPoint>();
 		var laterLapLocations = new HashSet<WorldPoint>();
 
@@ -243,11 +243,6 @@ public class ObjectRenderer
 		{
 			if (completed.contains(i))
 				continue;
-
-			if (currentWaypointIndex == -1)
-			{
-				currentWaypointIndex = i;
-			}
 
 			var wp = route.get(i);
 			if (wp.getType() != RouteWaypoint.WaypointType.TOAD_PILLAR)
@@ -265,16 +260,21 @@ public class ObjectRenderer
 		}
 
 		List<WorldPoint> currentWaypointLocations;
-		if (currentWaypointIndex >= 0)
+		if (currentWaypointIndex >= 0 && currentWaypointIndex < route.size())
 		{
-			// Special case - display pillars as "current" if they are the current OR NEXT waypoint
-			var currentWp = route.get(currentWaypointIndex);
+			// Display pillars as "current" if they are in the next 2 navigatable waypoints
 			currentWaypointLocations = new ArrayList<>();
-			currentWaypointLocations.add(currentWp.getLocation());
-			if (currentWaypointIndex + 1 < route.size())
+			int foundCount = 0;
+
+			for (int offset = 0; offset < route.size() && foundCount < 2; offset++)
 			{
-				var nextWp = route.get(currentWaypointIndex + 1);
-				currentWaypointLocations.add(nextWp.getLocation());
+				int checkIndex = (currentWaypointIndex + offset) % route.size();
+				var wp = route.get(checkIndex);
+				if (!completed.contains(checkIndex) && !wp.getType().isNonNavigatableHelper())
+				{
+					currentWaypointLocations.add(wp.getLocation());
+					foundCount++;
+				}
 			}
 		} else {
             currentWaypointLocations = List.of();
@@ -373,7 +373,13 @@ public class ObjectRenderer
 			}
 		}
 
-		drawTileObjectHull(graphics, tileObject, highlightColor);
+		try
+		{
+			drawTileObjectHull(graphics, tileObject, highlightColor);
+		} catch (Exception e)
+		{
+			renderTileHighlightAtWorldPoint(graphics, tileObject.getWorldLocation(), highlightColor);
+		}
 
 		if (debugLabel != null)
 		{
@@ -666,7 +672,7 @@ public class ObjectRenderer
 			return false;
 		}
 
-		int nextWaypointIndex = plugin.getGameState().getNextWaypointIndex();
+		int nextWaypointIndex = plugin.getGameState().getNextNavigatableWaypointIndex();
 		if (nextWaypointIndex >= staticRoute.size())
 		{
 			return false;

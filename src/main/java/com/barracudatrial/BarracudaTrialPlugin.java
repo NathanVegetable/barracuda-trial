@@ -24,7 +24,7 @@ import java.util.List;
 @PluginDescriptor(
 	name = "Barracuda Trials Pathfinder",
 	description = "Displays optimal paths and highlights for Sailing Barracuda Trials training",
-	tags = {"sailing", "barracuda", "trials", "training", "overlay", "pathfinder"}
+	tags = {"sailing", "tempor", "tantrum", "jubbly", "jive", "gwenith", "glide", "rum", "toads", "supply"}
 )
 public class BarracudaTrialPlugin extends Plugin
 {

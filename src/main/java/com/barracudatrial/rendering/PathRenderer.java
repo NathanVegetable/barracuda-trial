@@ -177,11 +177,6 @@ public class PathRenderer
 			return;
 		}
 
-		// Create Path2D for smooth Bézier curves
-		Path2D.Double path = new Path2D.Double();
-		path.moveTo(startCanvas.getX(), startCanvas.getY());
-
-		// Convert all waypoints to canvas coordinates
 		List<Point> canvasPoints = new ArrayList<>();
 		for (WorldPoint wp : waypoints)
 		{
@@ -201,31 +196,111 @@ public class PathRenderer
 			return;
 		}
 
-		// Draw line from boat to first waypoint
-		path.lineTo(canvasPoints.get(0).getX(), canvasPoints.get(0).getY());
+		List<WindCatcherGroup> windCatcherGroups = getWindCatcherGroups();
 
-		// Draw smooth Bézier curves through waypoints
-		if (canvasPoints.size() == 1)
+		boolean[] isWindCatcherSegment = new boolean[waypoints.size()];
+
+		for (WindCatcherGroup group : windCatcherGroups)
 		{
-			// Just one point, already connected above
+			int firstIdx = -1;
+			int lastIdx = -1;
+
+			for (int i = 0; i < waypoints.size(); i++)
+			{
+				WorldPoint point = waypoints.get(i);
+				if (point.equals(group.firstLocation))
+				{
+					firstIdx = i;
+				}
+				if (point.equals(group.lastLocation))
+				{
+					lastIdx = i;
+				}
+			}
+
+			if (firstIdx != -1 && lastIdx != -1)
+			{
+				for (int i = firstIdx; i <= lastIdx; i++)
+				{
+					isWindCatcherSegment[i] = true;
+				}
+			}
 		}
-		else if (canvasPoints.size() == 2)
+
+		graphics.setStroke(new BasicStroke(cachedConfig.getPathWidth(), BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+
+		drawPathSegments(graphics, canvasPoints, waypoints, isWindCatcherSegment, startCanvas, cachedConfig);
+	}
+
+	private void drawPathSegments(Graphics2D graphics, List<Point> canvasPoints, List<WorldPoint> waypoints,
+	                               boolean[] isWindCatcherSegment, Point startCanvas, CachedConfig cachedConfig)
+	{
+		Color normalColor = cachedConfig.getPathColor();
+		Color windCatcherColor = cachedConfig.getWindCatcherColor();
+
+		int segmentStart = -1;
+		Color currentColor = isWindCatcherSegment[0] ? windCatcherColor : normalColor;
+
+		for (int i = 0; i <= canvasPoints.size(); i++)
 		{
-			// Two points - just draw a line
-			path.lineTo(canvasPoints.get(1).getX(), canvasPoints.get(1).getY());
+			boolean isLastPoint = (i == canvasPoints.size());
+			boolean colorChanged = !isLastPoint && i > 0 &&
+				(isWindCatcherSegment[i] != isWindCatcherSegment[i - 1]);
+
+			if (colorChanged || isLastPoint)
+			{
+				int segmentEnd = i - 1;
+				drawSinglePathSegment(graphics, canvasPoints, segmentStart, segmentEnd, startCanvas, currentColor, cachedConfig);
+
+				if (!isLastPoint)
+				{
+					segmentStart = i - 1;
+					currentColor = isWindCatcherSegment[i] ? windCatcherColor : normalColor;
+				}
+			}
+		}
+	}
+
+	private void drawSinglePathSegment(Graphics2D graphics, List<Point> canvasPoints, int startIdx, int endIdx,
+	                                    Point startCanvas, Color color, CachedConfig cachedConfig)
+	{
+		if (startIdx > endIdx)
+		{
+			return;
+		}
+
+		Path2D.Double path = new Path2D.Double();
+
+		if (startIdx == -1)
+		{
+			path.moveTo(startCanvas.getX(), startCanvas.getY());
+			if (canvasPoints.size() > 0)
+			{
+				path.lineTo(canvasPoints.get(0).getX(), canvasPoints.get(0).getY());
+			}
+			startIdx = 0;
 		}
 		else
 		{
-			// Three or more points - use Bézier curves
-			for (int i = 0; i < canvasPoints.size() - 1; i++)
+			path.moveTo(canvasPoints.get(startIdx).getX(), canvasPoints.get(startIdx).getY());
+		}
+
+		if (startIdx == endIdx)
+		{
+		}
+		else if (endIdx - startIdx == 1)
+		{
+			path.lineTo(canvasPoints.get(endIdx).getX(), canvasPoints.get(endIdx).getY());
+		}
+		else
+		{
+			for (int i = startIdx; i < endIdx; i++)
 			{
 				Point p0 = i > 0 ? canvasPoints.get(i - 1) : canvasPoints.get(i);
 				Point p1 = canvasPoints.get(i);
 				Point p2 = canvasPoints.get(i + 1);
 				Point p3 = (i + 2 < canvasPoints.size()) ? canvasPoints.get(i + 2) : p2;
 
-				// Calculate control points for cubic Bezier
-				// Using a tension factor to control curve smoothness
 				double tension = 0.1;
 
 				double cp1x = p1.getX() + (p2.getX() - p0.getX()) * tension;
@@ -238,34 +313,71 @@ public class PathRenderer
 			}
 		}
 
-		Color pathColor = getPathColorForNextWaypoint();
-
-		// Draw the path
-		graphics.setStroke(new BasicStroke(cachedConfig.getPathWidth(), BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
-		graphics.setColor(pathColor);
+		graphics.setColor(color);
 		graphics.draw(path);
 	}
 
-	private Color getPathColorForNextWaypoint()
+	private static class WindCatcherGroup
 	{
-		CachedConfig cachedConfig = plugin.getCachedConfig();
+		final WorldPoint firstLocation;
+		final WorldPoint lastLocation;
+
+		WindCatcherGroup(WorldPoint firstLocation, WorldPoint lastLocation)
+		{
+			this.firstLocation = firstLocation;
+			this.lastLocation = lastLocation;
+		}
+	}
+
+	private List<WindCatcherGroup> getWindCatcherGroups()
+	{
+		List<WindCatcherGroup> groups = new ArrayList<>();
 		List<RouteWaypoint> staticRoute = plugin.getGameState().getCurrentStaticRoute();
 
 		if (staticRoute == null || staticRoute.isEmpty())
 		{
-			return cachedConfig.getPathColor();
+			return groups;
 		}
 
-		int nextWaypointIndex = plugin.getGameState().getNextWaypointIndex();
-		if (nextWaypointIndex < 0 || nextWaypointIndex >= staticRoute.size())
+		var completedIndices = plugin.getGameState().getCompletedWaypointIndices();
+
+		WorldPoint groupStart = null;
+		WorldPoint groupEnd = null;
+
+		for (int i = 0; i < staticRoute.size(); i++)
 		{
-			return cachedConfig.getPathColor();
+			if (completedIndices.contains(i))
+			{
+				continue;
+			}
+
+			RouteWaypoint waypoint = staticRoute.get(i);
+
+			if (waypoint.getType() == RouteWaypoint.WaypointType.USE_WIND_CATCHER)
+			{
+				if (groupStart == null)
+				{
+					groupStart = waypoint.getLocation();
+				}
+				groupEnd = waypoint.getLocation();
+			}
+			else if (!waypoint.getType().isNonNavigatableHelper())
+			{
+				if (groupStart != null && groupEnd != null)
+				{
+					groups.add(new WindCatcherGroup(groupStart, groupEnd));
+				}
+				groupStart = null;
+				groupEnd = null;
+			}
 		}
 
-		RouteWaypoint nextWaypoint = staticRoute.get(nextWaypointIndex);
-		boolean pathingToWindCatcher = nextWaypoint.getType() == RouteWaypoint.WaypointType.USE_WIND_CATCHER;
+		if (groupStart != null && groupEnd != null)
+		{
+			groups.add(new WindCatcherGroup(groupStart, groupEnd));
+		}
 
-		return pathingToWindCatcher ? cachedConfig.getWindCatcherColor() : cachedConfig.getPathColor();
+		return groups;
 	}
 
 	private void renderPathTiles(Graphics2D graphics, List<WorldPoint> path)

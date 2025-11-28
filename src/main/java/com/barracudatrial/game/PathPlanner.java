@@ -87,7 +87,7 @@ public class PathPlanner
 		state.setOptimalPath(new ArrayList<>(fullPath));
 		state.setNextSegmentPath(new ArrayList<>());
 
-		log.debug("Pathing through {} waypoints starting at index {}", nextWaypoints.size(), state.getNextWaypointIndex());
+		log.debug("Pathing through {} waypoints starting at index {}", nextWaypoints.size(), state.getNextNavigatableWaypointIndex());
 	}
 
 	private void loadStaticRouteForCurrentDifficulty()
@@ -121,8 +121,8 @@ public class PathPlanner
 	 * Routes to waypoints even if not yet visible (game only reveals nearby shipments).
 	 * Supports backtracking if a waypoint was missed.
 	 *
-	 * @param count Maximum number of uncompleted waypoints to return
-	 * @return List of uncompleted waypoints in route order
+	 * @param count Maximum number of uncompleted navigatable waypoints
+	 * @return List of uncompleted waypoints in route order (includes all helper waypoints between real waypoints)
 	 */
 	private List<RouteWaypoint> findNextUncompletedWaypoints(int count)
 	{
@@ -136,20 +136,26 @@ public class PathPlanner
 
 		int routeSize = route.size();
 		boolean foundFirst = false;
+		int navigatableWaypointCount = 0;
 
-		for (int offset = 0; offset < routeSize && uncompletedWaypoints.size() < count; offset++)
+		for (int offset = 0; offset < routeSize && navigatableWaypointCount < count; offset++)
 		{
-			int checkIndex = (state.getNextWaypointIndex() + offset) % routeSize;
+			int checkIndex = (state.getNextNavigatableWaypointIndex() + offset) % routeSize;
 			RouteWaypoint waypoint = route.get(checkIndex);
 
 			if (!state.isWaypointCompleted(checkIndex))
 			{
-				if (!foundFirst)
+				if (!foundFirst && !waypoint.getType().isNonNavigatableHelper())
 				{
 					state.setNextWaypointIndex(checkIndex);
 					foundFirst = true;
 				}
 				uncompletedWaypoints.add(waypoint);
+
+				if (!waypoint.getType().isNonNavigatableHelper())
+				{
+					navigatableWaypointCount++;
+				}
 			}
 		}
 
@@ -229,11 +235,11 @@ public class PathPlanner
 			List<WorldPoint> segmentPath;
 
 			// Handle USE_WIND_CATCHER transitions
-			// Find the previous non-PATHFINDING_HINT waypoint
+			// Find the previous navigatable waypoint
 			RouteWaypoint prevWaypoint = null;
 			for (int j = i - 1; j >= 0; j--)
 			{
-				if (waypoints.get(j).getType() != RouteWaypoint.WaypointType.PATHFINDING_HINT)
+				if (!waypoints.get(j).getType().isNonNavigatableHelper())
 				{
 					prevWaypoint = waypoints.get(j);
 					break;
@@ -254,17 +260,31 @@ public class PathPlanner
 				segmentPath = pathToSingleTarget(currentPosition, pathfindingTarget, waypoint.getType().getToleranceTiles(), isPlayerCurrentlyOnPath, initialBoatDx, initialBoatDy, pathfindingHints);
 			}
 
+			pathfindingHints.clear();
+
 			if (fullPath.isEmpty())
 			{
 				fullPath.addAll(segmentPath);
 			}
 			else if (!segmentPath.isEmpty())
 			{
-				// Skip first point to avoid duplicates (end of previous segment = start of next segment)
 				fullPath.addAll(segmentPath.subList(1, segmentPath.size()));
 			}
 
-			currentPosition = segmentPath.isEmpty() ? currentPosition : segmentPath.get(segmentPath.size() - 1);
+			// A* might have only reached an in-scene target, not the wind catcher itself
+			if (currentIsWindCatcher)
+			{
+				WorldPoint lastPointInPath = fullPath.isEmpty() ? null : fullPath.get(fullPath.size() - 1);
+				if (!target.equals(lastPointInPath))
+				{
+					fullPath.add(target);
+				}
+				currentPosition = target;
+			}
+			else
+			{
+				currentPosition = segmentPath.isEmpty() ? currentPosition : segmentPath.get(segmentPath.size() - 1);
+			}
 			isPlayerCurrentlyOnPath = false;
 		}
 
