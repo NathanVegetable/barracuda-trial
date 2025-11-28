@@ -193,7 +193,7 @@ public class PathPlanner
 			}
 
 			WorldPoint target = waypoint.getLocation();
-			WorldPoint pathfindingTarget = getInSceneTarget(currentPosition, target);
+			WorldPoint pathfindingTarget = getInSceneTarget(currentPosition, waypoint);
 
 			int initialBoatDx;
 			int initialBoatDy;
@@ -394,6 +394,36 @@ public class PathPlanner
 			boatExclusionWidth,
 			boatExclusionHeight,
 			pathfindingHints
+		);
+	}
+
+	private WorldPoint getInSceneTarget(WorldPoint start, RouteWaypoint target)
+	{
+		var targetLocation = target.getLocation();
+
+		WorldView worldView = client.getTopLevelWorldView();
+		if (worldView == null)
+		{
+			return targetLocation;
+		}
+
+		LocalPoint targetLocal = ObjectRenderer.localPointFromWorldIncludingExtended(worldView, targetLocation);
+		if (targetLocal != null)
+		{
+			return targetLocation;
+		}
+
+		for (var alternateLocation : target.getFallbackLocations())
+		{
+			LocalPoint alternateLocationLocal = ObjectRenderer.localPointFromWorldIncludingExtended(worldView, alternateLocation);
+			if (alternateLocationLocal != null)
+			{
+				return alternateLocation;
+			}
+		}
+
+		return findNearestValidPoint(start, targetLocation, candidate ->
+				ObjectRenderer.localPointFromWorldIncludingExtended(worldView, candidate) != null
 		);
 	}
 
