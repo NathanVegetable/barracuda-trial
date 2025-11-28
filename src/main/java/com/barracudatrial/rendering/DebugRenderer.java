@@ -275,17 +275,23 @@ public class DebugRenderer
 		debugLines.add(String.format("Known Speed Boosts: %d", plugin.getGameState().getKnownSpeedBoostLocations().size()));
 		debugLines.add(String.format("Known Supply Spawns: %d", plugin.getGameState().getKnownLostSuppliesSpawnLocations().size()));
 
-		WorldPoint boatCurrentLocation = plugin.getGameState().getBoatLocation();
+		debugLines.add("");
+		debugLines.add("--- Locations ---");
+		appendRumLocationDebugInfo(debugLines);
+
+		var boatCurrentLocation = plugin.getGameState().getBoatLocation();
 		if (boatCurrentLocation != null)
 		{
-			debugLines.add("");
-			debugLines.add("--- Boat Position ---");
-			debugLines.add(String.format("Tile: (%d, %d, %d)", boatCurrentLocation.getX(), boatCurrentLocation.getY(), boatCurrentLocation.getPlane()));
+			debugLines.add(String.format("Boat: (%d, %d, %d)", boatCurrentLocation.getX(), boatCurrentLocation.getY(), boatCurrentLocation.getPlane()));
 		}
 
-		debugLines.add("");
-		debugLines.add("--- Rum Locations ---");
-		appendRumLocationDebugInfo(debugLines);
+		var nextWaypointIndex = plugin.getGameState().getNextNavigatableWaypointIndex();
+		if (nextWaypointIndex > 0) 
+		{
+			var nextWaypoint = plugin.getGameState().getCurrentStaticRoute().get(nextWaypointIndex);
+			var location = nextWaypoint.getLocation();
+			debugLines.add(String.format("Next WP: %s (%d, %d, %d)", nextWaypoint.getType().name(), location.getX(), location.getY(), location.getPlane()));
+		}
 
 		return debugLines;
 	}
