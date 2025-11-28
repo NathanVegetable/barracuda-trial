@@ -20,7 +20,7 @@ public class RouteWaypoint
 		this.lap = 1;
 		this.type = type;
 		this.location = location;
-		this.fallbackLocations = null;
+		this.fallbackLocations = Set.of();
 	}
 
 	public RouteWaypoint(int lap, WaypointType type, WorldPoint location)
@@ -28,7 +28,7 @@ public class RouteWaypoint
 		this.lap = lap;
 		this.type = type;
 		this.location = location;
-		this.fallbackLocations = null;
+		this.fallbackLocations = Set.of();
 	}
 
 	public RouteWaypoint(int lap, WaypointType type, WorldPoint location, Set<WorldPoint> fallbackLocations)
