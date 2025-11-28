@@ -177,9 +177,14 @@ public class PathRenderer
 			return;
 		}
 
+		List<WindCatcherGroup> windCatcherGroups = getWindCatcherGroups();
+
 		List<Point> canvasPoints = new ArrayList<>();
-		for (WorldPoint wp : waypoints)
+		List<Boolean> isWindCatcherSegment = new ArrayList<>();
+
+		for (int wpIdx = 0; wpIdx < waypoints.size(); wpIdx++)
 		{
+			WorldPoint wp = waypoints.get(wpIdx);
 			LocalPoint lp = ObjectRenderer.localPointFromWorldIncludingExtended(topLevelWorldView, wp);
 			if (lp != null)
 			{
@@ -187,6 +192,21 @@ public class PathRenderer
 				if (cp != null)
 				{
 					canvasPoints.add(cp);
+
+					boolean isWindCatcher = false;
+					for (WindCatcherGroup group : windCatcherGroups)
+					{
+						int firstIdx = waypoints.indexOf(group.firstLocation);
+						int lastIdx = waypoints.lastIndexOf(group.lastLocation);
+
+						if (firstIdx != -1 && lastIdx != -1 && wpIdx >= firstIdx && wpIdx <= lastIdx)
+						{
+							isWindCatcher = true;
+							break;
+						}
+					}
+
+					isWindCatcherSegment.add(isWindCatcher);
 				}
 			}
 		}
@@ -196,56 +216,25 @@ public class PathRenderer
 			return;
 		}
 
-		List<WindCatcherGroup> windCatcherGroups = getWindCatcherGroups();
-
-		boolean[] isWindCatcherSegment = new boolean[waypoints.size()];
-
-		for (WindCatcherGroup group : windCatcherGroups)
-		{
-			int firstIdx = -1;
-			int lastIdx = -1;
-
-			for (int i = 0; i < waypoints.size(); i++)
-			{
-				WorldPoint point = waypoints.get(i);
-				if (point.equals(group.firstLocation))
-				{
-					firstIdx = i;
-				}
-				if (point.equals(group.lastLocation))
-				{
-					lastIdx = i;
-				}
-			}
-
-			if (firstIdx != -1 && lastIdx != -1)
-			{
-				for (int i = firstIdx; i <= lastIdx; i++)
-				{
-					isWindCatcherSegment[i] = true;
-				}
-			}
-		}
-
 		graphics.setStroke(new BasicStroke(cachedConfig.getPathWidth(), BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
 
 		drawPathSegments(graphics, canvasPoints, waypoints, isWindCatcherSegment, startCanvas, cachedConfig);
 	}
 
 	private void drawPathSegments(Graphics2D graphics, List<Point> canvasPoints, List<WorldPoint> waypoints,
-	                               boolean[] isWindCatcherSegment, Point startCanvas, CachedConfig cachedConfig)
+	                               List<Boolean> isWindCatcherSegment, Point startCanvas, CachedConfig cachedConfig)
 	{
 		Color normalColor = cachedConfig.getPathColor();
 		Color windCatcherColor = cachedConfig.getWindCatcherColor();
 
 		int segmentStart = -1;
-		Color currentColor = isWindCatcherSegment[0] ? windCatcherColor : normalColor;
+		Color currentColor = isWindCatcherSegment.get(0) ? windCatcherColor : normalColor;
 
 		for (int i = 0; i <= canvasPoints.size(); i++)
 		{
 			boolean isLastPoint = (i == canvasPoints.size());
 			boolean colorChanged = !isLastPoint && i > 0 &&
-				(isWindCatcherSegment[i] != isWindCatcherSegment[i - 1]);
+				(!isWindCatcherSegment.get(i).equals(isWindCatcherSegment.get(i - 1)));
 
 			if (colorChanged || isLastPoint)
 			{
@@ -255,7 +244,7 @@ public class PathRenderer
 				if (!isLastPoint)
 				{
 					segmentStart = i - 1;
-					currentColor = isWindCatcherSegment[i] ? windCatcherColor : normalColor;
+					currentColor = isWindCatcherSegment.get(i) ? windCatcherColor : normalColor;
 				}
 			}
 		}
