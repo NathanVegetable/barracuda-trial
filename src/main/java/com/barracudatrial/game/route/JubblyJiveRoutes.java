@@ -176,7 +176,7 @@ public class JubblyJiveRoutes
 			new RouteWaypoint(WaypointType.PATHFINDING_HINT, new WorldPoint(2260, 2992, 0)),
 			new RouteWaypoint(WaypointType.PATHFINDING_HINT, new WorldPoint(2255, 2992, 0)),
 			new RouteWaypoint(1, WaypointType.TOAD_PICKUP, TOAD_PICKUP_LOCATION,
-				Set.of(
+				List.of(
 					new WorldPoint(2270, 2987, 0),
 					new WorldPoint(2290, 2980, 0)
 				)
@@ -267,7 +267,7 @@ public class JubblyJiveRoutes
 			new RouteWaypoint(2, WaypointType.PATHFINDING_HINT, new WorldPoint(2260, 2992, 0)),
 			new RouteWaypoint(2, WaypointType.PATHFINDING_HINT, new WorldPoint(2256, 2994, 0)),
 			new RouteWaypoint(2, WaypointType.SHIPMENT, new WorldPoint(2250, 2992, 0),
-				Set.of(
+				List.of(
 					new WorldPoint(2266, 2990, 0),
 					new WorldPoint(2279, 2984, 0),
 					new WorldPoint(2298, 2978, 0),

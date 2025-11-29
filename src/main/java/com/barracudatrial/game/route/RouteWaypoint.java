@@ -1,6 +1,6 @@
 package com.barracudatrial.game.route;
 
-import java.util.Set;
+import java.util.List;
 
 import lombok.Getter;
 import net.runelite.api.coords.WorldPoint;
@@ -13,14 +13,14 @@ public class RouteWaypoint
 	private final WorldPoint location;
 
 	// If the location is not visible, we fall back to these locations (in order of preference)
-	private final Set<WorldPoint> fallbackLocations;
+	private final List<WorldPoint> fallbackLocations;
 
 	public RouteWaypoint(WaypointType type, WorldPoint location)
 	{
 		this.lap = 1;
 		this.type = type;
 		this.location = location;
-		this.fallbackLocations = Set.of();
+		this.fallbackLocations = List.of();
 	}
 
 	public RouteWaypoint(int lap, WaypointType type, WorldPoint location)
@@ -28,10 +28,10 @@ public class RouteWaypoint
 		this.lap = lap;
 		this.type = type;
 		this.location = location;
-		this.fallbackLocations = Set.of();
+		this.fallbackLocations = List.of();
 	}
 
-	public RouteWaypoint(int lap, WaypointType type, WorldPoint location, Set<WorldPoint> fallbackLocations)
+	public RouteWaypoint(int lap, WaypointType type, WorldPoint location, List<WorldPoint> fallbackLocations)
 	{
 		this.lap = lap;
 		this.type = type;

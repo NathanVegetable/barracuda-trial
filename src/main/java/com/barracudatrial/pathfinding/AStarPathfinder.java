@@ -40,6 +40,8 @@ public class AStarPathfinder
 
 		Set<StateKey> closedSet = new HashSet<>();
 		int nodesExplored = 0;
+		Node bestNodeSoFar = startNode; // Track best node in case we don't reach goal
+		int bestDistanceToGoal = Integer.MAX_VALUE;
 
 		while (!openSet.isEmpty())
 		{
@@ -58,7 +60,13 @@ public class AStarPathfinder
 
 			if (distanceToGoal <= goalTolerance)
 			{
-				return new PathResult(reconstructPath(current), current.gScore);
+				return new PathResult(reconstructPath(current), current.gScore, true);
+			}
+
+			if (distanceToGoal < bestDistanceToGoal)
+			{
+				bestDistanceToGoal = distanceToGoal;
+				bestNodeSoFar = current;
 			}
 
 			closedSet.add(currentKey);
@@ -174,7 +182,13 @@ public class AStarPathfinder
 			}
 		}
 
-		return new PathResult(new ArrayList<>(), Double.POSITIVE_INFINITY);
+		// If we failed to reach the goal, return the closest path we found
+		if (bestNodeSoFar != startNode)
+		{
+			return new PathResult(reconstructPath(bestNodeSoFar), bestNodeSoFar.gScore, false);
+		}
+
+		return new PathResult(new ArrayList<>(), Double.POSITIVE_INFINITY, false);
 	}
 
 	private double calculateTurningCost(RouteOptimization routeOptimization, int absDelta)

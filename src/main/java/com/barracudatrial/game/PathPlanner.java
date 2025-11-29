@@ -4,6 +4,7 @@ import com.barracudatrial.CachedConfig;
 import com.barracudatrial.game.route.*;
 import com.barracudatrial.pathfinding.AStarPathfinder;
 import com.barracudatrial.pathfinding.BarracudaTileCostCalculator;
+import com.barracudatrial.pathfinding.PathResult;
 import com.barracudatrial.pathfinding.PathStabilizer;
 import com.barracudatrial.rendering.ObjectRenderer;
 import lombok.extern.slf4j.Slf4j;
@@ -256,8 +257,22 @@ public class PathPlanner
 			}
 			else
 			{
-				// Normal pathfinding
-				segmentPath = pathToSingleTarget(currentPosition, pathfindingTarget, waypoint.getType().getToleranceTiles(), isPlayerCurrentlyOnPath, initialBoatDx, initialBoatDy, pathfindingHints);
+				PathResult segmentResult = pathToSingleTarget(currentPosition, pathfindingTarget, waypoint.getType().getToleranceTiles(), isPlayerCurrentlyOnPath, initialBoatDx, initialBoatDy, pathfindingHints);
+				segmentPath = segmentResult.getPath();
+
+				// If we couldn't reach this waypoint, stop here with the partial path we have
+				if (!segmentResult.isReachedGoal())
+				{
+					if (fullPath.isEmpty())
+					{
+						fullPath.addAll(segmentPath);
+					}
+					else if (!segmentPath.isEmpty())
+					{
+						fullPath.addAll(segmentPath.subList(1, segmentPath.size()));
+					}
+					break;
+				}
 			}
 
 			pathfindingHints.clear();
@@ -298,9 +313,9 @@ public class PathPlanner
 	 * @param goalTolerance Number of tiles away from target that counts as reaching it (0 = exact)
 	 * @param isPlayerCurrentlyOnPath Whether or not this is the path that the player is currently navigating
 	 * @param pathfindingHints Set of tiles that should have reduced cost during pathfinding
-	 * @return Path from start to target
+	 * @return PathResult containing path from start to target and whether goal was reached
 	 */
-	private List<WorldPoint> pathToSingleTarget(WorldPoint start, WorldPoint target, int goalTolerance, boolean isPlayerCurrentlyOnPath, int initialBoatDx, int initialBoatDy, Set<WorldPoint> pathfindingHints)
+	private PathResult pathToSingleTarget(WorldPoint start, WorldPoint target, int goalTolerance, boolean isPlayerCurrentlyOnPath, int initialBoatDx, int initialBoatDy, Set<WorldPoint> pathfindingHints)
 	{
 		var tileCostCalculator = getBarracudaTileCostCalculator(pathfindingHints);
 
@@ -309,22 +324,22 @@ public class PathPlanner
 		int boatDirectionDy = initialBoatDy;
 
 		int tileDistance = start.distanceTo(target); // Chebyshev distance in tiles
-		
+
 		// Never too high, but allow seeking longer on long paths
-		int maximumAStarSearchDistance = Math.max(50, Math.min(280, tileDistance * 20));
+		int maximumAStarSearchDistance = Math.max(50, Math.min(220, tileDistance * 18));
 
 		var currentStaticRoute = state.getCurrentStaticRoute();
 
-		List<WorldPoint> path = pathStabilizer.findPath(tileCostCalculator, cachedConfig.getRouteOptimization(), currentStaticRoute, start, target, maximumAStarSearchDistance, boatDirectionDx, boatDirectionDy, goalTolerance, isPlayerCurrentlyOnPath);
+		PathResult pathResult = pathStabilizer.findPath(tileCostCalculator, cachedConfig.getRouteOptimization(), currentStaticRoute, start, target, maximumAStarSearchDistance, boatDirectionDx, boatDirectionDy, goalTolerance, isPlayerCurrentlyOnPath);
 
-		if (path.isEmpty())
+		if (pathResult.getPath().isEmpty())
 		{
 			List<WorldPoint> fallbackPath = new ArrayList<>();
 			fallbackPath.add(target);
-			return fallbackPath;
+			return new PathResult(new ArrayList<>(), Double.POSITIVE_INFINITY, false);
 		}
 
-		return path;
+		return pathResult;
 	}
 
 	private BarracudaTileCostCalculator getBarracudaTileCostCalculator(Set<WorldPoint> pathfindingHints)
@@ -397,68 +412,60 @@ public class PathPlanner
 		);
 	}
 
-	/**
-	 * Returns the target if it's in the extended scene, otherwise finds the nearest in-scene tile
-	 * along the path from start to target using efficient binary search.
-	 * @param start Starting position
-	 * @param target Desired target position
-	 * @return Target if in scene, otherwise nearest in-scene tile toward target
-	 */
 	private WorldPoint getInSceneTarget(WorldPoint start, RouteWaypoint target)
 	{
-		var targetLocation = target.getLocation();
-
 		WorldView worldView = client.getTopLevelWorldView();
 		if (worldView == null)
 		{
-			return targetLocation;
+			return target.getLocation();
 		}
 
-		var worldPlane = worldView.getPlane();
+		int worldPlane = worldView.getPlane();
+		WorldPoint targetLocation = target.getLocation();
 
-		if (worldPlane == targetLocation.getPlane())
-		{
-			LocalPoint targetLocal = LocalPoint.fromWorld(worldView, targetLocation);
-			if (targetLocal != null) {
-				return targetLocation;
-			}
-		}
+		List<WorldPoint> candidates = new ArrayList<>();
+		candidates.add(targetLocation);
 
 		var fallbackLocations = target.getFallbackLocations();
 		if (fallbackLocations != null)
 		{
-			for (var alternateLocation : fallbackLocations)
+			for (WorldPoint fallback : fallbackLocations)
 			{
-				if (worldPlane == alternateLocation.getPlane())
+				if (!fallback.equals(targetLocation))
 				{
-					LocalPoint alternateLocationLocal = ObjectRenderer.localPointFromWorldIncludingExtended(worldView, alternateLocation);
-					if (alternateLocationLocal != null) {
-						return alternateLocation;
-					}
+					candidates.add(fallback);
 				}
 			}
 		}
 
-		var targetLocal = ObjectRenderer.localPointFromWorldIncludingExtended(worldView, targetLocation);
-		if (targetLocal != null)
+		// 1. Prefer same-plane tiles in the normal scene
+		for (WorldPoint p : candidates)
 		{
-			return targetLocation;
-		}
-
-		if (fallbackLocations != null)
-		{
-			for (var alternateLocation : fallbackLocations)
+			if (p.getPlane() != worldPlane)
 			{
-				LocalPoint alternateLocationLocal = ObjectRenderer.localPointFromWorldIncludingExtended(worldView, alternateLocation);
-				if (alternateLocationLocal != null)
-				{
-					return alternateLocation;
-				}
+				continue;
+			}
+
+			if (LocalPoint.fromWorld(worldView, p) != null)
+			{
+				return p;
 			}
 		}
 
-		return findNearestValidPoint(start, targetLocation, candidate ->
-				ObjectRenderer.localPointFromWorldIncludingExtended(worldView, candidate) != null
+		// 2. Any tile that exists in the extended scene
+		for (WorldPoint p : candidates)
+		{
+			if (ObjectRenderer.localPointFromWorldIncludingExtended(worldView, p) != null)
+			{
+				return p;
+			}
+		}
+
+		// 3. Fall back to nearest valid along the line toward the target
+		return findNearestValidPoint(
+			start,
+			targetLocation,
+			p -> ObjectRenderer.localPointFromWorldIncludingExtended(worldView, p) != null
 		);
 	}
 

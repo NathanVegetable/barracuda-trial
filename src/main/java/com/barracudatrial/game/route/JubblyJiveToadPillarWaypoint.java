@@ -1,7 +1,6 @@
 package com.barracudatrial.game.route;
 
 import lombok.Getter;
-import net.runelite.api.coords.WorldPoint;
 
 import static com.barracudatrial.game.route.RouteWaypoint.WaypointType.TOAD_PILLAR;
 
