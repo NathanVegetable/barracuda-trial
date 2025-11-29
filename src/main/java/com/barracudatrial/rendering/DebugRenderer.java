@@ -286,11 +286,15 @@ public class DebugRenderer
 		}
 
 		var nextWaypointIndex = plugin.getGameState().getNextNavigatableWaypointIndex();
-		if (nextWaypointIndex > 0) 
+		if (nextWaypointIndex >= 0) 
 		{
 			var nextWaypoint = plugin.getGameState().getCurrentStaticRoute().get(nextWaypointIndex);
 			var location = nextWaypoint.getLocation();
 			debugLines.add(String.format("Next WP: %s (%d, %d, %d)", nextWaypoint.getType().name(), location.getX(), location.getY(), location.getPlane()));
+		}
+		else
+		{
+			debugLines.add("Next WP: null");
 		}
 
 		return debugLines;
