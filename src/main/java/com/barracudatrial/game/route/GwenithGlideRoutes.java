@@ -20,8 +20,7 @@ public class GwenithGlideRoutes
 			new RouteWaypoint(1, WaypointType.SHIPMENT, new WorldPoint(2254, 3469, 0)),
 			new RouteWaypoint(1, WaypointType.SHIPMENT, new WorldPoint(2272, 3475, 0)),
 			new RouteWaypoint(1, WaypointType.SHIPMENT, new WorldPoint(2273, 3487, 0)),
-			new RouteWaypoint(1, WaypointType.PORTAL_ENTER, new WorldPoint(2260, 3497, 0)), // ithell
-			new RouteWaypoint(1, WaypointType.PORTAL_EXIT, new WorldPoint(2088, 3232, 0)), // ithell
+			new RouteWaypoint(1, WaypointType.PORTAL, new WorldPoint(2260, 3497, 0)), // ithell
 			new RouteWaypoint(1, WaypointType.SHIPMENT, new WorldPoint(2104, 3229, 0)),
 			new RouteWaypoint(1, WaypointType.SHIPMENT, new WorldPoint(2118, 3230, 0)),
 			new RouteWaypoint(1, WaypointType.SHIPMENT, new WorldPoint(2128, 3254, 0)),
@@ -31,26 +30,22 @@ public class GwenithGlideRoutes
 			new RouteWaypoint(1, WaypointType.SHIPMENT, new WorldPoint(2129, 3297, 0)),
 			new RouteWaypoint(1, WaypointType.SHIPMENT, new WorldPoint(2147, 3295, 0)),
 			new RouteWaypoint(1, WaypointType.SHIPMENT, new WorldPoint(2158, 3293, 0)),
-			new RouteWaypoint(1, WaypointType.PORTAL_ENTER, new WorldPoint(2158, 3293, 0)), // ithell
-			new RouteWaypoint(1, WaypointType.PORTAL_EXIT, new WorldPoint(2260, 3504, 0)), // ithell
+			new RouteWaypoint(1, WaypointType.PORTAL, new WorldPoint(2158, 3293, 0)), // ithell
 			new RouteWaypoint(1, WaypointType.SHIPMENT, new WorldPoint(2264, 3516, 0)),
 			new RouteWaypoint(1, WaypointType.SHIPMENT, new WorldPoint(2265, 3532, 0)),
 			new RouteWaypoint(1, WaypointType.SHIPMENT, new WorldPoint(2248, 3541, 0)),
 			new RouteWaypoint(1, WaypointType.SHIPMENT, new WorldPoint(2253, 3559, 0)),
-			new RouteWaypoint(1, WaypointType.PORTAL_ENTER, new WorldPoint(2241, 3574, 0)), // amlodd
-			new RouteWaypoint(1, WaypointType.PORTAL_EXIT, new WorldPoint(2080, 3215, 0)), // amlodd
+			new RouteWaypoint(1, WaypointType.PORTAL, new WorldPoint(2241, 3574, 0)), // amlodd
 			new RouteWaypoint(1, WaypointType.SHIPMENT, new WorldPoint(2110, 3214, 0)),
 			new RouteWaypoint(1, WaypointType.SHIPMENT, new WorldPoint(2141, 3216, 0)),
 			new RouteWaypoint(1, WaypointType.SHIPMENT, new WorldPoint(2140, 3230, 0)),
 			new RouteWaypoint(1, WaypointType.SHIPMENT, new WorldPoint(2132, 3233, 0)),
 			new RouteWaypoint(1, WaypointType.SHIPMENT, new WorldPoint(2150, 3243, 0)),
-			new RouteWaypoint(1, WaypointType.PORTAL_ENTER, new WorldPoint(2155, 3247, 0)), // amlodd
-			new RouteWaypoint(1, WaypointType.PORTAL_EXIT, new WorldPoint(3107, 3140, 0)), // amlodd
+			new RouteWaypoint(1, WaypointType.PORTAL, new WorldPoint(2155, 3247, 0)), // amlodd
 			new RouteWaypoint(1, WaypointType.SHIPMENT, new WorldPoint(2190, 3569, 0)),
 			new RouteWaypoint(1, WaypointType.SHIPMENT, new WorldPoint(2195, 3544, 0)),
 			new RouteWaypoint(1, WaypointType.SHIPMENT, new WorldPoint(2201, 3521, 0)),
-			new RouteWaypoint(1, WaypointType.PORTAL_ENTER, new WorldPoint(2197, 3512, 0)), // cadarn
-			new RouteWaypoint(1, WaypointType.PORTAL_EXIT, new WorldPoint(2008, 3574, 0)), // cadarn
+			new RouteWaypoint(1, WaypointType.PORTAL, new WorldPoint(2197, 3512, 0)), // cadarn
 			new RouteWaypoint(1, WaypointType.SHIPMENT, new WorldPoint(2092, 3144, 0)),
 			new RouteWaypoint(1, WaypointType.SHIPMENT, new WorldPoint(2069, 3160, 0)),
 			new RouteWaypoint(1, WaypointType.SHIPMENT, new WorldPoint(2057, 3186, 0)),
@@ -59,7 +54,7 @@ public class GwenithGlideRoutes
 			new RouteWaypoint(1, WaypointType.SHIPMENT, new WorldPoint(2100, 3205, 0)),
 			new RouteWaypoint(1, WaypointType.SHIPMENT, new WorldPoint(2117, 3189, 0)),
 			new RouteWaypoint(1, WaypointType.SHIPMENT, new WorldPoint(2133, 3192, 0)),
-			new RouteWaypoint(1, WaypointType.PORTAL_ENTER, new WorldPoint(2128, 3171, 0)) // cadarn
+			new RouteWaypoint(1, WaypointType.PORTAL, new WorldPoint(2128, 3171, 0)) // cadarn
 		));
 
 		// TODO: SHARK difficulty - capture route data

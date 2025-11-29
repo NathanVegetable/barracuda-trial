@@ -248,7 +248,7 @@ public class BarracudaTrialPlugin extends Plugin
 		else if (chatMessage.contains("balloon toads. Time to lure"))
 		{
 			log.debug("Toads collected! Message: {}", chatMessage);
-			
+
 			gameState.setHasThrowableObjective(true);
 
 			if (routeCapture.isCapturing())
@@ -276,6 +276,30 @@ public class BarracudaTrialPlugin extends Plugin
 			}
 
 			pathPlanner.recalculateOptimalPathFromCurrentState("chat: toads collected");
+		}
+		else if (chatMessage.contains("through the portal"))
+		{
+			log.debug("Portal traversed! Message: {}", chatMessage);
+
+			var route = gameState.getCurrentStaticRoute();
+
+			if (route != null)
+			{
+				for (int i = 0, n = route.size(); i < n; i++)
+				{
+					var waypoint = route.get(i);
+
+					if (waypoint.getType() == RouteWaypoint.WaypointType.PORTAL
+						&& !gameState.isWaypointCompleted(i))
+					{
+						gameState.markWaypointCompleted(i);
+						log.info("Marked PORTAL waypoint as completed at index {}: {}", i, waypoint.getLocation());
+						break;
+					}
+				}
+			}
+
+			pathPlanner.recalculateOptimalPathFromCurrentState("chat: portal traversed");
 		}
 	}
 

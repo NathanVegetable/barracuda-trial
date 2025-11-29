@@ -130,10 +130,6 @@ public class State
 	@Setter
 	private List<RouteWaypoint> currentStaticRoute = null;
 
-	@Setter
-	@Getter(lombok.AccessLevel.NONE)
-	private int nextWaypointIndex = 0;
-
 	private final Set<Integer> completedWaypointIndices = new HashSet<>();
 
 	public Difficulty getCurrentDifficulty()
@@ -194,7 +190,6 @@ public class State
 		exclusionZoneMinY = 0;
 		exclusionZoneMaxY = 0;
 		currentStaticRoute = null;
-		nextWaypointIndex = 0;
 		completedWaypointIndices.clear();
 	}
 
@@ -209,31 +204,30 @@ public class State
 	}
 
 	/**
-	 * Gets the next navigatable waypoint index.
-	 * nextWaypointIndex should always point to a navigatable waypoint, but this method
-	 * provides a safety check in case it somehow points to a helper waypoint.
-	 * @return Index of next navigatable waypoint
+	 * Calculates the next uncompleted navigatable waypoint index by scanning the route.
+	 * @return Index of next navigatable waypoint, or 0 if route is empty/null
 	 */
 	public int getNextNavigatableWaypointIndex()
 	{
 		if (currentStaticRoute == null || currentStaticRoute.isEmpty())
 		{
-			return nextWaypointIndex;
+			return 0;
 		}
 
 		int routeSize = currentStaticRoute.size();
-		for (int offset = 0; offset < routeSize; offset++)
+		for (int i = 0; i < routeSize; i++)
 		{
-			int checkIndex = (nextWaypointIndex + offset) % routeSize;
-			RouteWaypoint waypoint = currentStaticRoute.get(checkIndex);
-
-			if (!waypoint.getType().isNonNavigatableHelper())
+			if (!completedWaypointIndices.contains(i))
 			{
-				return checkIndex;
+				RouteWaypoint waypoint = currentStaticRoute.get(i);
+				if (!waypoint.getType().isNonNavigatableHelper())
+				{
+					return i;
+				}
 			}
 		}
 
-		return nextWaypointIndex;
+		return 0;
 	}
 
 	/**

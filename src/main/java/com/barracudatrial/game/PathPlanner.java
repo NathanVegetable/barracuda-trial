@@ -112,7 +112,6 @@ public class PathPlanner
 		}
 
 		state.setCurrentStaticRoute(staticRoute);
-		state.setNextWaypointIndex(0);
 		log.debug("Loaded static route for {} difficulty {} with {} waypoints",
 			trial.getTrialType(), difficulty, staticRoute.size());
 	}
@@ -162,7 +161,6 @@ public class PathPlanner
 
 		uncompletedWaypoints.addAll(precedingHelpers);
 
-		boolean foundFirst = false;
 		int navigatableWaypointCount = 0;
 
 		// Scan forward from nextNavigatableWaypointIndex
@@ -173,16 +171,16 @@ public class PathPlanner
 
 			if (!state.isWaypointCompleted(checkIndex))
 			{
-				if (!foundFirst && !waypoint.getType().isNonNavigatableHelper())
-				{
-					state.setNextWaypointIndex(checkIndex);
-					foundFirst = true;
-				}
 				uncompletedWaypoints.add(waypoint);
 
 				if (!waypoint.getType().isNonNavigatableHelper())
 				{
 					navigatableWaypointCount++;
+				}
+
+				if (waypoint.getType() == RouteWaypoint.WaypointType.PORTAL)
+				{
+					break;
 				}
 			}
 		}
