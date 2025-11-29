@@ -257,7 +257,6 @@ public class JubblyJiveRoutes
 			new RouteWaypoint(2, WaypointType.PATHFINDING_HINT, new WorldPoint(2310, 2974, 0)),
 			new RouteWaypoint(2, WaypointType.PATHFINDING_HINT, new WorldPoint(2308, 2974, 0)),
 			new RouteWaypoint(2, WaypointType.PATHFINDING_HINT, new WorldPoint(2303, 2978, 0)),
-			// add fake waypoint? too far
 			new RouteWaypoint(2, WaypointType.PATHFINDING_HINT, new WorldPoint(2289, 2980, 0)),
 			new RouteWaypoint(2, WaypointType.PATHFINDING_HINT, new WorldPoint(2286, 2981, 0)),
 			new RouteWaypoint(2, WaypointType.PATHFINDING_HINT, new WorldPoint(2282, 2982, 0)),

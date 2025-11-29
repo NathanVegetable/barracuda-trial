@@ -97,6 +97,18 @@ public class PathStabilizer
 			return true;
 		}
 
+		if (!activePathResult.isReachedGoal() && newPathResult.isReachedGoal())
+		{
+			return true;
+		}
+
+		var activePathEnd = activePathResult.getPath().get(activePathResult.getPath().size() - 1);
+		var newPathEnd = newPathResult.getPath().get(newPathResult.getPath().size() - 1);
+		if (!activePathEnd.equals(newPathEnd))
+		{
+			return true;
+		}
+
 		return false;
     }
 
