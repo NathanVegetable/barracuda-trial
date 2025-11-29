@@ -48,7 +48,8 @@ public class RouteWaypoint
 		TOAD_PICKUP(9),
 		TOAD_PILLAR(10),
 		CRYSTAL_MOTE(5),
-		PORTAL(1),
+		PORTAL_ENTER(1),
+		PORTAL_EXIT(0),
 		PATHFINDING_HINT(0),
 		USE_WIND_CATCHER(0);
 
@@ -61,7 +62,7 @@ public class RouteWaypoint
 
 		public boolean isNonNavigatableHelper()
 		{
-			return this == PATHFINDING_HINT || this == USE_WIND_CATCHER;
+			return this == PATHFINDING_HINT || this == USE_WIND_CATCHER || this == PORTAL_EXIT;
 		}
 	}
 

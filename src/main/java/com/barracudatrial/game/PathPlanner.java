@@ -177,11 +177,6 @@ public class PathPlanner
 				{
 					navigatableWaypointCount++;
 				}
-
-				if (waypoint.getType() == RouteWaypoint.WaypointType.PORTAL)
-				{
-					break;
-				}
 			}
 		}
 
@@ -215,6 +210,12 @@ public class PathPlanner
 			if (waypointType == RouteWaypoint.WaypointType.PATHFINDING_HINT)
 			{
 				pathfindingHints.add(waypoint.getLocation());
+				continue;
+			}
+
+			// Skip PORTAL_EXIT waypoints - they're handled by PORTAL_ENTER
+			if (waypointType == RouteWaypoint.WaypointType.PORTAL_EXIT)
+			{
 				continue;
 			}
 
@@ -252,6 +253,53 @@ public class PathPlanner
 					initialBoatDx = 0;
 					initialBoatDy = 0;
 				}
+			}
+
+			// Handle portal enter: path to enter, then teleport to exit
+			if (waypointType == RouteWaypoint.WaypointType.PORTAL_ENTER)
+			{
+				WorldPoint pathfindingTarget = getInSceneTarget(currentPosition, waypoint);
+				PathResult segmentResult = pathToSingleTarget(currentPosition, pathfindingTarget, waypoint.getType().getToleranceTiles(), isPlayerCurrentlyOnPath, initialBoatDx, initialBoatDy, pathfindingHints);
+				List<WorldPoint> segmentPath = segmentResult.getPath();
+
+				pathfindingHints.clear();
+
+				if (!segmentResult.isReachedGoal())
+				{
+					if (fullPath.isEmpty())
+					{
+						fullPath.addAll(segmentPath);
+					}
+					else if (!segmentPath.isEmpty())
+					{
+						fullPath.addAll(segmentPath.subList(1, segmentPath.size()));
+					}
+					break;
+				}
+
+				if (fullPath.isEmpty())
+				{
+					fullPath.addAll(segmentPath);
+				}
+				else if (!segmentPath.isEmpty())
+				{
+					fullPath.addAll(segmentPath.subList(1, segmentPath.size()));
+				}
+
+				// Look for the PORTAL_EXIT that should follow
+				if (i + 1 < waypoints.size() && waypoints.get(i + 1).getType() == RouteWaypoint.WaypointType.PORTAL_EXIT)
+				{
+					RouteWaypoint exitWaypoint = waypoints.get(i + 1);
+					currentPosition = exitWaypoint.getLocation();
+					i++;
+				}
+				else
+				{
+					currentPosition = segmentPath.isEmpty() ? currentPosition : segmentPath.get(segmentPath.size() - 1);
+				}
+
+				isPlayerCurrentlyOnPath = false;
+				continue;
 			}
 
 			// Handle wind catcher sequences: try both through wind catchers and direct

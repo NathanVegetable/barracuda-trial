@@ -337,7 +337,7 @@ public class ObjectRenderer
 				continue;
 
 			var wp = route.get(i);
-			if (wp.getType() != RouteWaypoint.WaypointType.PORTAL)
+			if (wp.getType() != RouteWaypoint.WaypointType.PORTAL_ENTER)
 				continue;
 
 			if (wp.getLap() == currentLap)

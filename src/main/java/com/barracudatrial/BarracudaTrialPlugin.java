@@ -289,11 +289,21 @@ public class BarracudaTrialPlugin extends Plugin
 				{
 					var waypoint = route.get(i);
 
-					if (waypoint.getType() == RouteWaypoint.WaypointType.PORTAL
+					if (waypoint.getType() == RouteWaypoint.WaypointType.PORTAL_ENTER
 						&& !gameState.isWaypointCompleted(i))
 					{
 						gameState.markWaypointCompleted(i);
-						log.info("Marked PORTAL waypoint as completed at index {}: {}", i, waypoint.getLocation());
+						log.info("Marked PORTAL_ENTER waypoint as completed at index {}: {}", i, waypoint.getLocation());
+
+						if (i + 1 < n)
+						{
+							var nextWaypoint = route.get(i + 1);
+							if (nextWaypoint.getType() == RouteWaypoint.WaypointType.PORTAL_EXIT)
+							{
+								gameState.markWaypointCompleted(i + 1);
+								log.info("Marked PORTAL_EXIT waypoint as completed at index {}: {}", i + 1, nextWaypoint.getLocation());
+							}
+						}
 						break;
 					}
 				}
