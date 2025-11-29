@@ -121,12 +121,14 @@ public class BarracudaTrialPlugin extends Plugin
 			objectTracker.updatePlayerBoatLocation();
 
 			objectTracker.updateFrontBoatTile();
-		
+
 			boolean shipmentsCollected = objectTracker.updateRouteWaypointShipmentTracking();
 			if (shipmentsCollected)
 			{
 				pathPlanner.recalculateOptimalPathFromCurrentState("shipment collected");
 			}
+
+			checkPortalExitProximity();
 		}
 
 		if (cachedConfig.isShowOptimalPath() || routeCapture.isCapturing())
@@ -295,21 +297,15 @@ public class BarracudaTrialPlugin extends Plugin
 						gameState.markWaypointCompleted(i);
 						log.info("Marked PORTAL_ENTER waypoint as completed at index {}: {}", i, waypoint.getLocation());
 
-						if (i + 1 < n)
-						{
-							var nextWaypoint = route.get(i + 1);
-							if (nextWaypoint.getType() == RouteWaypoint.WaypointType.PORTAL_EXIT)
-							{
-								gameState.markWaypointCompleted(i + 1);
-								log.info("Marked PORTAL_EXIT waypoint as completed at index {}: {}", i + 1, nextWaypoint.getLocation());
-							}
-						}
+						gameState.getOptimalPath().clear();
+						gameState.getCurrentSegmentPath().clear();
+						gameState.getNextSegmentPath().clear();
+						log.debug("Cleared path during portal transition");
+
 						break;
 					}
 				}
 			}
-
-			pathPlanner.recalculateOptimalPathFromCurrentState("chat: portal traversed");
 		}
 	}
 	
@@ -565,6 +561,43 @@ public class BarracudaTrialPlugin extends Plugin
 		{
 			log.debug("Error getting boat world location: {}", e.getMessage());
 			return null;
+		}
+	}
+
+	private void checkPortalExitProximity()
+	{
+		var route = gameState.getCurrentStaticRoute();
+		if (route == null || route.isEmpty())
+		{
+			return;
+		}
+
+		var boatLocation = gameState.getBoatLocation();
+		if (boatLocation == null)
+		{
+			return;
+		}
+
+		for (int i = 0; i < route.size() - 1; i++)
+		{
+			var waypoint = route.get(i);
+			var nextWaypoint = route.get(i + 1);
+
+			if (waypoint.getType() == RouteWaypoint.WaypointType.PORTAL_ENTER
+				&& gameState.isWaypointCompleted(i)
+				&& nextWaypoint.getType() == RouteWaypoint.WaypointType.PORTAL_EXIT
+				&& !gameState.isWaypointCompleted(i + 1))
+			{
+				int distance = boatLocation.distanceTo(nextWaypoint.getLocation());
+				if (distance <= 10)
+				{
+					gameState.markWaypointCompleted(i + 1);
+					log.info("Marked PORTAL_EXIT waypoint as completed at index {} (distance: {}): {}", i + 1, distance, nextWaypoint.getLocation());
+
+					pathPlanner.recalculateOptimalPathFromCurrentState("portal exit proximity");
+					return;
+				}
+			}
 		}
 	}
 

@@ -255,7 +255,7 @@ public class PathPlanner
 				}
 			}
 
-			// Handle portal enter: path to enter, then teleport to exit
+			// Handle portal enter: path to enter and stop (exit handled by proximity detection)
 			if (waypointType == RouteWaypoint.WaypointType.PORTAL_ENTER)
 			{
 				WorldPoint pathfindingTarget = getInSceneTarget(currentPosition, waypoint);
@@ -263,19 +263,6 @@ public class PathPlanner
 				List<WorldPoint> segmentPath = segmentResult.getPath();
 
 				pathfindingHints.clear();
-
-				if (!segmentResult.isReachedGoal())
-				{
-					if (fullPath.isEmpty())
-					{
-						fullPath.addAll(segmentPath);
-					}
-					else if (!segmentPath.isEmpty())
-					{
-						fullPath.addAll(segmentPath.subList(1, segmentPath.size()));
-					}
-					break;
-				}
 
 				if (fullPath.isEmpty())
 				{
@@ -286,20 +273,7 @@ public class PathPlanner
 					fullPath.addAll(segmentPath.subList(1, segmentPath.size()));
 				}
 
-				// Look for the PORTAL_EXIT that should follow
-				if (i + 1 < waypoints.size() && waypoints.get(i + 1).getType() == RouteWaypoint.WaypointType.PORTAL_EXIT)
-				{
-					RouteWaypoint exitWaypoint = waypoints.get(i + 1);
-					currentPosition = exitWaypoint.getLocation();
-					i++;
-				}
-				else
-				{
-					currentPosition = segmentPath.isEmpty() ? currentPosition : segmentPath.get(segmentPath.size() - 1);
-				}
-
-				isPlayerCurrentlyOnPath = false;
-				continue;
+				break;
 			}
 
 			// Handle wind catcher sequences: try both through wind catchers and direct
