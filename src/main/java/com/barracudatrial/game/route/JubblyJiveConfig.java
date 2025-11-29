@@ -147,9 +147,9 @@ public class JubblyJiveConfig implements TrialConfig
 			ObjectID.SAILING_BT_JUBBLY_JIVE_COLLECTABLE_55,
 			ObjectID.SAILING_BT_JUBBLY_JIVE_COLLECTABLE_56
 	);
+	
 	private static final int SHIPMENT_IMPOSTOR_ID = ObjectID.SAILING_BT_JUBBLY_JIVE_COLLECTABLE_SUPPLIES;
 
-	// Same as Tempor - if Gwenith has the same rock ids we can remove this abstraction
 	private static final Set<Integer> ROCK_IDS = Set.of(
 		59314, 59315, 60437, 60438, 60440, 60441, 60442, 60443, 60444
 	);

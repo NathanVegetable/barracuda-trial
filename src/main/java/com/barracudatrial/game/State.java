@@ -3,6 +3,8 @@ package com.barracudatrial.game;
 import com.barracudatrial.game.route.Difficulty;
 import com.barracudatrial.game.route.RouteWaypoint;
 import com.barracudatrial.game.route.TrialConfig;
+import com.barracudatrial.game.route.TrialType;
+
 import lombok.Getter;
 import lombok.Setter;
 import net.runelite.api.GameObject;
@@ -134,12 +136,21 @@ public class State
 
 	private final Set<Integer> completedWaypointIndices = new HashSet<>();
 
-	/**
-	 * Maps rumsNeeded to Difficulty enum
-	 * @return Difficulty level based on rumsNeeded (1=SWORDFISH, 2=SHARK, 3=MARLIN)
-	 */
 	public Difficulty getCurrentDifficulty()
 	{
+		// TODO: Read difficulty widget instead of inferring from rums needed
+		if (currentTrial != null && currentTrial.getTrialType() == TrialType.GWENITH_GLIDE)
+		{
+			switch (rumsNeeded)
+			{
+				case 3:
+					return Difficulty.SWORDFISH;
+				case 6:
+					return Difficulty.SHARK;
+				case 9:
+					return Difficulty.MARLIN;
+			}
+		}
 		switch (rumsNeeded)
 		{
 			case 1:

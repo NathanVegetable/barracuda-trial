@@ -59,6 +59,7 @@ public class TemporTantrumConfig implements TrialConfig
 		ObjectID.SAILING_BT_TEMPOR_TANTRUM_COLLECTABLE_35,
 		ObjectID.SAILING_BT_TEMPOR_TANTRUM_COLLECTABLE_36
 	);
+	
 	private static final int SHIPMENT_IMPOSTOR_ID = ObjectID.SAILING_BT_TEMPOR_TANTRUM_COLLECTABLE_SUPPLIES;
 
 	private static final Set<Integer> ROCK_IDS = Set.of(

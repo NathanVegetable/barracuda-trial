@@ -1,5 +1,6 @@
 package com.barracudatrial.game;
 
+import com.barracudatrial.game.route.GwenithGlideConfig;
 import com.barracudatrial.game.route.JubblyJiveConfig;
 import com.barracudatrial.game.route.TemporTantrumConfig;
 import com.barracudatrial.game.route.TrialConfig;
@@ -156,9 +157,6 @@ public class ProgressTracker
 		}
 	}
 
-	/**
-	 * Creates the appropriate trial configuration based on the trial type
-	 */
 	private TrialConfig createTrialConfig(TrialType trialType)
 	{
 		switch (trialType)
@@ -168,9 +166,7 @@ public class ProgressTracker
 			case JUBBLY_JIVE:
 				return new JubblyJiveConfig();
 			case GWENITH_GLIDE:
-				// TODO: Implement GwenithGlideConfig when needed
-				log.warn("Gwenith Glide config not yet implemented, using Tempor Tantrum as fallback");
-				return new TemporTantrumConfig();
+				return new GwenithGlideConfig();
 			default:
 				log.warn("Unknown trial type: {}, using Tempor Tantrum as fallback", trialType);
 				return new TemporTantrumConfig();
