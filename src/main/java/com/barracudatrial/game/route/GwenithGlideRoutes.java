@@ -7,6 +7,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import com.barracudatrial.game.route.RouteWaypoint.WaypointType;
+
 import static com.barracudatrial.game.route.RouteWaypoint.WaypointType;
 
 // Gwenith Glide - Crystal waters navigation with portals and motes
@@ -39,11 +41,17 @@ public class GwenithGlideRoutes
 			new RouteWaypoint(WaypointType.PORTAL_ENTER, new WorldPoint(2241, 3574, 0)), // amlodd
 			new RouteWaypoint(WaypointType.PORTAL_EXIT, new WorldPoint(2080, 3215, 0)), // amlodd
 			new RouteWaypoint(WaypointType.SHIPMENT, new WorldPoint(2110, 3214, 0)),
+			new RouteWaypoint(WaypointType.PATHFINDING_HINT, new WorldPoint(2119, 3214, 0)),
+			new RouteWaypoint(WaypointType.PATHFINDING_HINT, new WorldPoint(2122, 3214, 0)),
+			new RouteWaypoint(WaypointType.PATHFINDING_HINT, new WorldPoint(2125, 3214, 0)),
+			new RouteWaypoint(WaypointType.PATHFINDING_HINT, new WorldPoint(2128, 3214, 0)),
+			new RouteWaypoint(WaypointType.PATHFINDING_HINT, new WorldPoint(2132, 3214, 0)),
+			new RouteWaypoint(WaypointType.PATHFINDING_HINT, new WorldPoint(2134, 3214, 0)),
 			new RouteWaypoint(WaypointType.SHIPMENT, new WorldPoint(2141, 3216, 0)),
 			new RouteWaypoint(WaypointType.SHIPMENT, new WorldPoint(2140, 3230, 0)),
 			new RouteWaypoint(WaypointType.SHIPMENT, new WorldPoint(2132, 3233, 0)),
 			new RouteWaypoint(WaypointType.SHIPMENT, new WorldPoint(2150, 3243, 0)),
-			new RouteWaypoint(WaypointType.PORTAL_ENTER, new WorldPoint(2155, 3247, 0)), // amlodd
+			new RouteWaypoint(WaypointType.PORTAL_ENTER, new WorldPoint(2154, 3247, 0)), // amlodd
 			new RouteWaypoint(WaypointType.PORTAL_EXIT, new WorldPoint(3107, 3140, 0)), // amlodd
 			new RouteWaypoint(WaypointType.SHIPMENT, new WorldPoint(2190, 3569, 0)),
 			new RouteWaypoint(WaypointType.SHIPMENT, new WorldPoint(2195, 3544, 0)),
@@ -54,7 +62,6 @@ public class GwenithGlideRoutes
 			new RouteWaypoint(WaypointType.SHIPMENT, new WorldPoint(2069, 3160, 0)),
 			new RouteWaypoint(WaypointType.SHIPMENT, new WorldPoint(2057, 3186, 0)),
 			new RouteWaypoint(WaypointType.SHIPMENT, new WorldPoint(2074, 3208, 0)),
-			new RouteWaypoint(WaypointType.SHIPMENT, new WorldPoint(2083, 3148, 0)),
 			new RouteWaypoint(WaypointType.SHIPMENT, new WorldPoint(2100, 3205, 0)),
 			new RouteWaypoint(WaypointType.SHIPMENT, new WorldPoint(2117, 3189, 0)),
 			new RouteWaypoint(WaypointType.SHIPMENT, new WorldPoint(2133, 3192, 0)),
