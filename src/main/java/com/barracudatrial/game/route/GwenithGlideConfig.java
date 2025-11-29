@@ -1,6 +1,5 @@
 package com.barracudatrial.game.route;
 
-import net.runelite.api.coords.WorldPoint;
 import net.runelite.api.gameval.ObjectID;
 
 import java.util.List;
