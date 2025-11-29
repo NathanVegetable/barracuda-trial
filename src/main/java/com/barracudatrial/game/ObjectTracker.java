@@ -259,9 +259,7 @@ public class ObjectTracker
 			var waypointLap = waypoint.getLap();
 			if (state.getCurrentLap() < waypointLap)
 			{
-				var lapsRequired = state.getCurrentDifficulty().rumsRequired;
-
-				log.info("Advanced to lap {}/{}", waypointLap, lapsRequired);
+				log.info("Advanced to lap {}", waypointLap);
 				state.setCurrentLap(waypointLap);
 			}
 

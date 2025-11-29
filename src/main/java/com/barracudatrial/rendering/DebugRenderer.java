@@ -255,10 +255,9 @@ public class DebugRenderer
 		List<String> debugLines = new ArrayList<>();
 
 		debugLines.add("=== BARRACUDA TRIAL DEBUG ===");
-		debugLines.add(String.format("Lap: %d / %d", plugin.getGameState().getCurrentLap(), plugin.getGameState().getRumsNeeded()));
+		debugLines.add(String.format("Lap: %d", plugin.getGameState().getCurrentLap()));
 		debugLines.add(String.format("Lost Supplies Visible: %d", plugin.getGameState().getLostSupplies().size()));
 		debugLines.add(String.format("LostSupplies: %d / %d", plugin.getGameState().getLostSuppliesCollected(), plugin.getGameState().getLostSuppliesTotal()));
-		debugLines.add(String.format("Rum: %d / %d", plugin.getGameState().getRumsCollected(), plugin.getGameState().getRumsNeeded()));
 		debugLines.add(String.format("Current Path: %d points", plugin.getGameState().getCurrentSegmentPath().size()));
 		debugLines.add(String.format("Waypoints in Route: %d", plugin.getGameState().getCurrentStaticRoute().size()));
 		debugLines.add(String.format("Completed Waypoints: %d", plugin.getGameState().getCompletedWaypointIndices().size()));

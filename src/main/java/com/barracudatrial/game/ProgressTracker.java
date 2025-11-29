@@ -100,45 +100,11 @@ public class ProgressTracker
 			}
 		}
 
-		Widget rumProgressWidget = client.getWidget(InterfaceID.SailingBtHud.BT_TRACKER_PROGRESS);
-		if (rumProgressWidget != null && !rumProgressWidget.isHidden())
-		{
-			String rumProgressText = rumProgressWidget.getText();
-			parseRumProgressText(rumProgressText);
-		}
-
 		Widget lostSuppliesProgressWidget = client.getWidget(InterfaceID.SailingBtHud.BT_OPTIONAL_PROGRESS);
 		if (lostSuppliesProgressWidget != null && !lostSuppliesProgressWidget.isHidden())
 		{
 			String lostSuppliesProgressText = lostSuppliesProgressWidget.getText();
 			parseLostSuppliesProgressText(lostSuppliesProgressText);
-		}
-
-		if (state.getLastKnownDifficulty() > 0 && state.getRumsNeeded() > 0
-			&& state.getRumsNeeded() != state.getLastKnownDifficulty())
-		{
-			log.info("Difficulty changed from {} to {} rums - clearing persistent storage",
-				state.getLastKnownDifficulty(), state.getRumsNeeded());
-			state.clearPersistentStorage();
-			state.setCurrentLap(1);
-		}
-		state.setLastKnownDifficulty(state.getRumsNeeded());
-	}
-
-	private void parseRumProgressText(String rumProgressText)
-	{
-		try
-		{
-			String[] parts = rumProgressText.split("/");
-			if (parts.length == 2)
-			{
-				state.setRumsCollected(Integer.parseInt(parts[0].trim()));
-				state.setRumsNeeded(Integer.parseInt(parts[1].trim()));
-			}
-		}
-		catch (NumberFormatException e)
-		{
-			log.debug("Failed to parse rum progress: {}", rumProgressText);
 		}
 	}
 

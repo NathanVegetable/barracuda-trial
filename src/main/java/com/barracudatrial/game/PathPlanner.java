@@ -10,7 +10,6 @@ import com.barracudatrial.rendering.ObjectRenderer;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.Client;
 import net.runelite.api.NPC;
-import net.runelite.api.World;
 import net.runelite.api.WorldView;
 import net.runelite.api.coords.LocalPoint;
 import net.runelite.api.coords.WorldPoint;
@@ -101,7 +100,7 @@ public class PathPlanner
 			return;
 		}
 
-		Difficulty difficulty = state.getCurrentDifficulty();
+		Difficulty difficulty = State.getCurrentDifficulty(client);
 		List<RouteWaypoint> staticRoute = trial.getRoute(difficulty);
 
 		if (staticRoute == null || staticRoute.isEmpty())
@@ -112,7 +111,7 @@ public class PathPlanner
 		}
 
 		state.setCurrentStaticRoute(staticRoute);
-		log.debug("Loaded static route for {} difficulty {} with {} waypoints",
+		log.info("Loaded static route for {} difficulty {} with {} waypoints",
 			trial.getTrialType(), difficulty, staticRoute.size());
 	}
 

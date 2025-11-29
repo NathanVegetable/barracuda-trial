@@ -7,10 +7,12 @@ import com.barracudatrial.game.route.TrialType;
 
 import lombok.Getter;
 import lombok.Setter;
+import net.runelite.api.Client;
 import net.runelite.api.GameObject;
 import net.runelite.api.NPC;
 import net.runelite.api.coords.LocalPoint;
 import net.runelite.api.coords.WorldPoint;
+import net.runelite.api.gameval.InterfaceID;
 import net.runelite.api.gameval.ObjectID;
 
 import java.util.*;
@@ -56,9 +58,6 @@ public class State
 
 	@Setter
 	private int rumsCollected = 0;
-
-	@Setter
-	private int rumsNeeded = 0;
 
 	@Setter
 	private int lostSuppliesCollected = 0;
@@ -132,34 +131,6 @@ public class State
 
 	private final Set<Integer> completedWaypointIndices = new HashSet<>();
 
-	public Difficulty getCurrentDifficulty()
-	{
-		// TODO: Read difficulty widget instead of inferring from rums needed
-		if (currentTrial != null && currentTrial.getTrialType() == TrialType.GWENITH_GLIDE)
-		{
-			switch (rumsNeeded)
-			{
-				case 3:
-					return Difficulty.SWORDFISH;
-				case 6:
-					return Difficulty.SHARK;
-				case 9:
-					return Difficulty.MARLIN;
-			}
-		}
-		switch (rumsNeeded)
-		{
-			case 1:
-				return Difficulty.SWORDFISH;
-			case 2:
-				return Difficulty.SHARK;
-			case 3:
-				return Difficulty.MARLIN;
-			default:
-				return Difficulty.SWORDFISH; // Default to easiest difficulty
-		}
-	}
-
 	/**
 	 * Clears all temporary state (called when leaving trial area)
 	 */
@@ -174,7 +145,6 @@ public class State
 		rumPickupLocation = null;
 		rumReturnLocation = null;
 		rumsCollected = 0;
-		rumsNeeded = 0;
 		lostSuppliesCollected = 0;
 		lostSuppliesTotal = 0;
 		hasThrowableObjective = false;
@@ -258,5 +228,29 @@ public class State
 	public void clearPersistentStorage()
 	{
 		knownLostSuppliesSpawnLocations.clear();
+	}
+	
+
+	public static Difficulty getCurrentDifficulty(Client client)
+	{
+		var widget = client.getWidget(InterfaceID.SailingBtHud.BT_RANK_GFX);
+		if (widget == null || widget.isHidden())
+		{
+			return Difficulty.SWORDFISH;
+		}
+
+		var spriteId = widget.getSpriteId();
+		
+		switch (spriteId)
+		{
+			case 7027:
+				return Difficulty.SWORDFISH;
+			case 7028:
+				return Difficulty.SHARK;
+			case 7029:
+				return Difficulty.MARLIN;
+			default:
+				return Difficulty.SWORDFISH; // Default to easiest difficulty
+		}
 	}
 }

@@ -1,7 +1,7 @@
 package com.barracudatrial;
 
 import com.barracudatrial.game.*;
-import com.barracudatrial.game.route.JubblyJiveConfig;
+import com.barracudatrial.game.route.Difficulty;
 import com.barracudatrial.game.route.RouteWaypoint;
 import com.barracudatrial.game.route.TrialType;
 import com.google.inject.Provides;
@@ -51,9 +51,6 @@ public class BarracudaTrialPlugin extends Plugin
 	private ProgressTracker progressTracker;
 	private PathPlanner pathPlanner;
 
-	@Getter
-	private RouteCapture routeCapture;
-
 	@Override
 	protected void startUp() throws Exception
 	{
@@ -66,7 +63,6 @@ public class BarracudaTrialPlugin extends Plugin
 		locationManager = new LocationManager(client, gameState);
 		progressTracker = new ProgressTracker(client, gameState);
 		pathPlanner = new PathPlanner(client, gameState, cachedConfig);
-		routeCapture = new RouteCapture(gameState);
 	}
 
 	@Override
@@ -85,7 +81,6 @@ public class BarracudaTrialPlugin extends Plugin
 		boolean trialAreaStateChanged = progressTracker.checkIfPlayerIsInTrialArea();
 		if (trialAreaStateChanged && !gameState.isInTrialArea())
 		{
-			routeCapture.reset();
 			pathPlanner.reset();
 		}
 		if (!gameState.isInTrialArea())
@@ -108,7 +103,6 @@ public class BarracudaTrialPlugin extends Plugin
 
 		if (cachedConfig.isShowOptimalPath()
 			|| cachedConfig.isHighlightSpeedBoosts()
-		 	|| routeCapture.isCapturing()
 			|| cachedConfig.isHighlightObjectives())
 		{
 			objectTracker.updateHazardsSpeedBoostsAndToadPillars();
@@ -131,17 +125,9 @@ public class BarracudaTrialPlugin extends Plugin
 			checkPortalExitProximity();
 		}
 
-		if (cachedConfig.isShowOptimalPath() || routeCapture.isCapturing())
+		if (cachedConfig.isShowOptimalPath())
 		{
 			objectTracker.updateLostSuppliesTracking();
-		}
-
-		// Route capture mode: scan for all supply locations to build routes
-		if (routeCapture.isCapturing())
-		{
-			objectTracker.updateRouteCaptureSupplyLocations();
-			List<WorldPoint> collected = objectTracker.checkAllRouteCaptureShipmentsForCollection();
-			routeCapture.onShipmentsCollected(collected);
 		}
 
 		if (cachedConfig.isShowOptimalPath())
@@ -177,11 +163,6 @@ public class BarracudaTrialPlugin extends Plugin
 		{
 			log.debug("Rum collected! Message: {}", chatMessage);
 			gameState.setHasThrowableObjective(true);
-
-			if (routeCapture.isCapturing())
-			{
-				routeCapture.onRumPickedUp();
-			}
 
 			var route = gameState.getCurrentStaticRoute();
 
@@ -225,7 +206,14 @@ public class BarracudaTrialPlugin extends Plugin
 				}
 			}
 
-			var lapsRequired = gameState.getCurrentDifficulty().rumsRequired;
+			var currentDifficulty = State.getCurrentDifficulty(client);
+			var lapsRequired = 
+				currentDifficulty == Difficulty.SWORDFISH
+					? 1
+					: (currentDifficulty == Difficulty.SHARK
+						? 2
+						: 3);
+
 			var nextLapNumber = gameState.getCurrentLap() + 1;
 			var isCompletingFinalLap = lapsRequired == nextLapNumber;
 
@@ -241,23 +229,12 @@ public class BarracudaTrialPlugin extends Plugin
 			}
 
 			pathPlanner.recalculateOptimalPathFromCurrentState("chat: rum delivered");
-
-			if (routeCapture.isCapturing())
-			{
-				routeCapture.onRumDelivered(isCompletingFinalLap);
-			}
 		}
 		else if (chatMessage.contains("balloon toads. Time to lure"))
 		{
 			log.debug("Toads collected! Message: {}", chatMessage);
 
 			gameState.setHasThrowableObjective(true);
-
-			if (routeCapture.isCapturing())
-			{
-				// TODO: Handle capturing
-				// routeCapture.onRumPickedUp();
-			}
 
 			var route = gameState.getCurrentStaticRoute();
 
