@@ -11,11 +11,14 @@ public class PathResult
 	@Getter
 	private final List<PathNode> pathNodes;
 	private final double totalCost;
+	@Getter
+	private final boolean reachedGoal;
 
-	public PathResult(List<PathNode> pathNodes, double totalCost)
+	public PathResult(List<PathNode> pathNodes, double totalCost, boolean reachedGoal)
 	{
 		this.pathNodes = pathNodes;
 		this.totalCost = totalCost;
+		this.reachedGoal = reachedGoal;
 	}
 
 	public List<WorldPoint> getPath()

@@ -11,7 +11,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 /**
  * Wraps a path with the danger zones that existed when it was created.
@@ -62,7 +61,7 @@ public class PathStabilizer
 		return optimization == RouteOptimization.EFFICIENT ? 0.85 : 0.70;
 	}
 
-	public List<WorldPoint> findPath(BarracudaTileCostCalculator costCalculator, RouteOptimization routeOptimization, List<RouteWaypoint> currentStaticRoute, WorldPoint start, WorldPoint goal, int maxSearchDistance,
+	public PathResult findPath(BarracudaTileCostCalculator costCalculator, RouteOptimization routeOptimization, List<RouteWaypoint> currentStaticRoute, WorldPoint start, WorldPoint goal, int maxSearchDistance,
 	                                  int boatDirectionDx, int boatDirectionDy, int goalTolerance, boolean isPlayerCurrentlyOnPath)
 	{
 		PathResult newPathResult = pathfinder.findPath(costCalculator, routeOptimization, start, goal, maxSearchDistance, boatDirectionDx, boatDirectionDy, goalTolerance);
@@ -74,16 +73,16 @@ public class PathStabilizer
 		if (shouldForceNewPath(activePathResult, newPathResult, goal))
 		{
 			activePathsByGoal.put(goal, new StabilizedPath(newPathResult, currentDangerZones));
-			return newPathResult.getPath();
+			return newPathResult;
 		}
 
 		if (shouldKeepActivePath(costCalculator, routeOptimization, start, activeStabilizedPath, newPathResult, currentStaticRoute, currentDangerZones, isPlayerCurrentlyOnPath))
 		{
-			return getTrimmedPath(start, activePathResult);
+			return getTrimmedPathResult(start, activePathResult);
 		}
 
 		activePathsByGoal.put(goal, new StabilizedPath(newPathResult, currentDangerZones));
-		return newPathResult.getPath();
+		return newPathResult;
 	}
 
 	private boolean shouldForceNewPath(PathResult activePathResult, PathResult newPathResult, WorldPoint goal)
@@ -94,6 +93,18 @@ public class PathStabilizer
 		}
 
 		if (newPathResult.getPath().isEmpty())
+		{
+			return true;
+		}
+
+		if (!activePathResult.isReachedGoal() && newPathResult.isReachedGoal())
+		{
+			return true;
+		}
+
+		var activePathEnd = activePathResult.getPath().get(activePathResult.getPath().size() - 1);
+		var newPathEnd = newPathResult.getPath().get(newPathResult.getPath().size() - 1);
+		if (!activePathEnd.equals(newPathEnd))
 		{
 			return true;
 		}
@@ -184,8 +195,9 @@ public class PathStabilizer
 		return false;
 	}
 
-	private List<WorldPoint> getTrimmedPath(WorldPoint start, PathResult pathResult)
+	private PathResult getTrimmedPathResult(WorldPoint start, PathResult pathResult)
 	{
+		List<PathNode> fullPathNodes = pathResult.getPathNodes();
 		List<WorldPoint> fullPath = pathResult.getPath();
 		int closestIndex = findClosestPointOnPath(start, fullPath);
 
@@ -196,12 +208,14 @@ public class PathStabilizer
 		}
 
 		// Return remaining path from that point forward
-		if (closestIndex >= fullPath.size())
+		if (closestIndex >= fullPathNodes.size())
 		{
-			return new ArrayList<>();
+			return new PathResult(new ArrayList<>(), Double.POSITIVE_INFINITY, pathResult.isReachedGoal());
 		}
 
-		return new ArrayList<>(fullPath.subList(closestIndex, fullPath.size()));
+		List<PathNode> trimmedNodes = new ArrayList<>(fullPathNodes.subList(closestIndex, fullPathNodes.size()));
+		double trimmedCost = pathResult.getCostFromIndex(closestIndex);
+		return new PathResult(trimmedNodes, trimmedCost, pathResult.isReachedGoal());
 	}
 
 	private int findClosestPointOnPath(WorldPoint position, List<WorldPoint> path)

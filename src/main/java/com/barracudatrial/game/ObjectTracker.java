@@ -8,7 +8,6 @@ import net.runelite.api.coords.WorldPoint;
 import net.runelite.api.gameval.ObjectID;
 
 import java.util.*;
-import java.util.stream.Collectors;
 
 import static com.barracudatrial.game.RouteCapture.formatWorldPoint;
 
@@ -115,13 +114,9 @@ public class ObjectTracker
 		{
 			return;
 		}
-		var trialType = trial.getTrialType();
-
 		var rockIds = trial.getRockIds();
 		var speedBoostIds = trial.getSpeedBoostIds();
 		var fetidPoolIds = JubblyJiveConfig.FETID_POOL_IDS;
-
-		var toadPillarParentIds = JubblyJiveConfig.TOAD_PILLARS;
 
 		var knownRockTiles = state.getKnownRockLocations();
 
