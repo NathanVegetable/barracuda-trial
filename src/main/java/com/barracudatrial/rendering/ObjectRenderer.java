@@ -317,6 +317,81 @@ public class ObjectRenderer
 				});
 	}
 
+	public void renderPortals(Graphics2D graphics)
+	{
+		var cached = plugin.getCachedConfig();
+		var state = plugin.getGameState();
+		var route = state.getCurrentStaticRoute();
+		if (route == null)
+			return;
+
+		int currentLap = state.getCurrentLap();
+		var completed = state.getCompletedWaypointIndices();
+		int currentWaypointIndex = state.getNextNavigatableWaypointIndex();
+
+		var currentLapPortalLocations = new HashSet<WorldPoint>();
+
+		for (int i = 0; i < route.size(); i++)
+		{
+			if (completed.contains(i))
+				continue;
+
+			var wp = route.get(i);
+			if (wp.getType() != RouteWaypoint.WaypointType.PORTAL_ENTER)
+				continue;
+
+			if (wp.getLap() == currentLap)
+			{
+				currentLapPortalLocations.add(wp.getLocation());
+			}
+		}
+
+		List<WorldPoint> next2WaypointLocations;
+		if (currentWaypointIndex >= 0 && currentWaypointIndex < route.size())
+		{
+			next2WaypointLocations = new ArrayList<>();
+			int foundCount = 0;
+
+			for (int offset = 0; offset < route.size() && foundCount < 2; offset++)
+			{
+				int checkIndex = (currentWaypointIndex + offset) % route.size();
+				var wp = route.get(checkIndex);
+				if (!completed.contains(checkIndex) && !wp.getType().isNonNavigatableHelper())
+				{
+					next2WaypointLocations.add(wp.getLocation());
+					foundCount++;
+				}
+			}
+		}
+		else
+		{
+			next2WaypointLocations = List.of();
+		}
+
+		for (WorldPoint portalLocation : currentLapPortalLocations)
+		{
+			var portalObject = ObjectRenderer.findGameObjectAtWorldPoint(client, portalLocation);
+			if (portalObject == null)
+				continue;
+
+			Color color;
+			if (next2WaypointLocations.contains(portalLocation))
+			{
+				color = cached.getObjectivesColorCurrentWaypoint();
+			}
+			else
+			{
+				color = cached.getObjectivesColorCurrentLap();
+			}
+
+			String label = cached.isShowIDs()
+					? buildObjectLabelWithImpostorInfo(portalObject, "Portal")
+					: null;
+
+			renderGameObjectWithHighlight(graphics, portalObject, color, true, label);
+		}
+	}
+
 	public void renderRumLocations(Graphics2D graphics)
 	{
 		CachedConfig cachedConfig = plugin.getCachedConfig();

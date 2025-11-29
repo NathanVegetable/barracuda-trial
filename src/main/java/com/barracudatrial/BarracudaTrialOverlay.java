@@ -80,6 +80,11 @@ public class BarracudaTrialOverlay extends Overlay
 			objectRenderer.renderToadPickup(graphics);
 		}
 
+		if (cachedConfig.isHighlightObjectives() && trial != null && trial.getTrialType() == TrialType.GWENITH_GLIDE)
+		{
+			objectRenderer.renderPortals(graphics);
+		}
+
 		if (cachedConfig.isHighlightSpeedBoosts())
 		{
 			objectRenderer.renderSpeedBoosts(graphics);
