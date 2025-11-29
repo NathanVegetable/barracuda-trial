@@ -8,6 +8,7 @@ import com.barracudatrial.game.route.TrialType;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.Client;
 import net.runelite.api.gameval.InterfaceID;
+import net.runelite.api.gameval.VarbitID;
 import net.runelite.api.widgets.Widget;
 
 /**
@@ -27,15 +28,16 @@ public class ProgressTracker
 	}
 
 	/**
-	 * Checks if the player is in the trial area by checking HUD widget visibility
 	 * @return true if trial area state changed
 	 */
 	public boolean checkIfPlayerIsInTrialArea()
 	{
-		Widget barracudaTrialHudWidget = client.getWidget(InterfaceID.SailingBtHud.BARRACUDA_TRIALS);
-
 		boolean wasInTrialAreaBefore = state.isInTrialArea();
-		boolean isInTrialAreaNow = barracudaTrialHudWidget != null && !barracudaTrialHudWidget.isHidden();
+
+		var isInTrialAreaNow =
+			client.getVarbitValue(VarbitID.SAILING_BT_TEMPOR_TANTRUM_MASTER_STATE) == 2
+			|| client.getVarbitValue(VarbitID.SAILING_BT_JUBBLY_JIVE_MASTER_STATE) == 2
+			|| client.getVarbitValue(VarbitID.SAILING_BT_GWENITH_GLIDE_MASTER_STATE) == 2;
 
 		state.setInTrialArea(isInTrialAreaNow);
 

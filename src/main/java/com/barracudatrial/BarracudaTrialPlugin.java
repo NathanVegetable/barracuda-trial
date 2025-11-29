@@ -312,6 +312,19 @@ public class BarracudaTrialPlugin extends Plugin
 			pathPlanner.recalculateOptimalPathFromCurrentState("chat: portal traversed");
 		}
 	}
+	
+	@Subscribe
+	public void onScriptPreFired(ScriptPreFired event)
+	{
+		// TODO: remove once fade out is fixed in Sailing helper
+		var FADE_OUT_TRANSITION_SCRIPT_ID = 948;
+
+        if (event.getScriptId() == FADE_OUT_TRANSITION_SCRIPT_ID)
+        {
+            event.getScriptEvent().getArguments()[4] = 255;
+            event.getScriptEvent().getArguments()[5] = 0;
+        }
+	}
 
 	@Subscribe
 	public void onConfigChanged(ConfigChanged event)
