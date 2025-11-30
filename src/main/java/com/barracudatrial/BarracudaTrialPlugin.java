@@ -295,11 +295,6 @@ public class BarracudaTrialPlugin extends Plugin
 	@Subscribe
 	public void onConfigChanged(ConfigChanged event)
 	{
-		if (!gameState.isInTrialArea())
-		{
-			return;
-		}
-		
 		if (!event.getGroup().equals("barracudatrial"))
 		{
 			return;
