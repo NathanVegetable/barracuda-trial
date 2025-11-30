@@ -422,14 +422,16 @@ public class PathRenderer
 				location.getY()
 			);
 
-			Color color = completed ? new Color(128, 128, 128, 150) : new Color(255, 255, 0, 150);
+			Color color = completed
+				? new Color(144, 238, 144, 150)   // light green
+				: new Color(255, 255, 153, 150);  // light yellow
+
 			RenderingUtils.renderTileHighlightAtWorldPoint(client, graphics, location, color, label);
 		}
 
-		// Render all tiles in the current path
 		for (WorldPoint pathTile : currentPath)
 		{
-			Color pathTileColor = new Color(0, 255, 255, 100);
+			Color pathTileColor = new Color(0, 255, 255, 100); // light cyan
 			RenderingUtils.renderTileHighlightAtWorldPoint(client, graphics, pathTile, pathTileColor, null);
 		}
 	}
