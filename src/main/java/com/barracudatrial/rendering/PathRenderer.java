@@ -320,6 +320,7 @@ public class PathRenderer
 		}
 
 		var completedIndices = plugin.getGameState().getCompletedWaypointIndices();
+		int currentLap = plugin.getGameState().getCurrentLap();
 
 		WorldPoint groupStart = null;
 		WorldPoint groupEnd = null;
@@ -335,6 +336,11 @@ public class PathRenderer
 
 			if (waypoint.getType() == RouteWaypoint.WaypointType.USE_WIND_CATCHER)
 			{
+				if (waypoint.getLap() != currentLap)
+				{
+					continue;
+				}
+
 				if (groupStart == null)
 				{
 					groupStart = waypoint.getLocation();
@@ -370,12 +376,18 @@ public class PathRenderer
 
 		CachedConfig cachedConfig = plugin.getCachedConfig();
 		Color windCatcherColor = cachedConfig.getWindCatcherColor();
+		int currentLap = plugin.getGameState().getCurrentLap();
 
 		WorldPoint lastWindCatcherTile = null;
 		for (RouteWaypoint waypoint : staticRoute)
 		{
 			if (waypoint.getType() == RouteWaypoint.WaypointType.USE_WIND_CATCHER)
 			{
+				if (waypoint.getLap() != currentLap)
+				{
+					continue;
+				}
+
 				WorldPoint loc = waypoint.getLocation();
 				if (loc != null)
 				{
