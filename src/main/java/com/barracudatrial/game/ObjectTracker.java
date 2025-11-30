@@ -10,9 +10,6 @@ import net.runelite.api.gameval.ObjectID;
 
 import java.util.*;
 
-import static com.barracudatrial.game.RouteCapture.formatWorldPoint;
-
-
 /**
  * Handles tracking of game objects in the Barracuda Trial minigame
  * Tracks clouds, rocks, speed boosts, lost supplies, boat location, toad pillars, etc
@@ -430,111 +427,6 @@ public class ObjectTracker
 		}
 
 		return collectedShipments;
-	}
-
-	/**
-	 * Updates route capture supply locations by scanning all tiles (including extended tiles).
-	 * This is ONLY used for route capture mode to discover all supply spawn locations.
-	 * Normal pathfinding uses route waypoints instead.
-	 */
-	public void updateRouteCaptureSupplyLocations()
-	{
-		if (!state.isInTrialArea())
-		{
-			state.setRouteCaptureSupplyLocations(new HashSet<>());
-			return;
-		}
-
-		Scene scene = client.getScene();
-		if (scene == null)
-		{
-			state.setRouteCaptureSupplyLocations(new HashSet<>());
-			return;
-		}
-
-		Set<WorldPoint> oldSupplyLocations = state.getRouteCaptureSupplyLocations();
-		Set<WorldPoint> newSupplyLocations = scanTileArrayForShipments(scene.getTiles(), oldSupplyLocations);
-
-		Tile[][][] extendedTiles = scene.getExtendedTiles();
-		if (extendedTiles != null)
-		{
-			newSupplyLocations.addAll(scanTileArrayForShipments(extendedTiles, oldSupplyLocations));
-		}
-
-		state.setRouteCaptureSupplyLocations(newSupplyLocations);
-	}
-
-	/**
-	 * Checks all route capture supply locations for collection.
-	 * ONLY used during route capture mode to detect shipments without a predefined route.
-	 * Assumes updateRouteCaptureSupplyLocations() has already been called this tick.
-	 *
-	 * @return List of shipments that were collected this tick
-	 */
-	public List<WorldPoint> checkAllRouteCaptureShipmentsForCollection()
-	{
-		return checkShipmentsForCollection(state.getRouteCaptureSupplyLocations());
-	}
-
-	/**
-	 * Scans a tile array for shipment objects and returns their locations.
-	 * Skips logging for locations already in the old set for efficiency.
-	 */
-	private Set<WorldPoint> scanTileArrayForShipments(Tile[][][] tileArray, Set<WorldPoint> oldSupplyLocations)
-	{
-		Set<WorldPoint> foundSupplyLocations = new HashSet<>();
-
-		if (tileArray == null)
-		{
-			return foundSupplyLocations;
-		}
-
-		var trial = state.getCurrentTrial();
-		if (trial == null)
-		{
-			return foundSupplyLocations;
-		}
-
-		var shipmentIds = trial.getShipmentBaseIds();
-		int shipmentImpostorId = trial.getShipmentImpostorId();
-
-		for (var plane : tileArray)
-		{
-			if (plane == null) continue;
-
-			for (var column : plane)
-			{
-				if (column == null) continue;
-
-				for (var tile : column)
-				{
-					if (tile == null) continue;
-
-					for (var gameObject : tile.getGameObjects())
-					{
-						if (gameObject == null) continue;
-
-						int objectId = gameObject.getId();
-						if (!shipmentIds.contains(objectId)
-							&& objectId != shipmentImpostorId)
-						{
-							continue;
-						}
-
-						var worldLocation = gameObject.getWorldLocation();
-						if (!oldSupplyLocations.contains(worldLocation))
-						{
-							log.debug("[ROUTE CAPTURE] Found shipment id {} we can pick up on {}",
-								objectId, formatWorldPoint(worldLocation));
-						}
-
-						foundSupplyLocations.add(worldLocation);
-					}
-				}
-			}
-		}
-
-		return foundSupplyLocations;
 	}
 
 	/**

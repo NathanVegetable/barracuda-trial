@@ -65,9 +65,6 @@ public class BarracudaTrialPlugin extends Plugin
 	private ProgressTracker progressTracker;
 	private PathPlanner pathPlanner;
 
-	@Getter
-	private RouteCapture routeCapture;
-
 	// Route Editor UI
 	private RouteEditorPanel routeEditorPanel;
 	private NavigationButton navButton;
@@ -85,7 +82,6 @@ public class BarracudaTrialPlugin extends Plugin
 		locationManager = new LocationManager(client, gameState);
 		progressTracker = new ProgressTracker(client, gameState);
 		pathPlanner = new PathPlanner(client, gameState, cachedConfig);
-		routeCapture = new RouteCapture(gameState);
 
 		// Setup Route Editor Panel
 		routeEditorPanel = new RouteEditorPanel();
@@ -171,8 +167,6 @@ public class BarracudaTrialPlugin extends Plugin
 			objectTracker.updateHazardsSpeedBoostsAndToadPillars();
 		}
 
-		progressTracker.updateTrialProgressFromWidgets();
-		
 		if (cachedConfig.isShowOptimalPath())
 		{
 			objectTracker.updatePlayerBoatLocation();
@@ -488,14 +482,6 @@ public class BarracudaTrialPlugin extends Plugin
 				log.info("[EXAMINE] Found another Object on this tile: {}", id);
 			}
 
-			if (objectId == State.RUM_RETURN_BASE_OBJECT_ID || objectId == State.RUM_RETURN_IMPOSTOR_ID) {
-				WorldPoint rumLocation = boatWorldLocation != null ? boatWorldLocation : worldPoint;
-				routeCapture.onExamineRumDropoff(rumLocation, sceneX, sceneY, sceneBaseX, sceneBaseY, objectId, impostorInfo);
-			}
-			// else if (JubblyJiveConfig.TOAD_PILLAR_IDS.contains(objectId))
-			// {
-			// 	routeCapture.onExamineToadPillar(worldPoint, objectId);
-			// }
 		}
 	}
 

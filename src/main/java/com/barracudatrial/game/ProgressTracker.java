@@ -7,13 +7,11 @@ import com.barracudatrial.game.route.TrialConfig;
 import com.barracudatrial.game.route.TrialType;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.Client;
-import net.runelite.api.gameval.InterfaceID;
 import net.runelite.api.gameval.VarbitID;
-import net.runelite.api.widgets.Widget;
 
 /**
- * Handles widget parsing and progress tracking for Barracuda Trial
- * Tracks rum collection, lost supplies collection, and trial area state
+ * Handles progress tracking for Barracuda Trial using varbits
+ * Detects trial entry/exit and initializes trial-specific configurations
  */
 @Slf4j
 public class ProgressTracker
@@ -28,22 +26,43 @@ public class ProgressTracker
 	}
 
 	/**
+	 * Gets the currently active trial type based on varbits
+	 * @return The active trial type, or null if not in a trial
+	 */
+	public TrialType getCurrentActiveTrialType()
+	{
+		if (client.getVarbitValue(VarbitID.SAILING_BT_TEMPOR_TANTRUM_MASTER_STATE) == 2)
+		{
+			return TrialType.TEMPOR_TANTRUM;
+		}
+		else if (client.getVarbitValue(VarbitID.SAILING_BT_JUBBLY_JIVE_MASTER_STATE) == 2)
+		{
+			return TrialType.JUBBLY_JIVE;
+		}
+		else if (client.getVarbitValue(VarbitID.SAILING_BT_GWENITH_GLIDE_MASTER_STATE) == 2)
+		{
+			return TrialType.GWENITH_GLIDE;
+		}
+		return null;
+	}
+
+	/**
 	 * @return true if trial area state changed
 	 */
 	public boolean checkIfPlayerIsInTrialArea()
 	{
 		boolean wasInTrialAreaBefore = state.isInTrialArea();
 
-		var isInTrialAreaNow =
-			client.getVarbitValue(VarbitID.SAILING_BT_TEMPOR_TANTRUM_MASTER_STATE) == 2
-			|| client.getVarbitValue(VarbitID.SAILING_BT_JUBBLY_JIVE_MASTER_STATE) == 2
-			|| client.getVarbitValue(VarbitID.SAILING_BT_GWENITH_GLIDE_MASTER_STATE) == 2;
+		TrialType activeTrialType = getCurrentActiveTrialType();
+		boolean isInTrialAreaNow = activeTrialType != null;
 
 		state.setInTrialArea(isInTrialAreaNow);
 
 		if (!wasInTrialAreaBefore && isInTrialAreaNow)
 		{
-			log.debug("Entered Barracuda Trial");
+			log.info("Entered Barracuda Trial: {}", activeTrialType);
+			TrialConfig trialConfig = createTrialConfig(activeTrialType);
+			state.setCurrentTrial(trialConfig);
 			return true;
 		}
 		else if (wasInTrialAreaBefore && !isInTrialAreaNow)
@@ -54,75 +73,6 @@ public class ProgressTracker
 		}
 
 		return false;
-	}
-
-	/**
-	 * Updates trial progress by parsing widget text
-	 * Detects difficulty changes and triggers state reset when needed
-	 */
-	public void updateTrialProgressFromWidgets()
-	{
-		if (!state.isInTrialArea())
-		{
-			return;
-		}
-
-		var title = client.getWidget(InterfaceID.SailingBtHud.BT_TITLE);
-		if (title != null && !title.isHidden())
-		{
-			var children = title.getChildren();
-			String trialName = null;
-			if (children != null)
-			{
-				for (var child : children) {
-					if (child == null || child.isHidden())
-						continue;
-					var text = child.getText();
-					if (text != null && !text.isEmpty())
-					{
-						trialName = text;
-						break;
-					}
-				}
-			}
-
-			if (trialName != null && !trialName.equals(state.getCurrentTrialName()))
-			{
-				log.info("Detected trial: {}", trialName);
-				state.setCurrentTrialName(trialName);
-
-				TrialType trialType = TrialType.fromDisplayName(trialName);
-				if (trialType != null) {
-					TrialConfig trialConfig = createTrialConfig(trialType);
-					state.setCurrentTrial(trialConfig);
-					log.info("Initialized trial config for: {}", trialType);
-				}
-			}
-		}
-
-		Widget lostSuppliesProgressWidget = client.getWidget(InterfaceID.SailingBtHud.BT_OPTIONAL_PROGRESS);
-		if (lostSuppliesProgressWidget != null && !lostSuppliesProgressWidget.isHidden())
-		{
-			String lostSuppliesProgressText = lostSuppliesProgressWidget.getText();
-			parseLostSuppliesProgressText(lostSuppliesProgressText);
-		}
-	}
-
-	private void parseLostSuppliesProgressText(String lostSuppliesProgressText)
-	{
-		try
-		{
-			String[] parts = lostSuppliesProgressText.split("/");
-			if (parts.length == 2)
-			{
-				state.setLostSuppliesCollected(Integer.parseInt(parts[0].trim()));
-				state.setLostSuppliesTotal(Integer.parseInt(parts[1].trim()));
-			}
-		}
-		catch (NumberFormatException e)
-		{
-			log.debug("Failed to parse lost supplies progress: {}", lostSuppliesProgressText);
-		}
 	}
 
 	private TrialConfig createTrialConfig(TrialType trialType)

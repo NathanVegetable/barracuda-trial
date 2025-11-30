@@ -41,9 +41,6 @@ public class State
 
 	private final Set<GameObject> lostSupplies = new HashSet<>();
 
-	@Setter
-	private Set<WorldPoint> routeCaptureSupplyLocations = new HashSet<>();
-
 	private final Set<NPC> lightningClouds = new HashSet<>();
 
 	private final Set<GameObject> speedBoosts = new HashSet<>();
@@ -70,9 +67,6 @@ public class State
 
 	@Setter
 	private int lastKnownDifficulty = 0;
-
-	@Setter
-	private String currentTrialName = null;
 
 	@Setter
 	private WorldPoint boatLocation = null;
@@ -139,7 +133,6 @@ public class State
 		currentTrial = null;
 		inTrialArea = false;
 		lostSupplies.clear();
-		routeCaptureSupplyLocations.clear();
 		lightningClouds.clear();
 		knownToadPillars.clear();
 		rumPickupLocation = null;
@@ -148,7 +141,6 @@ public class State
 		lostSuppliesCollected = 0;
 		lostSuppliesTotal = 0;
 		hasThrowableObjective = false;
-		currentTrialName = null;
 		boatLocation = null;
 		currentLap = 1;
 		optimalPath = new ArrayList<>();
