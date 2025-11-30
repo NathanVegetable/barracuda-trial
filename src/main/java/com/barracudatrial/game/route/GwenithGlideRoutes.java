@@ -105,7 +105,7 @@ public class GwenithGlideRoutes
 			new RouteWaypoint(3, WaypointType.SHIPMENT, new WorldPoint(2195, 3544, 0)),
 			new RouteWaypoint(3, WaypointType.SHIPMENT, new WorldPoint(2201, 3521, 0)),
 			new RouteWaypoint(3, WaypointType.PORTAL_ENTER, new WorldPoint(2197, 3512, 0)), // cadarn
-			new RouteWaypoint(3, WaypointType.PORTAL_EXIT, new WorldPoint(2008, 3574, 0)), // cadarn
+			new RouteWaypoint(3, WaypointType.PORTAL_EXIT, new WorldPoint(2107, 3140, 0)), // cadarn
 			new RouteWaypoint(3, WaypointType.SHIPMENT, new WorldPoint(2092, 3144, 0)),
 			new RouteWaypoint(3, WaypointType.SHIPMENT, new WorldPoint(2069, 3160, 0)),
 			new RouteWaypoint(3, WaypointType.SHIPMENT, new WorldPoint(2057, 3186, 0)),
@@ -171,7 +171,7 @@ public class GwenithGlideRoutes
 			new RouteWaypoint(5, WaypointType.SHIPMENT, new WorldPoint(2123, 3599, 0)),
 			new RouteWaypoint(5, WaypointType.SHIPMENT, new WorldPoint(2112, 3591, 0)),
 			new RouteWaypoint(5, WaypointType.SHIPMENT, new WorldPoint(2098, 3583, 0)),
-			new RouteWaypoint(5, WaypointType.PORTAL_ENTER, new WorldPoint(2106, 3574, 0)) // hefin
+			new RouteWaypoint(5, WaypointType.PORTAL_ENTER, new WorldPoint(2105, 3574, 0)) // hefin
 		));
 
 		ROUTES.put(Difficulty.MARLIN, List.of(
@@ -210,7 +210,7 @@ public class GwenithGlideRoutes
 			new RouteWaypoint(3, WaypointType.SHIPMENT, new WorldPoint(2195, 3544, 0)),
 			new RouteWaypoint(3, WaypointType.SHIPMENT, new WorldPoint(2201, 3521, 0)),
 			new RouteWaypoint(3, WaypointType.PORTAL_ENTER, new WorldPoint(2197, 3512, 0)), // cadarn
-			new RouteWaypoint(3, WaypointType.PORTAL_EXIT, new WorldPoint(2008, 3574, 0)), // cadarn
+			new RouteWaypoint(3, WaypointType.PORTAL_EXIT, new WorldPoint(2107, 3140, 0)), // cadarn
 			new RouteWaypoint(3, WaypointType.SHIPMENT, new WorldPoint(2092, 3144, 0)),
 			new RouteWaypoint(3, WaypointType.SHIPMENT, new WorldPoint(2069, 3160, 0)),
 			new RouteWaypoint(3, WaypointType.SHIPMENT, new WorldPoint(2057, 3186, 0)),
@@ -279,7 +279,7 @@ public class GwenithGlideRoutes
 			new RouteWaypoint(5, WaypointType.SHIPMENT, new WorldPoint(2123, 3599, 0)),
 			new RouteWaypoint(5, WaypointType.SHIPMENT, new WorldPoint(2112, 3591, 0)),
 			new RouteWaypoint(5, WaypointType.SHIPMENT, new WorldPoint(2098, 3583, 0)),
-			new RouteWaypoint(5, WaypointType.PORTAL_ENTER, new WorldPoint(2106, 3574, 0)), // hefin
+			new RouteWaypoint(5, WaypointType.PORTAL_ENTER, new WorldPoint(2105, 3574, 0)), // hefin
 			new RouteWaypoint(5, WaypointType.PORTAL_EXIT, new WorldPoint(2171, 3508, 0)), // hefin
 			new RouteWaypoint(5, WaypointType.PORTAL_ENTER, new WorldPoint(2190, 3508, 0)), // cadarn
 			new RouteWaypoint(5, WaypointType.PORTAL_EXIT, new WorldPoint(2205, 3508, 0)), // cadarn
