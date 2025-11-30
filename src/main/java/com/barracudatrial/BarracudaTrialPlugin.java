@@ -2,6 +2,7 @@ package com.barracudatrial;
 
 import com.barracudatrial.game.*;
 import com.barracudatrial.game.route.Difficulty;
+import com.barracudatrial.game.route.RouteWaypoint.WaypointType;
 import com.barracudatrial.game.route.TrialType;
 import com.google.inject.Provides;
 import lombok.Getter;
@@ -584,9 +585,9 @@ public class BarracudaTrialPlugin extends Plugin
 			var waypoint = route.get(i);
 			var nextWaypoint = route.get(i + 1);
 
-			if (waypoint.getType() == RouteWaypoint.WaypointType.PORTAL_ENTER
+			if (waypoint.getType() == WaypointType.PORTAL_ENTER
 				&& gameState.isWaypointCompleted(i)
-				&& nextWaypoint.getType() == RouteWaypoint.WaypointType.PORTAL_EXIT
+				&& nextWaypoint.getType() == WaypointType.PORTAL_EXIT
 				&& !gameState.isWaypointCompleted(i + 1))
 			{
 				int distance = boatLocation.distanceTo(nextWaypoint.getLocation());
