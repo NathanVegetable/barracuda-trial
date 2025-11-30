@@ -327,6 +327,7 @@ public class ObjectTracker
 
 			if (hasBaseShipmentButNoImpostor(scene, location))
 			{
+				state.markWaypointCompleted(i);
 				anyCollected = true;
 				log.info("Shipment collected at route waypoint index {}: {}", i, location);
 			}
