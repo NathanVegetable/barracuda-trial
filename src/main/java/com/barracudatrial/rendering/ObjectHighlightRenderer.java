@@ -197,16 +197,15 @@ public class ObjectHighlightRenderer
 			if (completed.contains(i))
 				continue;
 
+			if (waypoint.getLap() != currentLap)
+				continue;
+
 			var loc = waypoint.getLocation();
 
 			Color color;
 			if (i == nextWaypointIndex)
 			{
 				color = cached.getObjectivesColorCurrentWaypoint();
-			}
-			else if (waypoint.getLap() != currentLap)
-			{
-				color = cached.getObjectivesColorLaterLaps();
 			}
 			else
 			{
