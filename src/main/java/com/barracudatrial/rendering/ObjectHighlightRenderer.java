@@ -31,48 +31,65 @@ public class ObjectHighlightRenderer
 	{
 		var cachedConfig = plugin.getCachedConfig();
 		var gameState = plugin.getGameState();
-		var lostSupplies = gameState.getLostSupplies();
 		var route = gameState.getCurrentStaticRoute();
 		var currentLap = gameState.getCurrentLap();
 		var completedWaypointIndices = gameState.getCompletedWaypointIndices();
 
-		Set<WorldPoint> allRouteLocations = Collections.emptySet();
-		Set<WorldPoint> laterLapLocations = Collections.emptySet();
-		WorldPoint currentWaypointLocation = null;
-
-		if (route != null && !route.isEmpty())
+		if (route == null || route.isEmpty())
 		{
-			allRouteLocations = new HashSet<>(route.size());
-			laterLapLocations = new HashSet<>(route.size());
-
-			for (int i = 0; i < route.size(); i++)
-			{
-				var waypoint = route.get(i);
-				var location = waypoint.getLocation();
-
-				allRouteLocations.add(location);
-
-				if (currentLap != waypoint.getLap())
-				{
-					laterLapLocations.add(location);
-				}
-				else if (currentWaypointLocation == null && !completedWaypointIndices.contains(i) && !waypoint.getType().isNonNavigatableHelper())
-				{
-					currentWaypointLocation = location;
-				}
-			}
+			return;
 		}
 
-		for (var lostSupplyObject : lostSupplies)
+		Scene scene = client.getScene();
+		if (scene == null)
 		{
-			var worldLocation = lostSupplyObject.getWorldLocation();
+			return;
+		}
 
+		var trial = gameState.getCurrentTrial();
+		if (trial == null)
+		{
+			return;
+		}
+
+		var shipmentIds = trial.getShipmentBaseIds();
+		WorldPoint currentWaypointLocation = null;
+
+		for (int i = 0; i < route.size(); i++)
+		{
+			var waypoint = route.get(i);
+
+			if (waypoint.getType() != RouteWaypoint.WaypointType.SHIPMENT)
+			{
+				continue;
+			}
+
+			if (completedWaypointIndices.contains(i))
+			{
+				continue;
+			}
+
+			// Find current waypoint for coloring
+			if (currentWaypointLocation == null && waypoint.getLap() == currentLap)
+			{
+				currentWaypointLocation = waypoint.getLocation();
+			}
+
+			// Find the GameObject at this waypoint location
+			WorldPoint location = waypoint.getLocation();
+			GameObject shipmentObject = findShipmentAtLocation(scene, location, shipmentIds);
+			if (shipmentObject == null)
+			{
+				continue;
+			}
+
+			// Determine color based on waypoint state
 			Color renderColor;
-			if (currentWaypointLocation != null && currentWaypointLocation.equals(worldLocation))
+			if (currentWaypointLocation != null && currentWaypointLocation.equals(location))
 			{
 				renderColor = cachedConfig.getObjectivesColorCurrentWaypoint();
 			}
-			else if (laterLapLocations.contains(worldLocation))
+			else if (waypoint.getLap() != currentLap)
 			{
 				renderColor = cachedConfig.getObjectivesColorLaterLaps();
 			}
@@ -81,8 +98,42 @@ public class ObjectHighlightRenderer
 				renderColor = cachedConfig.getObjectivesColorCurrentLap();
 			}
 
-			renderGameObjectWithHighlight(graphics, lostSupplyObject, renderColor, false);
+			renderGameObjectWithHighlight(graphics, shipmentObject, renderColor, false);
 		}
+	}
+
+	private GameObject findShipmentAtLocation(Scene scene, WorldPoint worldLocation, Set<Integer> shipmentIds)
+	{
+		int plane = worldLocation.getPlane();
+		int sceneX = worldLocation.getX() - scene.getBaseX();
+		int sceneY = worldLocation.getY() - scene.getBaseY();
+
+		if (sceneX < 0 || sceneX >= 104 || sceneY < 0 || sceneY >= 104)
+		{
+			return null;
+		}
+
+		Tile[][][] tiles = scene.getTiles();
+		if (tiles == null || tiles[plane] == null)
+		{
+			return null;
+		}
+
+		Tile tile = tiles[plane][sceneX][sceneY];
+		if (tile == null)
+		{
+			return null;
+		}
+
+		for (GameObject gameObject : tile.getGameObjects())
+		{
+			if (gameObject != null && shipmentIds.contains(gameObject.getId()))
+			{
+				return gameObject;
+			}
+		}
+
+		return null;
 	}
 
 	public void renderSpeedBoosts(Graphics2D graphics)

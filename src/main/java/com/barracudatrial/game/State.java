@@ -38,8 +38,6 @@ public class State
 	@Setter
 	private boolean inTrialArea = false;
 
-	private final Set<GameObject> lostSupplies = new HashSet<>();
-
 	private final Set<NPC> lightningClouds = new HashSet<>();
 
 	private final Set<NPC> dangerousClouds = new HashSet<>();
@@ -102,8 +100,6 @@ public class State
 	// True if interacted with
 	private final Map<WorldPoint, Boolean> knownToadPillars = new HashMap<>();
 
-	private final Set<WorldPoint> knownLostSuppliesSpawnLocations = new HashSet<>();
-
 	@Setter
 	private int ticksSinceLastPathRecalc = 0;
 
@@ -131,7 +127,6 @@ public class State
 	{
 		currentTrial = null;
 		inTrialArea = false;
-		lostSupplies.clear();
 		lightningClouds.clear();
 		dangerousClouds.clear();
 		knownToadPillars.clear();
@@ -213,15 +208,6 @@ public class State
 		}
 		return -1;
 	}
-
-	/**
-	 * Clears persistent storage (called when difficulty changes)
-	 */
-	public void clearPersistentStorage()
-	{
-		knownLostSuppliesSpawnLocations.clear();
-	}
-	
 
 	public static Difficulty getCurrentDifficulty(Client client)
 	{

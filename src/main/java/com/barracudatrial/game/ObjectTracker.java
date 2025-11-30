@@ -278,70 +278,10 @@ public class ObjectTracker
 	}
 
 	/**
-	 * Updates lost supplies by scanning the scene
-	 */
-	public void updateLostSuppliesTracking()
-	{
-		if (!state.isInTrialArea())
-		{
-			return;
-		}
-
-		Set<GameObject> newlyFoundLostSupplies = new HashSet<>();
-
-		Scene scene = client.getScene();
-		if (scene == null)
-		{
-			return;
-		}
-
-		scanSceneForLostSupplies(scene, newlyFoundLostSupplies);
-
-		if (!state.getLostSupplies().equals(newlyFoundLostSupplies))
-		{
-			// Detect collected shipments: supplies that disappeared while the collected count increased
-			detectAndMarkCollectedShipments(newlyFoundLostSupplies);
-
-			state.getLostSupplies().clear();
-			state.getLostSupplies().addAll(newlyFoundLostSupplies);
-		}
-	}
-
-	/**
-	 * Detects shipments that were collected (disappeared from scene while count increased)
-	 */
-	private void detectAndMarkCollectedShipments(Set<GameObject> currentSupplies)
-	{
-		Set<WorldPoint> disappearedSupplyLocations = new HashSet<>();
-		for (GameObject previousSupply : state.getLostSupplies())
-		{
-			if (!currentSupplies.contains(previousSupply))
-			{
-				disappearedSupplyLocations.add(previousSupply.getWorldLocation());
-			}
-		}
-
-		// Shipments only disappear when collected
-		if (!disappearedSupplyLocations.isEmpty())
-		{
-			for (WorldPoint location : disappearedSupplyLocations)
-			{
-				int waypointIndex = state.findWaypointIndexByLocation(location);
-				if (waypointIndex != -1)
-				{
-					state.markWaypointCompleted(waypointIndex);
-					log.debug("Marked shipment waypoint as collected at index {}: {}", waypointIndex, location);
-				}
-			}
-			log.debug("Marked {} shipments as collected", disappearedSupplyLocations.size());
-		}
-	}
-
-	/**
-	 * Checks route waypoint tiles for shipment collection.
-	 * Detection method: If a base shipment object exists on a tile BUT the impostor ID (59244)
-	 * is missing, the shipment has been collected.
-	 * Only checks waypoints within 7 tiles of the player - close enough that impostor ID would be visible.
+	 * Checks shipment waypoints for collection and marks them completed.
+	 * Detection: base shipment object exists but impostor ID is missing = collected.
+	 * Only checks waypoints within 7 tiles (impostor ID visible range).
+	 *
 	 * @return true if any shipments were collected this tick
 	 */
 	public boolean updateRouteWaypointShipmentTracking()
@@ -352,83 +292,48 @@ public class ObjectTracker
 			return false;
 		}
 
-		Set<WorldPoint> waypointsToCheck = new HashSet<>();
+		Scene scene = client.getScene();
+		WorldPoint boatLocation = state.getBoatLocation();
+		if (scene == null || boatLocation == null)
+		{
+			return false;
+		}
+
+		boolean anyCollected = false;
+
 		for (int i = 0; i < route.size(); i++)
 		{
 			RouteWaypoint waypoint = route.get(i);
-			if (waypoint.getType() == RouteWaypoint.WaypointType.SHIPMENT)
-			{
-				if (!state.isWaypointCompleted(i))
-				{
-					waypointsToCheck.add(waypoint.getLocation());
-				}
-			}
-		}
 
-		List<WorldPoint> collectedShipments = checkShipmentsForCollection(waypointsToCheck);
-
-		for (WorldPoint collected : collectedShipments)
-		{
-			int waypointIndex = state.findWaypointIndexByLocation(collected);
-			if (waypointIndex != -1)
-			{
-				state.markWaypointCompleted(waypointIndex);
-				log.debug("Shipment collected at route waypoint index {}: {}", waypointIndex, collected);
-			}
-		}
-
-		return !collectedShipments.isEmpty();
-	}
-
-	/**
-	 * Core shipment collection detection logic.
-	 * Checks a set of shipment locations and returns which ones were collected this tick.
-	 * Detection method: If a base shipment object exists BUT the impostor ID (59244) is missing,
-	 * the shipment has been collected.
-	 * Only checks locations within 7 tiles of the player (impostor ID only visible when close).
-	 *
-	 * @param shipmentsToCheck Set of shipment locations to check for collection
-	 * @return List of shipments that were collected this tick
-	 */
-	public List<WorldPoint> checkShipmentsForCollection(Set<WorldPoint> shipmentsToCheck)
-	{
-		List<WorldPoint> collectedShipments = new ArrayList<>();
-
-		if (shipmentsToCheck.isEmpty())
-		{
-			return collectedShipments;
-		}
-
-		Scene scene = client.getScene();
-		if (scene == null)
-		{
-			return collectedShipments;
-		}
-
-		WorldPoint playerBoatLocation = state.getBoatLocation();
-		if (playerBoatLocation == null)
-		{
-			return collectedShipments;
-		}
-
-		for (WorldPoint shipmentLocation : shipmentsToCheck)
-		{
-			// Only check waypoints within 7 tiles (impostor ID only visible when close)
-			int dx = Math.abs(shipmentLocation.getX() - playerBoatLocation.getX());
-			int dy = Math.abs(shipmentLocation.getY() - playerBoatLocation.getY());
-			int chebyshevDistance = Math.max(dx, dy);
-			if (chebyshevDistance > 7)
+			if (waypoint.getType() != RouteWaypoint.WaypointType.SHIPMENT)
 			{
 				continue;
 			}
 
-			if (hasBaseShipmentButNoImpostor(scene, shipmentLocation))
+			if (state.isWaypointCompleted(i))
 			{
-				collectedShipments.add(shipmentLocation);
+				continue;
+			}
+
+			WorldPoint location = waypoint.getLocation();
+
+			// Only check if within range (impostor ID only visible within 7 tiles)
+			int dx = Math.abs(location.getX() - boatLocation.getX());
+			int dy = Math.abs(location.getY() - boatLocation.getY());
+			if (Math.max(dx, dy) > 7)
+			{
+				continue;
+			}
+
+			if (hasBaseShipmentButNoImpostor(scene, location))
+			{
+				state.markWaypointCompleted(i);
+				anyCollected = true;
+				log.debug("Shipment collected at route waypoint index {}: {}", i, location);
 			}
 		}
 
-		return collectedShipments;
+		return anyCollected;
 	}
 
 	/**
@@ -491,130 +396,6 @@ public class ObjectTracker
 		}
 
 		return hasBaseShipment && !hasImpostor;
-	}
-
-	public void scanSceneForLostSupplies(Scene scene, Set<GameObject> newlyFoundLostSupplies)
-	{
-		Tile[][][] regularTiles = scene.getTiles();
-		if (regularTiles != null)
-		{
-			scanTileArrayForLostSupplies(regularTiles, newlyFoundLostSupplies);
-		}
-
-		Tile[][][] extendedTiles = scene.getExtendedTiles();
-		if (extendedTiles != null)
-		{
-			scanTileArrayForLostSupplies(extendedTiles, newlyFoundLostSupplies);
-		}
-	}
-
-	private void scanTileArrayForLostSupplies(Tile[][][] tileArray, Set<GameObject> newlyFoundLostSupplies)
-	{
-        for (Tile[][] tiles : tileArray) {
-            if (tiles == null) {
-                continue;
-            }
-
-            for (Tile[] value : tiles) {
-                if (value == null) {
-                    continue;
-                }
-
-                for (Tile tile : value) {
-                    if (tile == null) {
-                        continue;
-                    }
-
-                    processLostSupplyTile(tile, newlyFoundLostSupplies);
-                }
-            }
-        }
-	}
-
-	public void processLostSupplyTile(Tile tile, Set<GameObject> newlyFoundLostSupplies)
-	{
-		var trial = state.getCurrentTrial();
-		if (trial == null)
-		{
-			return;
-		}
-
-		var shipmentIds = trial.getShipmentBaseIds();
-
-		GameObject[] gameObjects = tile.getGameObjects();
-		if (gameObjects == null)
-		{
-			return;
-		}
-
-		for (GameObject gameObject : gameObjects)
-		{
-			if (gameObject == null)
-			{
-				continue;
-			}
-
-			if (!shipmentIds.contains(gameObject.getId()))
-			{
-				continue;
-			}
-
-			WorldPoint supplyWorldLocation = gameObject.getWorldLocation();
-
-			boolean isNewSpawnLocation = state.getKnownLostSuppliesSpawnLocations().add(supplyWorldLocation);
-			if (isNewSpawnLocation)
-			{
-				log.debug("Discovered supply spawn location at {}, total known: {}",
-					supplyWorldLocation, state.getKnownLostSuppliesSpawnLocations().size());
-			}
-
-			if (isLostSupplyCurrentlyCollectible(gameObject))
-			{
-				newlyFoundLostSupplies.add(gameObject);
-			}
-		}
-	}
-
-	/**
-	 * Checks if a lost supply object is in collectible state
-	 * Uses the multiloc/impostor system to determine collectibility
-	 */
-	public boolean isLostSupplyCurrentlyCollectible(GameObject gameObject)
-	{
-		var trial = state.getCurrentTrial();
-		if (trial == null)
-		{
-			return false;
-		}
-
-		int shipmentImpostorId = trial.getShipmentImpostorId();
-
-		try
-		{
-			ObjectComposition objectComposition = client.getObjectDefinition(gameObject.getId());
-			if (objectComposition == null)
-			{
-				return false;
-			}
-
-			int[] impostorIds = objectComposition.getImpostorIds();
-			if (impostorIds == null)
-			{
-				return gameObject.getId() == shipmentImpostorId;
-			}
-
-			ObjectComposition activeImpostor = objectComposition.getImpostor();
-			if (activeImpostor == null)
-			{
-				return false;
-			}
-
-			return activeImpostor.getId() == shipmentImpostorId;
-		}
-		catch (Exception e)
-		{
-			return false;
-		}
 	}
 
 	/**

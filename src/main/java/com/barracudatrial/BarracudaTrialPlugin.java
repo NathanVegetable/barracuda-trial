@@ -71,7 +71,6 @@ public class BarracudaTrialPlugin extends Plugin
 		overlayManager.remove(overlay);
 		gameState.resetAllTemporaryState();
 		pathPlanner.reset();
-		gameState.clearPersistentStorage();
 	}
 
 	@Subscribe
@@ -120,11 +119,6 @@ public class BarracudaTrialPlugin extends Plugin
 			}
 
 			checkPortalExitProximity();
-		}
-
-		if (cachedConfig.isShowOptimalPath())
-		{
-			objectTracker.updateLostSuppliesTracking();
 		}
 
 		if (cachedConfig.isShowOptimalPath())
