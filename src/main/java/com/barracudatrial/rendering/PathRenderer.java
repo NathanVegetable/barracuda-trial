@@ -20,7 +20,6 @@ import java.awt.geom.Path2D;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 @RequiredArgsConstructor
 public class PathRenderer
@@ -110,7 +109,6 @@ public class PathRenderer
 		int closestIndex = findClosestPointOnPath(visualPosition, path, topLevelWorldView);
 
 		// Step forward along the path to bias toward showing "forward progress"
-		// This prevents the path from appearing to start "alongside" when moving fast
 		int forwardBiasOffset = 2;
 		int startIndex = Math.min(path.size() - 1, closestIndex + forwardBiasOffset);
 
@@ -408,7 +406,6 @@ public class PathRenderer
 		Set<Integer> completedIndices = plugin.getGameState().getCompletedWaypointIndices();
 		List<WorldPoint> currentPath = plugin.getGameState().getPath();
 
-		// Render all waypoints with their information
 		for (int i = 0; i < staticRoute.size(); i++)
 		{
 			RouteWaypoint waypoint = staticRoute.get(i);

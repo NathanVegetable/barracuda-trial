@@ -135,7 +135,6 @@ public class ObjectTracker
 
 		var knownFetidPoolTiles = state.getKnownFetidPoolLocations();
 
-		var knownToadPillars = state.getKnownToadPillars();
 		var knownToadPillarTiles = state.getKnownToadPillarLocations();
 
 		for (var plane : tileArray)
