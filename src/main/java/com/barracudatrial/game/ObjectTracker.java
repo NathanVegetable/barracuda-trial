@@ -5,6 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.*;
 import net.runelite.api.coords.LocalPoint;
 import net.runelite.api.coords.WorldPoint;
+import net.runelite.api.gameval.NpcID;
 import net.runelite.api.gameval.ObjectID;
 
 import java.util.*;
@@ -22,10 +23,17 @@ public class ObjectTracker
 	private final Client client;
 	private final State state;
 
-	// Speed boosts are shared across all trials
 	private static final Set<Integer> SPEED_BOOST_IDS = Set.of(
 		ObjectID.SAILING_RAPIDS, ObjectID.SAILING_RAPIDS_STRONG,
 		ObjectID.SAILING_RAPIDS_POWERFUL, ObjectID.SAILING_RAPIDS_DEADLY
+	);
+
+	private static final Set<Integer> BOAT_NPC_IDS = Set.of(
+			NpcID.BOAT_HP_NPC_TINY,
+			NpcID.BOAT_HP_NPC_SMALL,
+			NpcID.BOAT_HP_NPC_MEDIUM,
+			NpcID.BOAT_HP_NPC_LARGE,
+			NpcID.BOAT_HP_NPC_COLOSSAL
 	);
 
 	public ObjectTracker(Client client, State state)
@@ -792,6 +800,7 @@ public class ObjectTracker
 		Player localPlayer = client.getLocalPlayer();
 		if (localPlayer == null)
 		{
+			log.warn("Local player is null when updating front boat tile");
 			state.setFrontBoatTileEstimatedActual(null);
 			state.setFrontBoatTileLocal(null);
 			return;
@@ -802,6 +811,7 @@ public class ObjectTracker
 			WorldView playerWorldView = localPlayer.getWorldView();
 			if (playerWorldView == null)
 			{
+				log.warn("Player WorldView is null when updating front boat tile");
 				state.setFrontBoatTileEstimatedActual(null);
 				state.setFrontBoatTileLocal(null);
 				return;
@@ -810,6 +820,7 @@ public class ObjectTracker
 			WorldView topLevelWorldView = client.getTopLevelWorldView();
 			if (topLevelWorldView == null)
 			{
+				log.warn("Top-level WorldView is null when updating front boat tile");
 				state.setFrontBoatTileEstimatedActual(null);
 				state.setFrontBoatTileLocal(null);
 				return;
@@ -819,6 +830,7 @@ public class ObjectTracker
 			WorldEntity boatWorldEntity = topLevelWorldView.worldEntities().byIndex(playerWorldViewId);
 			if (boatWorldEntity == null)
 			{
+				log.warn("Boat WorldEntity is null when updating front boat tile");
 				state.setFrontBoatTileEstimatedActual(null);
 				state.setFrontBoatTileLocal(null);
 				return;
@@ -827,6 +839,7 @@ public class ObjectTracker
 			WorldView boatWorldView = boatWorldEntity.getWorldView();
 			if (boatWorldView == null)
 			{
+				log.warn("Boat WorldView is null when updating front boat tile");
 				state.setFrontBoatTileEstimatedActual(null);
 				state.setFrontBoatTileLocal(null);
 				return;
@@ -835,6 +848,7 @@ public class ObjectTracker
 			Scene boatScene = boatWorldView.getScene();
 			if (boatScene == null)
 			{
+				log.warn("Boat Scene is null when updating front boat tile");
 				state.setFrontBoatTileEstimatedActual(null);
 				state.setFrontBoatTileLocal(null);
 				return;
@@ -862,15 +876,15 @@ public class ObjectTracker
 			NPC boatNpc = null;
 			for (NPC npc : boatWorldView.npcs())
 			{
-				if (npc != null)
-				{
-					boatNpc = npc;
-					break;
-				}
+				if (npc == null || !BOAT_NPC_IDS.contains(npc.getId()))
+					continue;
+				boatNpc = npc;
+				break;
 			}
 
 			if (boatNpc == null)
 			{
+				log.warn("Boat NPC is null when updating front boat tile");
 				state.setFrontBoatTileEstimatedActual(null);
 				state.setFrontBoatTileLocal(null);
 				return;
@@ -881,6 +895,7 @@ public class ObjectTracker
 
 			if (npcLocalPoint == null || boatPlayerLocalPoint == null)
 			{
+				log.warn("NPC or Boat Player local point is null when updating front boat tile");
 				state.setFrontBoatTileEstimatedActual(null);
 				state.setFrontBoatTileLocal(null);
 				return;
@@ -911,6 +926,7 @@ public class ObjectTracker
 			LocalPoint frontMainWorldLocal = boatWorldEntity.transformToMainWorld(frontLocalPoint);
 			if (frontMainWorldLocal == null)
 			{
+				log.warn("Front main world LocalPoint is null when updating front boat tile");
 				state.setFrontBoatTileEstimatedActual(null);
 				return;
 			}
@@ -921,9 +937,9 @@ public class ObjectTracker
 		}
 		catch (Exception e)
 		{
+			log.error("Error calculating front boat tile: {}", e.getMessage());
 			state.setFrontBoatTileEstimatedActual(null);
 			state.setFrontBoatTileLocal(null);
-			log.debug("Error calculating front boat tile: {}", e.getMessage());
 		}
 	}
 
