@@ -26,7 +26,7 @@ public class LocationManager
 	 */
 	public void updateTemporRumLocations()
 	{
-		if (!state.isInTrialArea())
+		if (!state.isInTrial())
 		{
 			return;
 		}

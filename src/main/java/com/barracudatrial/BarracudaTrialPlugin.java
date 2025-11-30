@@ -75,12 +75,12 @@ public class BarracudaTrialPlugin extends Plugin
 	@Subscribe
 	public void onGameTick(GameTick event)
 	{
-		boolean trialAreaStateChanged = progressTracker.checkIfPlayerIsInTrialArea();
-		if (trialAreaStateChanged && !gameState.isInTrialArea())
+		boolean trialAreaStateChanged = progressTracker.checkIfPlayerIsInTrial();
+		if (trialAreaStateChanged && !gameState.isInTrial())
 		{
 			pathPlanner.reset();
 		}
-		if (!gameState.isInTrialArea())
+		if (!gameState.isInTrial())
 		{
 			return;
 		}
@@ -137,7 +137,7 @@ public class BarracudaTrialPlugin extends Plugin
 	@Subscribe
 	public void onChatMessage(ChatMessage event)
 	{
-		if (!gameState.isInTrialArea())
+		if (!gameState.isInTrial())
 		{
 			return;
 		}
@@ -302,7 +302,7 @@ public class BarracudaTrialPlugin extends Plugin
 
 		cachedConfig.updateCache();
 
-		if (event.getKey().equals("routeOptimization") && gameState.isInTrialArea())
+		if (event.getKey().equals("routeOptimization") && gameState.isInTrial())
 		{
 			pathPlanner.recalculateOptimalPathFromCurrentState("config: route optimization changed");
 		}

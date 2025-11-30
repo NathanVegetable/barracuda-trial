@@ -36,7 +36,7 @@ public class State
 	public static final int RUM_PICKUP_IMPOSTOR_ID = ObjectID.SAILING_BT_TEMPOR_TANTRUM_SOUTH_LOC_CHILD;
 
 	@Setter
-	private boolean inTrialArea = false;
+	private boolean inTrial = false;
 
 	private final Set<NPC> lightningClouds = new HashSet<>();
 
@@ -120,7 +120,7 @@ public class State
 	public void resetAllTemporaryState()
 	{
 		currentTrial = null;
-		inTrialArea = false;
+		inTrial = false;
 		lightningClouds.clear();
 		dangerousClouds.clear();
 		knownToadPillars.clear();

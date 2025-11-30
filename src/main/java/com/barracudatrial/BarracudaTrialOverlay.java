@@ -34,7 +34,7 @@ public class BarracudaTrialOverlay extends Overlay
 	@Override
 	public Dimension render(Graphics2D graphics)
 	{
-		if (!plugin.getGameState().isInTrialArea())
+		if (!plugin.getGameState().isInTrial())
 		{
 			return null;
 		}

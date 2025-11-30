@@ -87,7 +87,7 @@ public class ObjectTracker
 	 */
 	public void updateLightningCloudTracking()
 	{
-		if (!state.isInTrialArea())
+		if (!state.isInTrial())
 		{
 			state.clearLightningClouds();
 			state.clearDangerousClouds();
@@ -130,7 +130,7 @@ public class ObjectTracker
 
 	public void updateHazardsSpeedBoostsAndToadPillars()
 	{
-		if (!state.isInTrialArea())
+		if (!state.isInTrial())
 		{
 			return;
 		}
@@ -334,7 +334,7 @@ public class ObjectTracker
 	public boolean updateRouteWaypointShipmentTracking()
 	{
 		var route = state.getCurrentStaticRoute();
-		if (!state.isInTrialArea() || route == null)
+		if (!state.isInTrial() || route == null)
 		{
 			return false;
 		}
@@ -472,7 +472,7 @@ public class ObjectTracker
 	 */
 	public void updatePlayerBoatLocation()
 	{
-		if (!state.isInTrialArea())
+		if (!state.isInTrial())
 		{
 			state.setBoatLocation(null);
 			return;
@@ -533,7 +533,7 @@ public class ObjectTracker
 	 */
 	public void updateFrontBoatTile()
 	{
-		if (!state.isInTrialArea())
+		if (!state.isInTrial())
 		{
 			state.setFrontBoatTileEstimatedActual(null);
 			state.setFrontBoatTileLocal(null);

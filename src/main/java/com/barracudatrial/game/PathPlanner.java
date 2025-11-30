@@ -46,7 +46,7 @@ public class PathPlanner
 		state.setLastPathRecalcCaller(recalculationTriggerReason);
 		log.debug("Path recalculation triggered by: {}", recalculationTriggerReason);
 
-		if (!state.isInTrialArea())
+		if (!state.isInTrial())
 		{
 			state.getPath().clear();
 			return;

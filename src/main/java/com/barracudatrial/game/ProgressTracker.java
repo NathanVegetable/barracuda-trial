@@ -49,23 +49,23 @@ public class ProgressTracker
 	/**
 	 * @return true if trial area state changed
 	 */
-	public boolean checkIfPlayerIsInTrialArea()
+	public boolean checkIfPlayerIsInTrial()
 	{
-		boolean wasInTrialAreaBefore = state.isInTrialArea();
+		boolean wasinTrialBefore = state.isInTrial();
 
 		TrialType activeTrialType = getCurrentActiveTrialType();
-		boolean isInTrialAreaNow = activeTrialType != null;
+		boolean isInTrialNow = activeTrialType != null;
 
-		state.setInTrialArea(isInTrialAreaNow);
+		state.setInTrial(isInTrialNow);
 
-		if (!wasInTrialAreaBefore && isInTrialAreaNow)
+		if (!wasinTrialBefore && isInTrialNow)
 		{
 			log.info("Entered Barracuda Trial: {}", activeTrialType);
 			TrialConfig trialConfig = createTrialConfig(activeTrialType);
 			state.setCurrentTrial(trialConfig);
 			return true;
 		}
-		else if (wasInTrialAreaBefore && !isInTrialAreaNow)
+		else if (wasinTrialBefore && !isInTrialNow)
 		{
 			log.debug("Left Barracuda Trial");
 			state.resetAllTemporaryState();
