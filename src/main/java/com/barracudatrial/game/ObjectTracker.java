@@ -1,6 +1,7 @@
 package com.barracudatrial.game;
 
 import com.barracudatrial.game.route.*;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.*;
 import net.runelite.api.coords.LocalPoint;
@@ -15,6 +16,7 @@ import java.util.*;
  * Tracks clouds, rocks, speed boosts, lost supplies, boat location, toad pillars, etc
  */
 @Slf4j
+@RequiredArgsConstructor
 public class ObjectTracker
 {
 	private final Client client;
@@ -33,12 +35,6 @@ public class ObjectTracker
 			NpcID.BOAT_HP_NPC_COLOSSAL
 	);
 
-	public ObjectTracker(Client client, State state)
-	{
-		this.client = client;
-		this.state = state;
-	}
-
 	/**
 	 * Updates hazard NPC tracking (e.g., lightning clouds for Tempor Tantrum)
 	 * Spawn/despawn events are unreliable, so we actively scan instead
@@ -48,10 +44,12 @@ public class ObjectTracker
 		if (!state.isInTrialArea())
 		{
 			state.getLightningClouds().clear();
+			state.getDangerousClouds().clear();
 			return;
 		}
 
 		state.getLightningClouds().clear();
+		state.getDangerousClouds().clear();
 
 		WorldView topLevelWorldView = client.getTopLevelWorldView();
 		if (topLevelWorldView == null)
@@ -70,6 +68,11 @@ public class ObjectTracker
 			if (TemporTantrumConfig.LIGHTNING_CLOUD_NPC_IDS.contains(npcId))
 			{
 				state.getLightningClouds().add(npc);
+
+				if (!IsCloudSafe(npc.getAnimation()))
+				{
+					state.getDangerousClouds().add(npc);
+				}
 			}
 		}
 	}
@@ -128,7 +131,6 @@ public class ObjectTracker
 		var knownBoosts = state.getSpeedBoosts();
 		var knownBoostTiles = state.getKnownSpeedBoostLocations();
 
-		var knownFetidPools = state.getFetidPools();
 		var knownFetidPoolTiles = state.getKnownFetidPoolLocations();
 
 		var knownToadPillars = state.getKnownToadPillars();
@@ -178,7 +180,6 @@ public class ObjectTracker
 
 						if (!knownFetidPoolTiles.contains(tileWp) && fetidPoolIds.contains(id))
 						{
-							knownFetidPools.add(obj);
 							knownFetidPoolTiles.addAll(ObjectTracker.getObjectTiles(client, obj));
 
 							continue;
@@ -411,11 +412,10 @@ public class ObjectTracker
 		for (WorldPoint shipmentLocation : shipmentsToCheck)
 		{
 			// Only check waypoints within 7 tiles (impostor ID only visible when close)
-			double distance = Math.sqrt(
-				Math.pow(shipmentLocation.getX() - playerBoatLocation.getX(), 2) +
-				Math.pow(shipmentLocation.getY() - playerBoatLocation.getY(), 2)
-			);
-			if (distance > 7)
+			int dx = Math.abs(shipmentLocation.getX() - playerBoatLocation.getX());
+			int dy = Math.abs(shipmentLocation.getY() - playerBoatLocation.getY());
+			int chebyshevDistance = Math.max(dx, dy);
+			if (chebyshevDistance > 7)
 			{
 				continue;
 			}

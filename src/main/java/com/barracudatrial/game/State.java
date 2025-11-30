@@ -43,9 +43,9 @@ public class State
 
 	private final Set<NPC> lightningClouds = new HashSet<>();
 
-	private final Set<GameObject> speedBoosts = new HashSet<>();
+	private final Set<NPC> dangerousClouds = new HashSet<>();
 
-	private final Set<GameObject> fetidPools = new HashSet<>();
+	private final Set<GameObject> speedBoosts = new HashSet<>();
 
 	@Setter
 	private WorldPoint rumPickupLocation = null;
@@ -134,6 +134,7 @@ public class State
 		inTrialArea = false;
 		lostSupplies.clear();
 		lightningClouds.clear();
+		dangerousClouds.clear();
 		knownToadPillars.clear();
 		rumPickupLocation = null;
 		rumReturnLocation = null;

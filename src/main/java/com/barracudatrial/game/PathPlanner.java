@@ -7,6 +7,8 @@ import com.barracudatrial.pathfinding.BarracudaTileCostCalculator;
 import com.barracudatrial.pathfinding.PathResult;
 import com.barracudatrial.pathfinding.PathStabilizer;
 import com.barracudatrial.rendering.ObjectRenderer;
+import com.barracudatrial.rendering.RenderingUtils;
+
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.Client;
 import net.runelite.api.NPC;
@@ -568,14 +570,7 @@ public class PathPlanner
 
 	private BarracudaTileCostCalculator getBarracudaTileCostCalculator(Set<WorldPoint> pathfindingHints)
 	{
-		Set<NPC> currentlyDangerousClouds = new HashSet<>();
-		for (NPC lightningCloud : state.getLightningClouds())
-		{
-			if (!ObjectTracker.IsCloudSafe(lightningCloud.getAnimation()))
-			{
-				currentlyDangerousClouds.add(lightningCloud);
-			}
-		}
+		Set<NPC> currentlyDangerousClouds = state.getDangerousClouds();
 
 		var trial = state.getCurrentTrial();
 		var boatExclusionWidth = trial != null && trial.getTrialType() == TrialType.TEMPOR_TANTRUM
@@ -679,7 +674,7 @@ public class PathPlanner
 		// 2. Any tile that exists in the extended scene
 		for (WorldPoint p : candidates)
 		{
-			if (ObjectRenderer.localPointFromWorldIncludingExtended(worldView, p) != null)
+			if (RenderingUtils.localPointFromWorldIncludingExtended(worldView, p) != null)
 			{
 				return p;
 			}
@@ -689,7 +684,7 @@ public class PathPlanner
 		return findNearestValidPoint(
 			start,
 			targetLocation,
-			p -> ObjectRenderer.localPointFromWorldIncludingExtended(worldView, p) != null
+			p -> RenderingUtils.localPointFromWorldIncludingExtended(worldView, p) != null
 		);
 	}
 

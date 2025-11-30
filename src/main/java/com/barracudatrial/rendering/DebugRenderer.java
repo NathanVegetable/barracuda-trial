@@ -5,6 +5,7 @@ import com.barracudatrial.BarracudaTrialPlugin;
 import com.barracudatrial.game.route.JubblyJiveConfig;
 import com.barracudatrial.game.route.TemporTantrumConfig;
 import com.barracudatrial.game.route.TrialType;
+import lombok.RequiredArgsConstructor;
 import lombok.Setter;
 import net.runelite.api.*;
 import net.runelite.api.coords.LocalPoint;
@@ -23,6 +24,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+@RequiredArgsConstructor
 public class DebugRenderer
 {
 	private final Client client;
@@ -31,15 +33,8 @@ public class DebugRenderer
 	@Setter
 	private Map<Point, Integer> labelCountsByCanvasPosition;
 
-	public DebugRenderer(Client client, BarracudaTrialPlugin plugin)
-	{
-		this.client = client;
-		this.plugin = plugin;
-	}
-
 	public void renderDebugInfo(Graphics2D graphics)
 	{
-		CachedConfig cachedConfig = plugin.getCachedConfig();
 		renderExclusionZoneVisualization(graphics);
 		renderBoatExclusionZones(graphics);
 
@@ -71,7 +66,7 @@ public class DebugRenderer
 				boolean isTileInExclusionZone = plugin.isPointInExclusionZone(tileWorldPoint);
 				if (isTileInExclusionZone)
 				{
-					LocalPoint tileLocalPoint = ObjectRenderer.localPointFromWorldIncludingExtended(topLevelWorldView, tileWorldPoint);
+					LocalPoint tileLocalPoint = RenderingUtils.localPointFromWorldIncludingExtended(topLevelWorldView, tileWorldPoint);
 
 					if (tileLocalPoint != null)
 					{
@@ -86,7 +81,7 @@ public class DebugRenderer
 		}
 
 		WorldPoint exclusionZoneCenterPoint = new WorldPoint((exclusionZoneMinX + exclusionZoneMaxX) / 2, (exclusionZoneMinY + exclusionZoneMaxY) / 2, 0);
-		LocalPoint centerLocalPoint = ObjectRenderer.localPointFromWorldIncludingExtended(topLevelWorldView, exclusionZoneCenterPoint);
+		LocalPoint centerLocalPoint = RenderingUtils.localPointFromWorldIncludingExtended(topLevelWorldView, exclusionZoneCenterPoint);
 		if (centerLocalPoint != null)
 		{
 			Point labelCanvasPoint = Perspective.getCanvasTextLocation(client, graphics, centerLocalPoint, "EXCLUSION ZONE", 0);
@@ -149,7 +144,7 @@ public class DebugRenderer
 			for (int y = minY; y <= maxY; y++)
 			{
 				WorldPoint tileWorldPoint = new WorldPoint(x, y, 0);
-				LocalPoint tileLocalPoint = ObjectRenderer.localPointFromWorldIncludingExtended(worldView, tileWorldPoint);
+				LocalPoint tileLocalPoint = RenderingUtils.localPointFromWorldIncludingExtended(worldView, tileWorldPoint);
 
 				if (tileLocalPoint != null)
 				{
@@ -162,7 +157,7 @@ public class DebugRenderer
 			}
 		}
 
-		LocalPoint centerLocalPoint = ObjectRenderer.localPointFromWorldIncludingExtended(worldView, center);
+		LocalPoint centerLocalPoint = RenderingUtils.localPointFromWorldIncludingExtended(worldView, center);
 		if (centerLocalPoint != null)
 		{
 			Point labelCanvasPoint = Perspective.getCanvasTextLocation(client, graphics, centerLocalPoint, label, 0);
@@ -205,7 +200,7 @@ public class DebugRenderer
 			WorldView topLevelWorldView = client.getTopLevelWorldView();
 			if (topLevelWorldView != null)
 			{
-				LocalPoint actualLocal = ObjectRenderer.localPointFromWorldIncludingExtended(topLevelWorldView, frontBoatTileActual);
+				LocalPoint actualLocal = RenderingUtils.localPointFromWorldIncludingExtended(topLevelWorldView, frontBoatTileActual);
 				if (actualLocal != null)
 				{
 					Polygon actualTilePolygon = Perspective.getCanvasTilePoly(client, actualLocal);
@@ -306,7 +301,7 @@ public class DebugRenderer
 
 		if (rumPickupLocation != null)
 		{
-			GameObject rumPickupObject = ObjectRenderer.findGameObjectAtWorldPoint(client, rumPickupLocation);
+			GameObject rumPickupObject = RenderingUtils.findGameObjectAtWorldPoint(client, rumPickupLocation);
 			String pickupInfoLine = String.format("Pickup (S): (%d, %d, %d)",
 				rumPickupLocation.getX(), rumPickupLocation.getY(), rumPickupLocation.getPlane());
 			if (rumPickupObject != null)
@@ -322,7 +317,7 @@ public class DebugRenderer
 
 		if (rumReturnLocation != null)
 		{
-			GameObject rumReturnObject = ObjectRenderer.findGameObjectAtWorldPoint(client, rumReturnLocation);
+			GameObject rumReturnObject = RenderingUtils.findGameObjectAtWorldPoint(client, rumReturnLocation);
 			String returnInfoLine = String.format("Return (N): (%d, %d, %d)",
 				rumReturnLocation.getX(), rumReturnLocation.getY(), rumReturnLocation.getPlane());
 			if (rumReturnObject != null)

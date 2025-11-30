@@ -135,7 +135,7 @@ public class PathRenderer
 
 		for (int i = 0; i < path.size(); i++)
 		{
-			LocalPoint pathPointLocal = ObjectRenderer.localPointFromWorldIncludingExtended(worldView, path.get(i));
+			LocalPoint pathPointLocal = RenderingUtils.localPointFromWorldIncludingExtended(worldView, path.get(i));
 			if (pathPointLocal == null)
 			{
 				continue;
@@ -185,7 +185,7 @@ public class PathRenderer
 		for (int wpIdx = 0; wpIdx < waypoints.size(); wpIdx++)
 		{
 			WorldPoint wp = waypoints.get(wpIdx);
-			LocalPoint lp = ObjectRenderer.localPointFromWorldIncludingExtended(topLevelWorldView, wp);
+			LocalPoint lp = RenderingUtils.localPointFromWorldIncludingExtended(topLevelWorldView, wp);
 			if (lp != null)
 			{
 				Point cp = Perspective.localToCanvas(client, lp, wp.getPlane(), 0);
@@ -392,7 +392,7 @@ public class PathRenderer
 			Color tileColor = isBoostTile ? boostTileColor : normalTileColor;
 			String label = isBoostTile ? "Boost!" : null;
 
-			objectRenderer.renderTileHighlightAtWorldPoint(graphics, pathTile, tileColor, label);
+			RenderingUtils.renderTileHighlightAtWorldPoint(client, graphics, pathTile, tileColor, label);
 		}
 	}
 
@@ -409,7 +409,7 @@ public class PathRenderer
 			WorldPoint loc = waypoint.getLocation();
 			if (loc != null)
 			{
-				LocalPoint lp = ObjectRenderer.localPointFromWorldIncludingExtended(topLevelWorldView, loc);
+				LocalPoint lp = RenderingUtils.localPointFromWorldIncludingExtended(topLevelWorldView, loc);
 				Point cp = lp != null ? Perspective.getCanvasTextLocation(client, graphics, lp, "", 20) : null;
 				if (cp != null)
 				{
@@ -442,7 +442,7 @@ public class PathRenderer
 					// Only highlight the first wind catcher in a sequence
 					if (lastWindCatcherTile == null)
 					{
-						objectRenderer.renderTileHighlightAtWorldPoint(graphics, loc, windCatcherColor, "USE WIND CATCHER");
+						RenderingUtils.renderTileHighlightAtWorldPoint(client, graphics, loc, windCatcherColor, "USE WIND CATCHER");
 					}
 					lastWindCatcherTile = loc;
 				}
@@ -470,7 +470,7 @@ public class PathRenderer
 				WorldPoint loc = waypoint.getLocation();
 				if (loc != null)
 				{
-					objectRenderer.renderTileHighlightAtWorldPoint(graphics, loc, hintColor, null);
+					RenderingUtils.renderTileHighlightAtWorldPoint(client, graphics, loc, hintColor, null);
 				}
 			}
 		}

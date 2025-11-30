@@ -230,31 +230,6 @@ public interface BarracudaTrialConfig extends Config
 		return 2;
 	}
 
-	@ConfigItem(
-		keyName = "highlightFetidPools",
-		name = "Highlight Fetid Pools",
-		description = "Highlight fetid pools",
-		section = objectHighlightingSection,
-		position = 5
-	)
-	default boolean highlightFetidPools()
-	{
-		return false;
-	}
-
-	@ConfigItem(
-		keyName = "fetidPoolColor",
-		name = "Fetid Pool Color",
-		description = "Color for fetid pool highlights",
-		section = objectHighlightingSection,
-		position = 6
-	)
-	@Alpha
-	default Color fetidPoolColor()
-	{
-		return new Color(255, 0, 0, 80);
-	}
-
 	// Debug Settings
 	@ConfigItem(
 		keyName = "debugMode",

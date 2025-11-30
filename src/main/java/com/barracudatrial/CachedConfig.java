@@ -32,8 +32,6 @@ public class CachedConfig
 	@Getter private boolean highlightClouds;
 	@Getter private Color cloudColor;
 	@Getter private int cloudDangerRadius;
-	@Getter private boolean highlightFetidPools;
-	@Getter private Color fetidPoolColor;
 
 	// Debug settings
 	@Getter private boolean debugMode;
@@ -68,8 +66,6 @@ public class CachedConfig
 		highlightClouds = config.highlightClouds();
 		cloudColor = config.cloudColor();
 		cloudDangerRadius = config.cloudDangerRadius();
-		highlightFetidPools = config.highlightFetidPools();
-		fetidPoolColor = config.fetidPoolColor();
 
 		debugMode = config.debugMode();
 		showIDs = config.showIDs();
