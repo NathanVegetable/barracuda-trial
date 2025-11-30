@@ -207,6 +207,36 @@ public class State
 		return knownToadPillars.put(location, isInteractedWith);
 	}
 
+	public void updateKnownRockLocations(Set<WorldPoint> locations)
+	{
+		knownRockLocations.clear();
+		knownRockLocations.addAll(locations);
+	}
+
+	public void updateSpeedBoosts(Set<GameObject> boosts)
+	{
+		speedBoosts.clear();
+		speedBoosts.addAll(boosts);
+	}
+
+	public void updateKnownSpeedBoostLocations(Map<WorldPoint, List<WorldPoint>> locations)
+	{
+		knownSpeedBoostLocations.clear();
+		knownSpeedBoostLocations.putAll(locations);
+	}
+
+	public void updateKnownFetidPoolLocations(Set<WorldPoint> locations)
+	{
+		knownFetidPoolLocations.clear();
+		knownFetidPoolLocations.addAll(locations);
+	}
+
+	public void updateKnownToadPillarLocations(Set<WorldPoint> locations)
+	{
+		knownToadPillarLocations.clear();
+		knownToadPillarLocations.addAll(locations);
+	}
+
 	public Set<Integer> getCompletedWaypointIndices()
 	{
 		return Collections.unmodifiableSet(completedWaypointIndices);

@@ -128,14 +128,14 @@ public class ObjectTracker
 		}
 		var fetidPoolIds = JubblyJiveConfig.FETID_POOL_IDS;
 
-		var knownRockTiles = state.getKnownRockLocations();
+		var knownRockTiles = new HashSet<>(state.getKnownRockLocations());
 
-		var knownBoosts = state.getSpeedBoosts();
-		var knownBoostTiles = state.getKnownSpeedBoostLocations();
+		var knownBoosts = new HashSet<>(state.getSpeedBoosts());
+		var knownBoostTiles = new HashMap<>(state.getKnownSpeedBoostLocations());
 
-		var knownFetidPoolTiles = state.getKnownFetidPoolLocations();
+		var knownFetidPoolTiles = new HashSet<>(state.getKnownFetidPoolLocations());
 
-		var knownToadPillarTiles = state.getKnownToadPillarLocations();
+		var knownToadPillarTiles = new HashSet<>(state.getKnownToadPillarLocations());
 
 		for (var plane : tileArray)
 		{
@@ -206,6 +206,12 @@ public class ObjectTracker
 				}
 			}
 		}
+
+		state.updateKnownRockLocations(knownRockTiles);
+		state.updateSpeedBoosts(knownBoosts);
+		state.updateKnownSpeedBoostLocations(knownBoostTiles);
+		state.updateKnownFetidPoolLocations(knownFetidPoolTiles);
+		state.updateKnownToadPillarLocations(knownToadPillarTiles);
 	}
 
 	public void onToadPillarTick(GameObject newToadPillarObj, JubblyJiveToadPillar toadPillar)
