@@ -5,9 +5,12 @@ import com.barracudatrial.BarracudaTrialPlugin;
 import com.barracudatrial.game.route.RouteWaypoint;
 import lombok.RequiredArgsConstructor;
 import net.runelite.api.Client;
+import net.runelite.api.GameObject;
 import net.runelite.api.Perspective;
 import net.runelite.api.Player;
 import net.runelite.api.Point;
+import net.runelite.api.Scene;
+import net.runelite.api.Tile;
 import net.runelite.api.WorldEntity;
 import net.runelite.api.WorldView;
 import net.runelite.api.coords.LocalPoint;
@@ -426,10 +429,47 @@ public class PathRenderer
 			RenderingUtils.renderTileHighlightAtWorldPoint(client, graphics, location, color, label);
 		}
 
+		WorldView worldView = client.getTopLevelWorldView();
+		Scene scene = worldView != null ? worldView.getScene() : null;
+
 		for (WorldPoint pathTile : currentPath)
 		{
 			Color pathTileColor = new Color(0, 255, 255, 100); // light cyan
-			RenderingUtils.renderTileHighlightAtWorldPoint(client, graphics, pathTile, pathTileColor, null);
+
+			String objectIdsLabel = null;
+			if (scene != null)
+			{
+				LocalPoint localPoint = LocalPoint.fromWorld(worldView, pathTile);
+				if (localPoint != null)
+				{
+					Tile tile = scene.getTiles()[pathTile.getPlane()][localPoint.getSceneX()][localPoint.getSceneY()];
+					if (tile != null)
+					{
+						GameObject[] gameObjects = tile.getGameObjects();
+						if (gameObjects != null && gameObjects.length > 0)
+						{
+							StringBuilder objectIds = new StringBuilder();
+							for (GameObject obj : gameObjects)
+							{
+								if (obj != null)
+								{
+									if (objectIds.length() > 0)
+									{
+										objectIds.append("\n");
+									}
+									objectIds.append(obj.getId());
+								}
+							}
+							if (objectIds.length() > 0)
+							{
+								objectIdsLabel = objectIds.toString();
+							}
+						}
+					}
+				}
+			}
+
+			RenderingUtils.renderTileHighlightAtWorldPoint(client, graphics, pathTile, pathTileColor, objectIdsLabel);
 		}
 	}
 }
