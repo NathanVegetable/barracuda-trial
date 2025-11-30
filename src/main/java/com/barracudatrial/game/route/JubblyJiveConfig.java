@@ -150,14 +150,6 @@ public class JubblyJiveConfig implements TrialConfig
 	
 	private static final int SHIPMENT_IMPOSTOR_ID = ObjectID.SAILING_BT_JUBBLY_JIVE_COLLECTABLE_SUPPLIES;
 
-	private static final Set<Integer> ROCK_IDS = Set.of(
-		59314, 59315, 60437, 60438, 60440, 60441, 60442, 60443, 60444
-	);
-
-	private static final Set<Integer> SPEED_BOOST_IDS = Set.of(
-		ObjectID.SAILING_RAPIDS_STRONG
-	);
-
 	public static final Set<Integer> FETID_POOL_IDS = Set.of(
 		ObjectID.SAILING_FETID_POOL,
 		ObjectID.SAILING_FETID_POOL_2X2,
@@ -187,18 +179,6 @@ public class JubblyJiveConfig implements TrialConfig
 	public WorldPoint getToadPickupLocation()
 	{
 		return TOAD_PICKUP_LOCATION;
-	}
-
-	@Override
-	public Set<Integer> getRockIds()
-	{
-		return ROCK_IDS;
-	}
-
-	@Override
-	public Set<Integer> getSpeedBoostIds()
-	{
-		return SPEED_BOOST_IDS;
 	}
 
 	@Override

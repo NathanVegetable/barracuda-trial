@@ -62,17 +62,6 @@ public class TemporTantrumConfig implements TrialConfig
 	
 	private static final int SHIPMENT_IMPOSTOR_ID = ObjectID.SAILING_BT_TEMPOR_TANTRUM_COLLECTABLE_SUPPLIES;
 
-	private static final Set<Integer> ROCK_IDS = Set.of(
-		59314, 59315, 60437, 60438, 60440, 60441, 60442, 60443, 60444
-	);
-
-	private static final Set<Integer> SPEED_BOOST_IDS = Set.of(
-		ObjectID.SAILING_RAPIDS,
-		ObjectID.SAILING_RAPIDS_STRONG,
-		ObjectID.SAILING_RAPIDS_POWERFUL,
-		ObjectID.SAILING_RAPIDS_DEADLY
-	);
-
 	public static final Set<Integer> LIGHTNING_CLOUD_NPC_IDS = Set.of(
 		NpcID.SAILING_SEA_STORMY_CLOUD,
 		NpcID.SAILING_SEA_STORMY_LIGHTNING_STRIKE
@@ -110,18 +99,6 @@ public class TemporTantrumConfig implements TrialConfig
 	public WorldPoint getRumDropoffLocation()
 	{
 		return RUM_DROPOFF_LOCATION;
-	}
-
-	@Override
-	public Set<Integer> getRockIds()
-	{
-		return ROCK_IDS;
-	}
-
-	@Override
-	public Set<Integer> getSpeedBoostIds()
-	{
-		return SPEED_BOOST_IDS;
 	}
 
 	@Override

@@ -22,6 +22,10 @@ public class ObjectTracker
 	private final Client client;
 	private final State state;
 
+	private static final Set<Integer> ROCK_IDS = Set.of(
+		59314, 59315, 60437, 60438, 60440, 60441, 60442, 60443, 60444
+	);
+
 	private static final Set<Integer> SPEED_BOOST_IDS = Set.of(
 		ObjectID.SAILING_RAPIDS, ObjectID.SAILING_RAPIDS_STRONG,
 		ObjectID.SAILING_RAPIDS_POWERFUL, ObjectID.SAILING_RAPIDS_DEADLY
@@ -122,8 +126,6 @@ public class ObjectTracker
 		{
 			return;
 		}
-		var rockIds = trial.getRockIds();
-		var speedBoostIds = trial.getSpeedBoostIds();
 		var fetidPoolIds = JubblyJiveConfig.FETID_POOL_IDS;
 
 		var knownRockTiles = state.getKnownRockLocations();
@@ -161,14 +163,14 @@ public class ObjectTracker
 							continue;
 						}
 
-						if (!knownRockTiles.contains(tileWp) && rockIds.contains(id))
+						if (!knownRockTiles.contains(tileWp) && ROCK_IDS.contains(id))
 						{
 							knownRockTiles.addAll(ObjectTracker.getObjectTiles(client, obj));
 
 							continue;
 						}
 
-						if (!knownBoostTiles.containsKey(tileWp) && speedBoostIds.contains(id))
+						if (!knownBoostTiles.containsKey(tileWp) && SPEED_BOOST_IDS.contains(id))
 						{
 							knownBoosts.add(obj);
 
