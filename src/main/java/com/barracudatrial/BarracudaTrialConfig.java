@@ -97,6 +97,18 @@ public interface BarracudaTrialConfig extends Config
 	}
 
 	@ConfigItem(
+		keyName = "showPathTiles",
+		name = "Show Path Tiles",
+		description = "Display detailed information for each waypoint and path tile (type, completion status, coordinates)",
+		section = pathSection,
+		position = 6
+	)
+	default boolean showPathTiles()
+	{
+		return false;
+	}
+
+	@ConfigItem(
 		keyName = "highlightObjectives",
 		name = "Highlight Objectives",
 		description = "Highlight objectives in the trial area",

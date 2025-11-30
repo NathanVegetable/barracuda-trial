@@ -18,6 +18,7 @@ public class CachedConfig
 	@Getter private Color pathColor;
 	@Getter private int pathWidth;
 	@Getter private int pathLookahead;
+	@Getter private boolean showPathTiles;
 
 	// Objective settings
 	@Getter private boolean highlightObjectives;
@@ -50,6 +51,7 @@ public class CachedConfig
 		pathColor = config.pathColor();
 		pathWidth = config.pathWidth();
 		pathLookahead = config.pathLookahead();
+		showPathTiles = config.showPathTiles();
 
 		highlightObjectives = config.highlightObjectives();
 		objectivesColorCurrentWaypoint = config.objectivesColorCurrentWaypoint();

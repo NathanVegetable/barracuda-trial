@@ -51,6 +51,11 @@ public class PathRenderer
 
 		drawSmoothPathWithBezier(graphics, trimmedPath, visualFrontPositionTransformed);
 		renderWindCatcherHighlights(graphics);
+
+		if (cachedConfig.isShowPathTiles())
+		{
+			renderPathTiles(graphics);
+		}
 	}
 
 	private LocalPoint getTransformedFrontPosition()
@@ -389,6 +394,43 @@ public class PathRenderer
 			{
 				lastWindCatcherTile = null;
 			}
+		}
+	}
+
+	private void renderPathTiles(Graphics2D graphics)
+	{
+		List<RouteWaypoint> staticRoute = plugin.getGameState().getCurrentStaticRoute();
+		if (staticRoute == null || staticRoute.isEmpty())
+		{
+			return;
+		}
+
+		Set<Integer> completedIndices = plugin.getGameState().getCompletedWaypointIndices();
+		List<WorldPoint> currentPath = plugin.getGameState().getCurrentSegmentPath();
+
+		// Render all waypoints with their information
+		for (int i = 0; i < staticRoute.size(); i++)
+		{
+			RouteWaypoint waypoint = staticRoute.get(i);
+			WorldPoint location = waypoint.getLocation();
+			boolean completed = completedIndices.contains(i);
+
+			String label = String.format("%s\n\n%s\n\n(%d, %d)",
+				waypoint.getType(),
+				completed ? "✓" : "✗",
+				location.getX(),
+				location.getY()
+			);
+
+			Color color = completed ? new Color(128, 128, 128, 150) : new Color(255, 255, 0, 150);
+			RenderingUtils.renderTileHighlightAtWorldPoint(client, graphics, location, color, label);
+		}
+
+		// Render all tiles in the current path
+		for (WorldPoint pathTile : currentPath)
+		{
+			Color pathTileColor = new Color(0, 255, 255, 100);
+			RenderingUtils.renderTileHighlightAtWorldPoint(client, graphics, pathTile, pathTileColor, null);
 		}
 	}
 }
