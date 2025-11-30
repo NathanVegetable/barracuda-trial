@@ -213,9 +213,17 @@ public class PathPlanner
 				continue;
 			}
 
-			// Skip PORTAL_EXIT waypoints - they're handled by PORTAL_ENTER
+			// Handle PORTAL_EXIT: if player is far from exit, teleport forward to exit location for pathfinding
 			if (waypointType == RouteWaypoint.WaypointType.PORTAL_EXIT)
 			{
+				WorldPoint portalExitLocation = waypoint.getLocation();
+				int distance = currentPosition.distanceTo(portalExitLocation);
+
+				if (distance > 10)
+				{
+					currentPosition = portalExitLocation;
+				}
+
 				continue;
 			}
 
