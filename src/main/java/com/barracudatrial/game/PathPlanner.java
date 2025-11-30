@@ -14,8 +14,12 @@ import net.runelite.api.NPC;
 import net.runelite.api.WorldView;
 import net.runelite.api.coords.LocalPoint;
 import net.runelite.api.coords.WorldPoint;
+import net.runelite.client.callback.ClientThread;
 
 import java.util.*;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Predicate;
 
 @Slf4j
@@ -24,21 +28,51 @@ public class PathPlanner
 	private final State state;
 	private final CachedConfig cachedConfig;
 	private final Client client;
+	private final ClientThread clientThread;
 	private final PathStabilizer pathStabilizer;
+	private final ExecutorService pathfindingExecutor;
+	private final AtomicBoolean pathfindingInProgress = new AtomicBoolean(false);
+	private final AtomicBoolean pendingRecalculation = new AtomicBoolean(false);
+	private volatile PathfindingRequest pendingRequest;
 
-	public PathPlanner(Client client, State state, CachedConfig cachedConfig)
+	public PathPlanner(Client client, State state, CachedConfig cachedConfig, ClientThread clientThread)
 	{
 		this.client = client;
 		this.state = state;
 		this.cachedConfig = cachedConfig;
+		this.clientThread = clientThread;
 
 		AStarPathfinder aStarPathfinder = new AStarPathfinder();
 		this.pathStabilizer = new PathStabilizer(aStarPathfinder);
+		this.pathfindingExecutor = Executors.newSingleThreadExecutor(r -> {
+			Thread thread = new Thread(r, "BarracudaTrial-Pathfinding");
+			thread.setDaemon(true);
+			return thread;
+		});
+	}
+
+	private static class PathfindingRequest
+	{
+		final WorldPoint startLocation;
+		final List<RouteWaypoint> waypoints;
+		final int waypointCount;
+		final int startIndex;
+		final String reason;
+
+		PathfindingRequest(WorldPoint startLocation, List<RouteWaypoint> waypoints, int waypointCount, int startIndex, String reason)
+		{
+			this.startLocation = startLocation;
+			this.waypoints = waypoints;
+			this.waypointCount = waypointCount;
+			this.startIndex = startIndex;
+			this.reason = reason;
+		}
 	}
 
 	/**
 	 * Recalculates the optimal path based on current game state
-	 * Uses static routes for strategic planning and A* for tactical navigation
+	 * Runs pathfinding asynchronously to avoid blocking the game tick
+	 * Only one pathfinding task runs at a time, with at most one queued request
 	 * @param recalculationTriggerReason Description of what triggered this recalculation (for debugging)
 	 */
 	public void recalculateOptimalPathFromCurrentState(String recalculationTriggerReason)
@@ -54,7 +88,6 @@ public class PathPlanner
 
 		state.setTicksSinceLastPathRecalc(0);
 
-		// Use front boat tile for pathfinding (fallback to center if not available)
 		WorldPoint playerBoatLocation = state.getFrontBoatTileEstimatedActual();
 		if (playerBoatLocation == null)
 		{
@@ -79,11 +112,59 @@ public class PathPlanner
 			return;
 		}
 
-		List<WorldPoint> fullPath = pathThroughMultipleWaypoints(playerBoatLocation, nextWaypoints);
+		PathfindingRequest request = new PathfindingRequest(
+			playerBoatLocation,
+			nextWaypoints,
+			nextWaypoints.size(),
+			state.getNextNavigatableWaypointIndex(),
+			recalculationTriggerReason
+		);
 
-		state.setPath(fullPath);
+		if (pathfindingInProgress.get())
+		{
+			pendingRequest = request;
+			pendingRecalculation.set(true);
+			log.debug("Pathfinding already running, queued latest request: {}", recalculationTriggerReason);
+			return;
+		}
 
-		log.debug("Pathing through {} waypoints starting at index {}", nextWaypoints.size(), state.getNextNavigatableWaypointIndex());
+		executePathfinding(request);
+	}
+
+	private void executePathfinding(PathfindingRequest request)
+	{
+		pathfindingInProgress.set(true);
+
+		pathfindingExecutor.submit(() -> {
+			try
+			{
+				List<WorldPoint> fullPath = pathThroughMultipleWaypoints(request.startLocation, request.waypoints);
+
+				clientThread.invoke(() -> {
+					state.setPath(fullPath);
+					log.debug("Async path complete: {} waypoints starting at index {} ({})",
+						request.waypointCount, request.startIndex, request.reason);
+				});
+			}
+			catch (Exception e)
+			{
+				log.error("Pathfinding error", e);
+			}
+			finally
+			{
+				pathfindingInProgress.set(false);
+
+				if (pendingRecalculation.getAndSet(false))
+				{
+					PathfindingRequest nextRequest = pendingRequest;
+					if (nextRequest != null)
+					{
+						log.debug("Running queued pathfinding request: {}", nextRequest.reason);
+						executePathfinding(nextRequest);
+					}
+				}
+			}
+		});
 	}
 
 	private void loadStaticRouteForCurrentDifficulty()
@@ -678,7 +759,7 @@ public class PathPlanner
 		int tileDistance = start.distanceTo(target); // Chebyshev distance in tiles
 
 		// Never too high, but allow seeking longer on long paths
-		int maximumAStarSearchDistance = Math.max(35, Math.min(80, tileDistance * 8));
+		int maximumAStarSearchDistance = Math.max(35, Math.min(100, tileDistance * 8));
 
 		var currentStaticRoute = state.getCurrentStaticRoute();
 
@@ -862,5 +943,14 @@ public class PathPlanner
 	public void reset()
 	{
 		pathStabilizer.clearActivePath();
+		pendingRecalculation.set(false);
+		pendingRequest = null;
+	}
+
+	public void shutdown()
+	{
+		pendingRecalculation.set(false);
+		pendingRequest = null;
+		pathfindingExecutor.shutdownNow();
 	}
 }

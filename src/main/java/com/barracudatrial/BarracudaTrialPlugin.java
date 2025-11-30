@@ -9,6 +9,7 @@ import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.*;
 import net.runelite.api.events.*;
+import net.runelite.client.callback.ClientThread;
 import net.runelite.client.config.ConfigManager;
 import net.runelite.client.eventbus.Subscribe;
 import net.runelite.client.events.ConfigChanged;
@@ -38,6 +39,9 @@ public class BarracudaTrialPlugin extends Plugin
 	@Inject
 	private BarracudaTrialOverlay overlay;
 
+	@Inject
+	private ClientThread clientThread;
+
 	@Getter
 	private final State gameState = new State();
 
@@ -60,7 +64,7 @@ public class BarracudaTrialPlugin extends Plugin
 		objectTracker = new ObjectTracker(client, gameState);
 		locationManager = new LocationManager(client, gameState);
 		progressTracker = new ProgressTracker(client, gameState);
-		pathPlanner = new PathPlanner(client, gameState, cachedConfig);
+		pathPlanner = new PathPlanner(client, gameState, cachedConfig, clientThread);
 	}
 
 	@Override
@@ -69,7 +73,7 @@ public class BarracudaTrialPlugin extends Plugin
 		log.info("Barracuda Trial plugin stopped!");
 		overlayManager.remove(overlay);
 		gameState.resetAllTemporaryState();
-		pathPlanner.reset();
+		pathPlanner.shutdown();
 	}
 
 	@Subscribe
