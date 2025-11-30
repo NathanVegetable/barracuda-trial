@@ -602,7 +602,6 @@ public class ObjectTracker
 				return;
 			}
 
-			// Find the local player in the boat's WorldView
 			Player boatPlayer = null;
 			for (Player p : boatWorldView.players())
 			{
@@ -620,7 +619,6 @@ public class ObjectTracker
 				return;
 			}
 
-			// Find the NPC on the boat (center marker)
 			NPC boatNpc = null;
 			for (NPC npc : boatWorldView.npcs())
 			{

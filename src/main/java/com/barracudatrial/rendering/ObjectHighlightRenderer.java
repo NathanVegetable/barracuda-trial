@@ -59,7 +59,18 @@ public class ObjectHighlightRenderer
 		}
 
 		var shipmentIds = trial.getShipmentBaseIds();
+
+		int nextWaypointIndex = gameState.getNextNavigableWaypointIndex();
 		WorldPoint currentWaypointLocation = null;
+
+		if (nextWaypointIndex < route.size())
+		{
+			RouteWaypoint nextWaypoint = route.get(nextWaypointIndex);
+			if (nextWaypoint.getType() == RouteWaypoint.WaypointType.SHIPMENT)
+			{
+				currentWaypointLocation = nextWaypoint.getLocation();
+			}
+		}
 
 		for (int i = 0; i < route.size(); i++)
 		{
@@ -75,13 +86,6 @@ public class ObjectHighlightRenderer
 				continue;
 			}
 
-			// Find current waypoint for coloring
-			if (currentWaypointLocation == null && waypoint.getLap() == currentLap)
-			{
-				currentWaypointLocation = waypoint.getLocation();
-			}
-
-			// Find the GameObject at this waypoint location
 			WorldPoint location = waypoint.getLocation();
 			GameObject shipmentObject = findShipmentAtLocation(scene, location, shipmentIds);
 			if (shipmentObject == null)
@@ -89,7 +93,6 @@ public class ObjectHighlightRenderer
 				continue;
 			}
 
-			// Determine color based on waypoint state
 			Color renderColor;
 			if (currentWaypointLocation != null && currentWaypointLocation.equals(location))
 			{
