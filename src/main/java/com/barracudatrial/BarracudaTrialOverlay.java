@@ -26,7 +26,7 @@ public class BarracudaTrialOverlay extends Overlay
 
 		setPosition(OverlayPosition.DYNAMIC);
 		setLayer(OverlayLayer.ABOVE_SCENE);
-		setPriority(OverlayPriority.HIGH);
+		setPriority(PRIORITY_MED);
 	}
 
 	@Override
