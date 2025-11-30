@@ -83,7 +83,6 @@ public class ObjectTracker
 
 	/**
 	 * Updates hazard NPC tracking (e.g., lightning clouds for Tempor Tantrum)
-	 * Spawn/despawn events are unreliable, so we actively scan instead
 	 */
 	public void updateLightningCloudTracking()
 	{
@@ -215,7 +214,7 @@ public class ObjectTracker
 						{
 							knownBoosts.add(obj);
 
-							// getObjectTiles is 5x5 but we want 3x3 to encourage getting closer
+							// getObjectTiles is 5x5, but we want 3x3 to encourage getting closer
 							var speedTilesWithOneTolerance = ObjectTracker.getTilesWithTolerance(objTile, 1);
 							knownBoostTiles.put(objTile, speedTilesWithOneTolerance);
 							continue;
@@ -339,7 +338,13 @@ public class ObjectTracker
 			return false;
 		}
 
-		Scene scene = client.getScene();
+		WorldView worldView = client.getTopLevelWorldView();
+		if (worldView == null)
+		{
+			return false;
+		}
+
+		Scene scene = worldView.getScene();
 		WorldPoint boatLocation = state.getBoatLocation();
 		if (scene == null || boatLocation == null)
 		{
@@ -697,7 +702,18 @@ public class ObjectTracker
 			return Collections.singletonList(obj.getWorldLocation());
 		}
 
-		Scene scene = client.getScene();
+		WorldView worldView = client.getTopLevelWorldView();
+		if (worldView == null)
+		{
+			return Collections.singletonList(obj.getWorldLocation());
+		}
+
+		Scene scene = worldView.getScene();
+		if (scene == null)
+		{
+			return Collections.singletonList(obj.getWorldLocation());
+		}
+
 		int baseX = scene.getBaseX();
 		int baseY = scene.getBaseY();
 		int plane = obj.getPlane();
@@ -723,7 +739,6 @@ public class ObjectTracker
 	 * Computes all tiles within a given tolerance distance from target locations.
 	 * Uses Chebyshev distance (max of dx, dy) for square areas.
 	 *
-	 * @param center
 	 * @param tolerance Distance in tiles (1 = 3x3 area, 2 = 5x5 area, etc.)
 	 * @return Map from grabbable tile to its center point
 	 */

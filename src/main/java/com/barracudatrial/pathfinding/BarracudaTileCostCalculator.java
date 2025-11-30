@@ -166,13 +166,6 @@ public class BarracudaTileCostCalculator
 		return null;
 	}
 
-	public boolean isInDangerZone(WorldPoint tile)
-	{
-		return cloudDangerZones.contains(tile)
-			|| rockLocations.contains(tile)
-			|| fetidPoolLocations.contains(tile);
-	}
-
 	/**
 	 * Get a snapshot of all current danger zones for path stability tracking
 	 */

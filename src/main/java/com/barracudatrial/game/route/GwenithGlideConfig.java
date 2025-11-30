@@ -7,28 +7,16 @@ import java.util.Set;
 
 public class GwenithGlideConfig implements TrialConfig
 {
-	public static final int BOAT_EXCLUSION_WIDTH = 4;
-	public static final int BOAT_EXCLUSION_HEIGHT = 8;
-
 	// Crystal motes - wind motes that provide speed boosts and crystal immunity
-	public static final int CRYSTAL_MOTE_ID = ObjectID.SAILING_BT_GWENITH_GLIDE_MOTE; // 58980
+	// Not currently implemented - up to the user to swerve to grab when needed
+	// public static final int CRYSTAL_MOTE_ID = ObjectID.SAILING_BT_GWENITH_GLIDE_MOTE; // 58980
 
 	// Resonance crystals - the crystals that spawn white spikes
-	public static final Set<Integer> RESONANCE_CRYSTAL_IDS = Set.of(
-		ObjectID.SAILING_BT_GWENITH_GLIDE_CRYSTAL, // 58978
-		ObjectID.SAILING_BT_GWENITH_GLIDE_CRYSTAL_2 // 58979
-	);
-
-	public static final Set<Integer> PORTAL_IDS = Set.of(
-		ObjectID.SAILING_BT_GWENITH_GLIDE_TELEPORT_MARKER_ITHELL, // 59086
-		ObjectID.SAILING_BT_GWENITH_GLIDE_TELEPORT_MARKER_AMLODD, // 59087
-		ObjectID.SAILING_BT_GWENITH_GLIDE_TELEPORT_MARKER_CADARN, // 59088
-		ObjectID.SAILING_BT_GWENITH_GLIDE_TELEPORT_MARKER_CRWYS, // 59089
-		ObjectID.SAILING_BT_GWENITH_GLIDE_TELEPORT_MARKER_HEFIN, // 59090
-		ObjectID.SAILING_BT_GWENITH_GLIDE_TELEPORT_MARKER_IORWERTH, // 59091
-		ObjectID.SAILING_BT_GWENITH_GLIDE_TELEPORT_MARKER_MEILYR, // 59092
-		ObjectID.SAILING_BT_GWENITH_GLIDE_TELEPORT_MARKER_TRAHAEARN // 59093
-	);
+	// Not currently implemented - you can sail through these and sustain minimal drawback
+	// public static final Set<Integer> RESONANCE_CRYSTAL_IDS = Set.of(
+	// 	ObjectID.SAILING_BT_GWENITH_GLIDE_CRYSTAL, // 58978
+	// 	ObjectID.SAILING_BT_GWENITH_GLIDE_CRYSTAL_2 // 58979
+	// );
 
 	private static final Set<Integer> SHIPMENT_IDS = Set.of(
 			ObjectID.SAILING_BT_GWENITH_GLIDE_COLLECTABLE_1, // 58982

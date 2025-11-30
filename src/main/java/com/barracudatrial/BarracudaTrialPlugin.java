@@ -19,6 +19,7 @@ import net.runelite.client.ui.overlay.OverlayManager;
 
 import javax.inject.Inject;
 
+@SuppressWarnings("unused")
 @Slf4j
 @PluginDescriptor(
 	name = "Barracuda Trials Pathfinder",
@@ -54,6 +55,7 @@ public class BarracudaTrialPlugin extends Plugin
 	private PathPlanner pathPlanner;
 
 	@Override
+	@SuppressWarnings("RedundantThrows")
 	protected void startUp() throws Exception
 	{
 		log.info("Barracuda Trial plugin started!");
@@ -68,6 +70,7 @@ public class BarracudaTrialPlugin extends Plugin
 	}
 
 	@Override
+	@SuppressWarnings("RedundantThrows")
 	protected void shutDown() throws Exception
 	{
 		log.info("Barracuda Trial plugin stopped!");

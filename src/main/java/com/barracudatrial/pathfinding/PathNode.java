@@ -17,11 +17,4 @@ public class PathNode
 		this.cumulativeCost = cumulativeCost;
 		this.waypointType = null;
 	}
-
-	public PathNode(RouteWaypoint waypoint, double cumulativeCost)
-	{
-		this.position = waypoint.getLocation();
-		this.cumulativeCost = cumulativeCost;
-		this.waypointType = waypoint.getType();
-	}
 }

@@ -166,7 +166,7 @@ public class PathRenderer
 		CachedConfig cachedConfig = plugin.getCachedConfig();
 
 		// Convert visual start position to canvas coordinates
-		Point startCanvas = Perspective.localToCanvas(client, visualStartPosition, client.getPlane(), 0);
+		Point startCanvas = Perspective.localToCanvas(client, visualStartPosition, topLevelWorldView.getPlane(), 0);
 		if (startCanvas == null)
 		{
 			return;
@@ -213,11 +213,10 @@ public class PathRenderer
 
 		graphics.setStroke(new BasicStroke(cachedConfig.getPathWidth(), BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
 
-		drawPathSegments(graphics, canvasPoints, waypoints, isWindCatcherSegment, startCanvas, cachedConfig);
+		drawPathSegments(graphics, canvasPoints, isWindCatcherSegment, startCanvas, cachedConfig);
 	}
 
-	private void drawPathSegments(Graphics2D graphics, List<Point> canvasPoints, List<WorldPoint> waypoints,
-	                               List<Boolean> isWindCatcherSegment, Point startCanvas, CachedConfig cachedConfig)
+	private void drawPathSegments(Graphics2D graphics, List<Point> canvasPoints, List<Boolean> isWindCatcherSegment, Point startCanvas, CachedConfig cachedConfig)
 	{
 		Color normalColor = cachedConfig.getPathColor();
 		Color windCatcherColor = cachedConfig.getWindCatcherColor();
@@ -234,7 +233,7 @@ public class PathRenderer
 			if (colorChanged || isLastPoint)
 			{
 				int segmentEnd = i - 1;
-				drawSinglePathSegment(graphics, canvasPoints, segmentStart, segmentEnd, startCanvas, currentColor, cachedConfig);
+				drawSinglePathSegment(graphics, canvasPoints, segmentStart, segmentEnd, startCanvas, currentColor);
 
 				if (!isLastPoint)
 				{
@@ -246,7 +245,7 @@ public class PathRenderer
 	}
 
 	private void drawSinglePathSegment(Graphics2D graphics, List<Point> canvasPoints, int startIdx, int endIdx,
-	                                    Point startCanvas, Color color, CachedConfig cachedConfig)
+	                                    Point startCanvas, Color color)
 	{
 		if (startIdx > endIdx)
 		{
@@ -258,7 +257,7 @@ public class PathRenderer
 		if (startIdx == -1)
 		{
 			path.moveTo(startCanvas.getX(), startCanvas.getY());
-			if (canvasPoints.size() > 0)
+			if (!canvasPoints.isEmpty())
 			{
 				path.lineTo(canvasPoints.get(0).getX(), canvasPoints.get(0).getY());
 			}
@@ -269,10 +268,7 @@ public class PathRenderer
 			path.moveTo(canvasPoints.get(startIdx).getX(), canvasPoints.get(startIdx).getY());
 		}
 
-		if (startIdx == endIdx)
-		{
-		}
-		else if (endIdx - startIdx == 1)
+		if (endIdx - startIdx == 1)
 		{
 			path.lineTo(canvasPoints.get(endIdx).getX(), canvasPoints.get(endIdx).getY());
 		}
@@ -345,7 +341,7 @@ public class PathRenderer
 				}
 				groupEnd = waypoint.getLocation();
 			}
-			else if (!waypoint.getType().isNonNavigatableHelper())
+			else if (!waypoint.getType().isNonNavigableHelper())
 			{
 				if (groupStart != null && groupEnd != null)
 				{

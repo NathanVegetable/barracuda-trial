@@ -13,65 +13,10 @@ import java.util.Set;
 public class RouteWaypointFilter
 {
 	/**
-	 * Filters waypoints by type, excluding completed waypoints
-	 */
-	public static List<RouteWaypoint> filterByType(
-			List<RouteWaypoint> route,
-			RouteWaypoint.WaypointType type,
-			Set<Integer> completedIndices)
-	{
-		List<RouteWaypoint> filtered = new ArrayList<>();
-
-		for (int i = 0; i < route.size(); i++)
-		{
-			if (completedIndices.contains(i))
-			{
-				continue;
-			}
-
-			RouteWaypoint waypoint = route.get(i);
-			if (waypoint.getType() == type)
-			{
-				filtered.add(waypoint);
-			}
-		}
-
-		return filtered;
-	}
-
-	/**
-	 * Filters waypoints by type and lap, excluding completed waypoints
-	 */
-	public static List<RouteWaypoint> filterByTypeAndLap(
-			List<RouteWaypoint> route,
-			RouteWaypoint.WaypointType type,
-			int lap,
-			Set<Integer> completedIndices)
-	{
-		List<RouteWaypoint> filtered = new ArrayList<>();
-
-		for (int i = 0; i < route.size(); i++)
-		{
-			if (completedIndices.contains(i))
-			{
-				continue;
-			}
-
-			RouteWaypoint waypoint = route.get(i);
-			if (waypoint.getType() == type && waypoint.getLap() == lap)
-			{
-				filtered.add(waypoint);
-			}
-		}
-
-		return filtered;
-	}
-
-	/**
-	 * Finds the next N navigatable waypoints starting from a given index (wrapping around)
+	 * Finds the next N navigable waypoints starting from a given index (wrapping around)
 	 * Returns a list of waypoint locations
 	 */
-	public static List<WorldPoint> findNextNavigatableWaypoints(
+	public static List<WorldPoint> findNextNavigableWaypoints(
 			List<RouteWaypoint> route,
 			int startIndex,
 			Set<Integer> completedIndices,
@@ -90,7 +35,7 @@ public class RouteWaypointFilter
 			int checkIndex = (startIndex + offset) % route.size();
 			RouteWaypoint waypoint = route.get(checkIndex);
 
-			if (!completedIndices.contains(checkIndex) && !waypoint.getType().isNonNavigatableHelper())
+			if (!completedIndices.contains(checkIndex) && !waypoint.getType().isNonNavigableHelper())
 			{
 				locations.add(waypoint.getLocation());
 				foundCount++;

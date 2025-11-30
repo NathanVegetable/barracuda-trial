@@ -12,7 +12,6 @@ import net.runelite.api.NPC;
 import net.runelite.api.coords.LocalPoint;
 import net.runelite.api.coords.WorldPoint;
 import net.runelite.api.gameval.InterfaceID;
-import net.runelite.api.gameval.ObjectID;
 
 import java.util.*;
 
@@ -29,11 +28,6 @@ public class State
 	public static final int CLOUD_ANIM_HARMLESS_ALT = 8879;
 
 	public static final int PATH_RECALC_INTERVAL = 2;
-
-	public static final int RUM_RETURN_BASE_OBJECT_ID = 59237; // No constant available
-	public static final int RUM_RETURN_IMPOSTOR_ID = ObjectID.SAILING_BT_TEMPOR_TANTRUM_NORTH_LOC_CHILD;
-	public static final int RUM_PICKUP_BASE_OBJECT_ID = 59240; // No constant available
-	public static final int RUM_PICKUP_IMPOSTOR_ID = ObjectID.SAILING_BT_TEMPOR_TANTRUM_SOUTH_LOC_CHILD;
 
 	@Setter
 	private boolean inTrial = false;
@@ -253,10 +247,10 @@ public class State
 	}
 
 	/**
-	 * Calculates the next uncompleted navigatable waypoint index by scanning the route.
-	 * @return Index of next navigatable waypoint, or 0 if route is empty/null
+	 * Calculates the next uncompleted navigable waypoint index by scanning the route.
+	 * @return Index of next navigable waypoint, or 0 if route is empty/null
 	 */
-	public int getNextNavigatableWaypointIndex()
+	public int getNextNavigableWaypointIndex()
 	{
 		if (currentStaticRoute == null || currentStaticRoute.isEmpty())
 		{
@@ -269,7 +263,7 @@ public class State
 			if (!completedWaypointIndices.contains(i))
 			{
 				RouteWaypoint waypoint = currentStaticRoute.get(i);
-				if (!waypoint.getType().isNonNavigatableHelper())
+				if (!waypoint.getType().isNonNavigableHelper())
 				{
 					return i;
 				}
@@ -277,28 +271,6 @@ public class State
 		}
 
 		return 0;
-	}
-
-	/**
-	 * Find the first waypoint index that matches the given location
-	 * @return waypoint index, or -1 if not found
-	 */
-	public int findWaypointIndexByLocation(WorldPoint location)
-	{
-		if (currentStaticRoute == null)
-		{
-			return -1;
-		}
-
-		for (int i = 0; i < currentStaticRoute.size(); i++)
-		{
-			RouteWaypoint waypoint = currentStaticRoute.get(i);
-			if (waypoint.getLocation() != null && waypoint.getLocation().equals(location))
-			{
-				return i;
-			}
-		}
-		return -1;
 	}
 
 	public static Difficulty getCurrentDifficulty(Client client)

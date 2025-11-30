@@ -1,6 +1,5 @@
 package com.barracudatrial.game.route;
 
-import net.runelite.api.coords.WorldPoint;
 import net.runelite.api.gameval.NpcID;
 import net.runelite.api.gameval.ObjectID;
 
@@ -9,9 +8,6 @@ import java.util.Set;
 
 public class TemporTantrumConfig implements TrialConfig
 {
-	private static final WorldPoint RUM_PICKUP_LOCATION = new WorldPoint(3037, 2767, 0);
-	private static final WorldPoint RUM_DROPOFF_LOCATION = new WorldPoint(3035, 2926, 0);
-
 	public static final int BOAT_EXCLUSION_WIDTH = 8;
 	public static final int BOAT_EXCLUSION_HEIGHT = 3;
 

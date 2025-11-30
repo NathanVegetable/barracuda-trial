@@ -47,7 +47,6 @@ public class RouteWaypoint
 		RUM_DROPOFF(7),
 		TOAD_PICKUP(9),
 		TOAD_PILLAR(10),
-		CRYSTAL_MOTE(5),
 		PORTAL_ENTER(1),
 		PORTAL_EXIT(0),
 		PATHFINDING_HINT(0),
@@ -60,7 +59,7 @@ public class RouteWaypoint
 			this.toleranceTiles = toleranceTiles;
 		}
 
-		public boolean isNonNavigatableHelper()
+		public boolean isNonNavigableHelper()
 		{
 			return this == PATHFINDING_HINT || this == USE_WIND_CATCHER || this == PORTAL_EXIT;
 		}

@@ -4,6 +4,7 @@ import com.barracudatrial.CachedConfig;
 import com.barracudatrial.game.route.*;
 import com.barracudatrial.pathfinding.AStarPathfinder;
 import com.barracudatrial.pathfinding.BarracudaTileCostCalculator;
+import com.barracudatrial.pathfinding.PathNode;
 import com.barracudatrial.pathfinding.PathResult;
 import com.barracudatrial.pathfinding.PathStabilizer;
 import com.barracudatrial.rendering.RenderingUtils;
@@ -116,7 +117,7 @@ public class PathPlanner
 			playerBoatLocation,
 			nextWaypoints,
 			nextWaypoints.size(),
-			state.getNextNavigatableWaypointIndex(),
+			state.getNextNavigableWaypointIndex(),
 			recalculationTriggerReason
 		);
 
@@ -197,7 +198,7 @@ public class PathPlanner
 	 * Routes to waypoints even if not yet visible (game only reveals nearby shipments).
 	 * Supports backtracking if a waypoint was missed.
 	 *
-	 * @param count Maximum number of uncompleted navigatable waypoints
+	 * @param count Maximum number of uncompleted navigable waypoints
 	 * @return List of uncompleted waypoints in route order (includes all helper waypoints between real waypoints)
 	 */
 	private List<RouteWaypoint> findNextUncompletedWaypoints(int count)
@@ -211,9 +212,9 @@ public class PathPlanner
 		}
 
 		int routeSize = route.size();
-		int nextNavIndex = state.getNextNavigatableWaypointIndex();
+		int nextNavIndex = state.getNextNavigableWaypointIndex();
 
-		// Scan backwards from nextNavigatableWaypointIndex to find uncompleted helpers that precede it
+		// Scan backwards from nextNavigableWaypointIndex to find uncompleted helpers that precede it
 		List<RouteWaypoint> precedingHelpers = new ArrayList<>();
 		for (int i = 1; i < routeSize; i++)
 		{
@@ -225,7 +226,7 @@ public class PathPlanner
 				break;
 			}
 
-			if (waypoint.getType().isNonNavigatableHelper())
+			if (waypoint.getType().isNonNavigableHelper())
 			{
 				precedingHelpers.add(0, waypoint);
 			}
@@ -237,10 +238,10 @@ public class PathPlanner
 
 		uncompletedWaypoints.addAll(precedingHelpers);
 
-		int navigatableWaypointCount = 0;
+		int navigableWaypointCount = 0;
 
-		// Scan forward from nextNavigatableWaypointIndex
-		for (int offset = 0; offset < routeSize && navigatableWaypointCount < count; offset++)
+		// Scan forward from nextNavigableWaypointIndex
+		for (int offset = 0; offset < routeSize && navigableWaypointCount < count; offset++)
 		{
 			int checkIndex = (nextNavIndex + offset) % routeSize;
 			RouteWaypoint waypoint = route.get(checkIndex);
@@ -249,9 +250,9 @@ public class PathPlanner
 			{
 				uncompletedWaypoints.add(waypoint);
 
-				if (!waypoint.getType().isNonNavigatableHelper())
+				if (!waypoint.getType().isNonNavigableHelper())
 				{
-					navigatableWaypointCount++;
+					navigableWaypointCount++;
 				}
 			}
 		}
@@ -744,7 +745,7 @@ public class PathPlanner
 	 * @param start Starting position
 	 * @param target Target position
 	 * @param goalTolerance Number of tiles away from target that counts as reaching it (0 = exact)
-	 * @param isPlayerCurrentlyOnPath Whether or not this is the path that the player is currently navigating
+	 * @param isPlayerCurrentlyOnPath Whether this is the path that the player is currently navigating
 	 * @param pathfindingHints Set of tiles that should have reduced cost during pathfinding
 	 * @return PathResult containing path from start to target and whether goal was reached
 	 */
@@ -752,24 +753,19 @@ public class PathPlanner
 	{
 		var tileCostCalculator = getBarracudaTileCostCalculator(pathfindingHints);
 
-		// Use provided initial heading (may be 0,0 for neutral)
-		int boatDirectionDx = initialBoatDx;
-		int boatDirectionDy = initialBoatDy;
-
-		int tileDistance = start.distanceTo(target); // Chebyshev distance in tiles
+        int tileDistance = start.distanceTo(target); // Chebyshev distance in tiles
 
 		// Never too high, but allow seeking longer on long paths
 		int maximumAStarSearchDistance = Math.max(35, Math.min(100, tileDistance * 8));
 
-		var currentStaticRoute = state.getCurrentStaticRoute();
-
-		PathResult pathResult = pathStabilizer.findPath(tileCostCalculator, cachedConfig.getRouteOptimization(), currentStaticRoute, start, target, maximumAStarSearchDistance, boatDirectionDx, boatDirectionDy, goalTolerance, isPlayerCurrentlyOnPath);
+		PathResult pathResult = pathStabilizer.findPath(tileCostCalculator, cachedConfig.getRouteOptimization(), start, target, maximumAStarSearchDistance, initialBoatDx, initialBoatDy, goalTolerance, isPlayerCurrentlyOnPath);
 
 		if (pathResult.getPath().isEmpty())
 		{
-			List<WorldPoint> fallbackPath = new ArrayList<>();
-			fallbackPath.add(target);
-			return new PathResult(new ArrayList<>(), Double.POSITIVE_INFINITY, false);
+			List<PathNode> fallbackPath = new ArrayList<>();
+			fallbackPath.add(new PathNode(start, 0));
+			fallbackPath.add(new PathNode(target, Double.POSITIVE_INFINITY));
+			return new PathResult(fallbackPath, Double.POSITIVE_INFINITY, false);
 		}
 
 		return pathResult;

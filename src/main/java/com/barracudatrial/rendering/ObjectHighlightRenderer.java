@@ -40,7 +40,13 @@ public class ObjectHighlightRenderer
 			return;
 		}
 
-		Scene scene = client.getScene();
+		WorldView worldView = client.getTopLevelWorldView();
+		if (worldView == null)
+		{
+			return;
+		}
+
+		Scene scene = worldView.getScene();
 		if (scene == null)
 		{
 			return;
@@ -177,7 +183,7 @@ public class ObjectHighlightRenderer
 
 		int currentLap = state.getCurrentLap();
 		var completed = state.getCompletedWaypointIndices();
-		int nextWaypointIndex = state.getNextNavigatableWaypointIndex();
+		int nextWaypointIndex = state.getNextNavigableWaypointIndex();
 
 		for (int i = 0; i < route.size(); i++)
 		{
@@ -226,7 +232,7 @@ public class ObjectHighlightRenderer
 
 		int currentLap = state.getCurrentLap();
 		var completed = state.getCompletedWaypointIndices();
-		int currentWaypointIndex = state.getNextNavigatableWaypointIndex();
+		int currentWaypointIndex = state.getNextNavigableWaypointIndex();
 
 		var currentLapLocations = RouteWaypointFilter.getLocationsByTypeAndLap(
 				route, RouteWaypoint.WaypointType.TOAD_PILLAR, currentLap, completed);
@@ -244,7 +250,7 @@ public class ObjectHighlightRenderer
 			}
 		}
 
-		List<WorldPoint> currentWaypointLocations = RouteWaypointFilter.findNextNavigatableWaypoints(
+		List<WorldPoint> currentWaypointLocations = RouteWaypointFilter.findNextNavigableWaypoints(
 				route, currentWaypointIndex, completed, 2);
 
 		state.getKnownToadPillars().entrySet().stream()
@@ -287,12 +293,12 @@ public class ObjectHighlightRenderer
 
 		int currentLap = state.getCurrentLap();
 		var completed = state.getCompletedWaypointIndices();
-		int currentWaypointIndex = state.getNextNavigatableWaypointIndex();
+		int currentWaypointIndex = state.getNextNavigableWaypointIndex();
 
 		var currentLapPortalLocations = RouteWaypointFilter.getLocationsByTypeAndLap(
 				route, RouteWaypoint.WaypointType.PORTAL_ENTER, currentLap, completed);
 
-		List<WorldPoint> next2WaypointLocations = RouteWaypointFilter.findNextNavigatableWaypoints(
+		List<WorldPoint> next2WaypointLocations = RouteWaypointFilter.findNextNavigableWaypoints(
 				route, currentWaypointIndex, completed, 2);
 
 		for (WorldPoint portalLocation : currentLapPortalLocations)
@@ -448,6 +454,12 @@ public class ObjectHighlightRenderer
 			return;
 		}
 
+		WorldView worldView = client.getTopLevelWorldView();
+		if (worldView == null)
+		{
+			return;
+		}
+
 		int dangerRadiusInTiles = cachedConfig.getCloudDangerRadius();
 
 		for (int dx = -dangerRadiusInTiles; dx <= dangerRadiusInTiles; dx++)
@@ -459,7 +471,8 @@ public class ObjectHighlightRenderer
 				{
 					LocalPoint tilePoint = new LocalPoint(
 							cloudCenterPoint.getX() + dx * Perspective.LOCAL_TILE_SIZE,
-							cloudCenterPoint.getY() + dy * Perspective.LOCAL_TILE_SIZE
+							cloudCenterPoint.getY() + dy * Perspective.LOCAL_TILE_SIZE,
+							worldView
 					);
 
 					Polygon tilePolygon = Perspective.getCanvasTilePoly(client, tilePoint);
@@ -520,7 +533,7 @@ public class ObjectHighlightRenderer
 			return false;
 		}
 
-		int nextWaypointIndex = plugin.getGameState().getNextNavigatableWaypointIndex();
+		int nextWaypointIndex = plugin.getGameState().getNextNavigableWaypointIndex();
 		if (nextWaypointIndex >= staticRoute.size())
 		{
 			return false;
