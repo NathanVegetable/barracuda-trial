@@ -33,10 +33,6 @@ public class CachedConfig
 	@Getter private Color cloudColor;
 	@Getter private int cloudDangerRadius;
 
-	// Debug settings
-	@Getter private boolean debugMode;
-	@Getter private boolean showIDs;
-
 	public CachedConfig(BarracudaTrialConfig config)
 	{
 		this.config = config;
@@ -66,8 +62,5 @@ public class CachedConfig
 		highlightClouds = config.highlightClouds();
 		cloudColor = config.cloudColor();
 		cloudDangerRadius = config.cloudDangerRadius();
-
-		debugMode = config.debugMode();
-		showIDs = config.showIDs();
 	}
 }

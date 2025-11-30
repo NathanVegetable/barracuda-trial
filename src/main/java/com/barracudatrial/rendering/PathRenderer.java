@@ -51,14 +51,6 @@ public class PathRenderer
 
 		drawSmoothPathWithBezier(graphics, trimmedPath, visualFrontPositionTransformed);
 		renderWindCatcherHighlights(graphics);
-
-		// Render debug visualizations
-		if (cachedConfig.isDebugMode())
-		{
-			renderPathTiles(graphics, currentSegmentPath);
-			renderWaypointLabels(graphics);
-			renderPathfindingHints(graphics);
-		}
 	}
 
 	private LocalPoint getTransformedFrontPosition()
@@ -366,57 +358,6 @@ public class PathRenderer
 		return groups;
 	}
 
-	private void renderPathTiles(Graphics2D graphics, List<WorldPoint> path)
-	{
-		if (path == null || path.isEmpty())
-		{
-			return;
-		}
-
-		var boostLocations = plugin.getGameState().getKnownSpeedBoostLocations();
-
-		Set<WorldPoint> allBoostTiles = boostLocations.values()
-				.stream()
-				.flatMap(List::stream)
-				.collect(Collectors.toSet());
-
-		Color normalTileColor = new Color(255, 255, 0, 80);
-		Color boostTileColor = new Color(135, 206, 250, 100);
-
-		for (WorldPoint pathTile : path)
-		{
-			boolean isBoostTile = allBoostTiles.contains(pathTile);
-			Color tileColor = isBoostTile ? boostTileColor : normalTileColor;
-			String label = isBoostTile ? "Boost!" : null;
-
-			RenderingUtils.renderTileHighlightAtWorldPoint(client, graphics, pathTile, tileColor, label);
-		}
-	}
-
-	private void renderWaypointLabels(Graphics2D graphics)
-	{
-		List<RouteWaypoint> staticRoute = plugin.getGameState().getCurrentStaticRoute();
-		WorldView topLevelWorldView = client.getTopLevelWorldView();
-		if (staticRoute == null || topLevelWorldView == null) return;
-
-		graphics.setColor(Color.WHITE);
-		int index = 0;
-		for (RouteWaypoint waypoint : staticRoute)
-		{
-			WorldPoint loc = waypoint.getLocation();
-			if (loc != null)
-			{
-				LocalPoint lp = RenderingUtils.localPointFromWorldIncludingExtended(topLevelWorldView, loc);
-				Point cp = lp != null ? Perspective.getCanvasTextLocation(client, graphics, lp, "", 20) : null;
-				if (cp != null)
-				{
-					graphics.drawString(String.format("#%d %s @ (%d, %d)", index, waypoint.getType(), loc.getX(), loc.getY()), cp.getX(), cp.getY());
-				}
-			}
-			index++;
-		}
-	}
-
 	private void renderWindCatcherHighlights(Graphics2D graphics)
 	{
 		List<RouteWaypoint> staticRoute = plugin.getGameState().getCurrentStaticRoute();
@@ -447,28 +388,6 @@ public class PathRenderer
 			else
 			{
 				lastWindCatcherTile = null;
-			}
-		}
-	}
-
-	private void renderPathfindingHints(Graphics2D graphics)
-	{
-		List<RouteWaypoint> staticRoute = plugin.getGameState().getCurrentStaticRoute();
-		if (staticRoute == null || staticRoute.isEmpty())
-		{
-			return;
-		}
-
-		Color hintColor = new Color(255, 255, 0, 100);
-		for (RouteWaypoint waypoint : staticRoute)
-		{
-			if (waypoint.getType() == RouteWaypoint.WaypointType.PATHFINDING_HINT)
-			{
-				WorldPoint loc = waypoint.getLocation();
-				if (loc != null)
-				{
-					RenderingUtils.renderTileHighlightAtWorldPoint(client, graphics, loc, hintColor, null);
-				}
 			}
 		}
 	}

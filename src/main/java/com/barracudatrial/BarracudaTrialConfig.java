@@ -33,13 +33,6 @@ public interface BarracudaTrialConfig extends Config
 	)
 	String objectHighlightingSection = "objectHighlightingSection";
 
-	@ConfigSection(
-		name = "Debug",
-		description = "Debug and development settings",
-		position = 4
-	)
-	String debugSection = "debugSection";
-
 	@ConfigItem(
 		keyName = "showOptimalPath",
 		name = "Show Optimal Path",
@@ -228,30 +221,5 @@ public interface BarracudaTrialConfig extends Config
 	default int cloudDangerRadius()
 	{
 		return 2;
-	}
-
-	// Debug Settings
-	@ConfigItem(
-		keyName = "debugMode",
-		name = "Debug Mode",
-		description = "Show debug overlays (exclusion zone, all rocks, lap info, supplies counts, performance timings)",
-		section = debugSection,
-		position = 0
-	)
-	default boolean debugMode()
-	{
-		return false;
-	}
-
-	@ConfigItem(
-		keyName = "showIDs",
-		name = "Show IDs",
-		description = "Show object IDs on all game objects (rocks, lost supplies, clouds, etc.)",
-		section = debugSection,
-		position = 1
-	)
-	default boolean showIDs()
-	{
-		return false;
 	}
 }

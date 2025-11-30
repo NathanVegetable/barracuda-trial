@@ -6,9 +6,7 @@ import com.barracudatrial.game.ObjectTracker;
 import com.barracudatrial.game.route.RouteWaypoint;
 import com.barracudatrial.game.route.RouteWaypointFilter;
 import lombok.RequiredArgsConstructor;
-import lombok.Setter;
 import net.runelite.api.*;
-import net.runelite.api.Point;
 import net.runelite.api.coords.LocalPoint;
 import net.runelite.api.coords.WorldPoint;
 import net.runelite.client.ui.overlay.OverlayUtil;
@@ -28,9 +26,6 @@ public class ObjectHighlightRenderer
 	private final BarracudaTrialPlugin plugin;
 	private final ModelOutlineRenderer modelOutlineRenderer;
 	private final BoatZoneRenderer boatZoneRenderer;
-
-	@Setter
-	private Map<Point, Integer> labelCountsByCanvasPosition;
 
 	public void renderLostSupplies(Graphics2D graphics)
 	{
@@ -70,12 +65,6 @@ public class ObjectHighlightRenderer
 
 		for (var lostSupplyObject : lostSupplies)
 		{
-			String debugLabel = null;
-			if (cachedConfig.isShowIDs())
-			{
-				debugLabel = buildObjectLabelWithImpostorInfo(lostSupplyObject, "Lost Supplies");
-			}
-
 			var worldLocation = lostSupplyObject.getWorldLocation();
 
 			Color renderColor;
@@ -92,13 +81,7 @@ public class ObjectHighlightRenderer
 				renderColor = cachedConfig.getObjectivesColorCurrentLap();
 			}
 
-			if (cachedConfig.isDebugMode() && (allRouteLocations.isEmpty() || !allRouteLocations.contains(worldLocation)))
-			{
-				renderColor = Color.RED;
-				debugLabel = (debugLabel == null ? "" : debugLabel + " ") + "(not in route)";
-			}
-
-			renderGameObjectWithHighlight(graphics, lostSupplyObject, renderColor, false, debugLabel);
+			renderGameObjectWithHighlight(graphics, lostSupplyObject, renderColor, false);
 		}
 	}
 
@@ -109,21 +92,7 @@ public class ObjectHighlightRenderer
 
 		for (GameObject speedBoostObject : plugin.getGameState().getSpeedBoosts())
 		{
-			String debugLabel = null;
-			if (cachedConfig.isShowIDs())
-			{
-				debugLabel = buildObjectLabelWithImpostorInfo(speedBoostObject, "Speed Boost");
-			}
-			renderGameObjectWithHighlight(graphics, speedBoostObject, color, true, debugLabel);
-		}
-
-		if (cachedConfig.isDebugMode())
-		{
-			var map = plugin.getGameState().getKnownSpeedBoostLocations();
-			for (var speedBoostObject : map.keySet())
-			{
-				renderTileHighlightAtWorldPoint(graphics, speedBoostObject, Color.GREEN, "Boost Location");
-			}
+			renderGameObjectWithHighlight(graphics, speedBoostObject, color, true);
 		}
 	}
 
@@ -143,12 +112,7 @@ public class ObjectHighlightRenderer
 
 			renderCloudDangerAreaOnGround(graphics, cloudNpc, color);
 
-			String debugLabel = null;
-			if (cachedConfig.isShowIDs())
-			{
-				debugLabel = String.format("Cloud (ID: %d, Anim: %d)", cloudNpc.getId(), cloudNpc.getAnimation());
-			}
-			renderNpcWithHighlight(graphics, cloudNpc, color, debugLabel);
+			renderNpcWithHighlight(graphics, cloudNpc, color);
 		}
 	}
 
@@ -193,12 +157,8 @@ public class ObjectHighlightRenderer
 			if (toadObject == null)
 				continue;
 
-			String label = cached.isShowIDs()
-					? buildObjectLabelWithImpostorInfo(toadObject, "Toad Pickup")
-					: null;
-
 			boatZoneRenderer.renderBoatZoneRectangle(graphics, loc, color);
-			renderGameObjectWithHighlight(graphics, toadObject, color, true, label);
+			renderGameObjectWithHighlight(graphics, toadObject, color, true);
 		}
 	}
 
@@ -262,11 +222,7 @@ public class ObjectHighlightRenderer
 						return;
 					}
 
-					String label = cached.isShowIDs()
-							? buildObjectLabelWithImpostorInfo(pillar, "Toad Pillar")
-							: null;
-
-					renderGameObjectWithHighlight(graphics, pillar, color, false, label);
+					renderGameObjectWithHighlight(graphics, pillar, color, false);
 				});
 	}
 
@@ -304,11 +260,7 @@ public class ObjectHighlightRenderer
 				color = cached.getObjectivesColorCurrentLap();
 			}
 
-			String label = cached.isShowIDs()
-					? buildObjectLabelWithImpostorInfo(portalObject, "Portal")
-					: null;
-
-			renderGameObjectWithHighlight(graphics, portalObject, color, true, label);
+			renderGameObjectWithHighlight(graphics, portalObject, color, true);
 		}
 	}
 
@@ -346,7 +298,7 @@ public class ObjectHighlightRenderer
 		GameObject rumObjectAtLocation = RenderingUtils.findGameObjectAtWorldPoint(client, rumLocationPoint);
 		if (rumObjectAtLocation != null)
 		{
-			renderGameObjectWithHighlight(graphics, rumObjectAtLocation, highlightColor, true, null);
+			renderGameObjectWithHighlight(graphics, rumObjectAtLocation, highlightColor, true);
 		}
 		else
 		{
@@ -354,7 +306,7 @@ public class ObjectHighlightRenderer
 		}
 	}
 
-	private void renderGameObjectWithHighlight(Graphics2D graphics, TileObject tileObject, Color highlightColor, boolean shouldHighlightTile, String debugLabel)
+	private void renderGameObjectWithHighlight(Graphics2D graphics, TileObject tileObject, Color highlightColor, boolean shouldHighlightTile)
 	{
 		LocalPoint objectLocalPoint = tileObject.getLocalLocation();
 
@@ -375,14 +327,9 @@ public class ObjectHighlightRenderer
 		{
 			renderTileHighlightAtWorldPoint(graphics, tileObject.getWorldLocation(), highlightColor);
 		}
-
-		if (debugLabel != null)
-		{
-			renderLabelAtLocalPoint(graphics, objectLocalPoint, debugLabel, highlightColor, 0);
-		}
 	}
 
-	private void renderNpcWithHighlight(Graphics2D graphics, NPC npc, Color highlightColor, String debugLabel)
+	private void renderNpcWithHighlight(Graphics2D graphics, NPC npc, Color highlightColor)
 	{
 		LocalPoint npcLocalPoint = npc.getLocalLocation();
 		if (npcLocalPoint == null)
@@ -397,12 +344,6 @@ public class ObjectHighlightRenderer
 		}
 
 		modelOutlineRenderer.drawOutline(npc, 2, highlightColor, 4);
-
-		if (debugLabel != null)
-		{
-			int heightOffsetAboveNpc = npc.getLogicalHeight() + 40;
-			renderLabelAtLocalPoint(graphics, npcLocalPoint, debugLabel, highlightColor, heightOffsetAboveNpc);
-		}
 	}
 
 	private void drawTileObjectHull(Graphics2D g, TileObject object, Color borderColor)
@@ -511,77 +452,13 @@ public class ObjectHighlightRenderer
 
 		if (label != null)
 		{
-			Point labelPoint = Perspective.getCanvasTextLocation(client, graphics, tileLocalPoint, "", 30);
+			var labelPoint = Perspective.getCanvasTextLocation(client, graphics, tileLocalPoint, "", 30);
 			if (labelPoint != null)
 			{
 				graphics.setColor(highlightColor);
 				graphics.drawString(label, labelPoint.getX(), labelPoint.getY());
 			}
 		}
-	}
-
-	private void renderLabelAtLocalPoint(Graphics2D graphics, LocalPoint localPoint, String labelText, Color labelColor, int heightOffsetInPixels)
-	{
-		Point labelCanvasPoint = Perspective.getCanvasTextLocation(client, graphics, localPoint, labelText, heightOffsetInPixels);
-		if (labelCanvasPoint != null)
-		{
-			int yOffsetToAvoidLabelOverlap = calculateAndIncrementLabelOffset(labelCanvasPoint);
-			Point adjustedCanvasPoint = new Point(labelCanvasPoint.getX(), labelCanvasPoint.getY() + yOffsetToAvoidLabelOverlap);
-			OverlayUtil.renderTextLocation(graphics, adjustedCanvasPoint, labelText, labelColor);
-		}
-	}
-
-	private int calculateAndIncrementLabelOffset(Point canvasPoint)
-	{
-		Point roundedCanvasPoint = new Point(
-				(canvasPoint.getX() / 10) * 10,
-				(canvasPoint.getY() / 10) * 10
-		);
-
-		int existingLabelCount = labelCountsByCanvasPosition.getOrDefault(roundedCanvasPoint, 0);
-		labelCountsByCanvasPosition.put(roundedCanvasPoint, existingLabelCount + 1);
-
-		int pixelsPerLabel = 15;
-		return existingLabelCount * pixelsPerLabel;
-	}
-
-	private String buildObjectLabelWithImpostorInfo(GameObject gameObject, String typeName)
-	{
-		ObjectComposition comp = client.getObjectDefinition(gameObject.getId());
-
-		String name =
-				typeName != null
-						? typeName
-						: comp != null && comp.getName() != null
-						? comp.getName()
-						: "Unknown";
-
-		WorldPoint wp = gameObject.getWorldLocation();
-		int sceneX = gameObject.getSceneMinLocation().getX();
-		int sceneY = gameObject.getSceneMinLocation().getY();
-
-		StringBuilder sb = new StringBuilder();
-		sb.append(name)
-				.append(" (ID: ").append(gameObject.getId());
-
-		if (comp != null)
-		{
-			int[] ids = comp.getImpostorIds();
-			if (ids != null && ids.length > 0)
-			{
-				ObjectComposition imp = comp.getImpostor();
-				if (imp != null)
-				{
-					sb.append(", Imp: ").append(imp.getId());
-				}
-			}
-		}
-
-		sb.append(", W: ").append(wp.getX()).append("/").append(wp.getY()).append("/").append(wp.getPlane());
-		sb.append(", S: ").append(sceneX).append("/").append(sceneY);
-		sb.append(")");
-
-		return sb.toString();
 	}
 
 	private boolean isRumLocationNextWaypoint(WorldPoint rumLocation)
