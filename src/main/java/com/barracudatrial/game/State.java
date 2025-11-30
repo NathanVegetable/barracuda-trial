@@ -3,7 +3,6 @@ package com.barracudatrial.game;
 import com.barracudatrial.game.route.Difficulty;
 import com.barracudatrial.game.route.RouteWaypoint;
 import com.barracudatrial.game.route.TrialConfig;
-import com.barracudatrial.game.route.TrialType;
 
 import lombok.Getter;
 import lombok.Setter;

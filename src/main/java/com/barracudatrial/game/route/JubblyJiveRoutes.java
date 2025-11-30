@@ -6,7 +6,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import static com.barracudatrial.game.route.JubblyJiveConfig.TOAD_PICKUP_LOCATION;
 import static com.barracudatrial.game.route.JubblyJiveConfig.TOAD_PILLARS;

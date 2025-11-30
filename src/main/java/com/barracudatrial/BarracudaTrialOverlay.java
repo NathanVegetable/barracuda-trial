@@ -29,7 +29,7 @@ public class BarracudaTrialOverlay extends Overlay
 	{
 		this.plugin = plugin;
 		this.objectRenderer = new ObjectRenderer(client, plugin, modelOutlineRenderer);
-		this.pathRenderer = new PathRenderer(client, plugin, objectRenderer);
+		this.pathRenderer = new PathRenderer(client, plugin);
 		this.debugRenderer = new DebugRenderer(client, plugin);
 
 		setPosition(OverlayPosition.DYNAMIC);

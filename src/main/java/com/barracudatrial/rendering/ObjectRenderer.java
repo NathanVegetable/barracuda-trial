@@ -1,12 +1,9 @@
 package com.barracudatrial.rendering;
 
 import com.barracudatrial.BarracudaTrialPlugin;
-import com.barracudatrial.CachedConfig;
 import lombok.Setter;
 import net.runelite.api.Client;
-import net.runelite.api.GameObject;
 import net.runelite.api.Point;
-import net.runelite.api.coords.WorldPoint;
 import net.runelite.client.ui.overlay.outline.ModelOutlineRenderer;
 
 import java.awt.*;
@@ -19,7 +16,6 @@ import java.util.Map;
  */
 public class ObjectRenderer
 {
-	private final BarracudaTrialPlugin plugin;
 	private final ObjectHighlightRenderer highlightRenderer;
 	private final BoatZoneRenderer boatZoneRenderer;
 
@@ -28,7 +24,6 @@ public class ObjectRenderer
 
 	public ObjectRenderer(Client client, BarracudaTrialPlugin plugin, ModelOutlineRenderer modelOutlineRenderer)
 	{
-		this.plugin = plugin;
 		this.boatZoneRenderer = new BoatZoneRenderer(client, plugin);
 		this.highlightRenderer = new ObjectHighlightRenderer(client, plugin, modelOutlineRenderer, boatZoneRenderer);
 		this.labelCountsByCanvasPosition = new HashMap<>();

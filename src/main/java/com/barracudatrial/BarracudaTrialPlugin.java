@@ -409,36 +409,6 @@ public class BarracudaTrialPlugin extends Plugin
 		return locationManager.isPointInsideExclusionZone(point);
 	}
 
-	private int getImpostorId(int objectId)
-	{
-		try
-		{
-			ObjectComposition objectComposition = client.getObjectDefinition(objectId);
-			if (objectComposition == null)
-			{
-				return -1;
-			}
-
-			int[] impostorIds = objectComposition.getImpostorIds();
-			if (impostorIds == null)
-			{
-				return -1;
-			}
-
-			ObjectComposition activeImpostor = objectComposition.getImpostor();
-			if (activeImpostor != null)
-			{
-				return activeImpostor.getId();
-			}
-
-			return -1;
-		}
-		catch (Exception e)
-		{
-			return -1;
-		}
-	}
-
 	/**
 	 * Gets the boat/entity world location for an object at the given scene coordinates.
 	 * Objects on boats have scene-local coordinates that shift as the boat moves.

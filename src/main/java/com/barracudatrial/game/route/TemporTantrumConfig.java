@@ -6,7 +6,6 @@ import net.runelite.api.gameval.ObjectID;
 
 import java.util.List;
 import java.util.Set;
-import java.util.regex.Pattern;
 
 public class TemporTantrumConfig implements TrialConfig
 {

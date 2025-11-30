@@ -3,7 +3,6 @@ package com.barracudatrial.rendering;
 import com.barracudatrial.CachedConfig;
 import com.barracudatrial.BarracudaTrialPlugin;
 import com.barracudatrial.game.route.RouteWaypoint;
-import com.barracudatrial.pathfinding.BarracudaTileCostCalculator;
 import lombok.RequiredArgsConstructor;
 import net.runelite.api.Client;
 import net.runelite.api.Perspective;
@@ -20,7 +19,6 @@ import java.awt.Graphics2D;
 import java.awt.geom.Path2D;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -29,7 +27,6 @@ public class PathRenderer
 {
 	private final Client client;
 	private final BarracudaTrialPlugin plugin;
-	private final ObjectRenderer objectRenderer;
 
 	public void renderOptimalPath(Graphics2D graphics)
 	{

@@ -6,7 +6,6 @@ import com.barracudatrial.pathfinding.AStarPathfinder;
 import com.barracudatrial.pathfinding.BarracudaTileCostCalculator;
 import com.barracudatrial.pathfinding.PathResult;
 import com.barracudatrial.pathfinding.PathStabilizer;
-import com.barracudatrial.rendering.ObjectRenderer;
 import com.barracudatrial.rendering.RenderingUtils;
 
 import lombok.extern.slf4j.Slf4j;

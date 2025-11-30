@@ -1,6 +1,5 @@
 package com.barracudatrial.rendering;
 
-import com.barracudatrial.CachedConfig;
 import com.barracudatrial.BarracudaTrialPlugin;
 import com.barracudatrial.game.route.JubblyJiveConfig;
 import com.barracudatrial.game.route.TemporTantrumConfig;
@@ -11,18 +10,14 @@ import net.runelite.api.*;
 import net.runelite.api.coords.LocalPoint;
 import net.runelite.api.coords.WorldPoint;
 import net.runelite.client.ui.overlay.OverlayUtil;
-import net.runelite.client.ui.overlay.outline.ModelOutlineRenderer;
-
 import java.awt.Color;
 import java.awt.Font;
 import java.awt.Graphics2D;
 import java.awt.Polygon;
 import java.awt.geom.Rectangle2D;
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 @RequiredArgsConstructor
 public class DebugRenderer
@@ -331,54 +326,4 @@ public class DebugRenderer
 			debugLines.add("Return (N): null");
 		}
 	}
-
-	private int calculateAndIncrementLabelOffset(Point canvasPoint)
-	{
-		Point roundedCanvasPoint = new Point(
-			(canvasPoint.getX() / 10) * 10,
-			(canvasPoint.getY() / 10) * 10
-		);
-
-		int existingLabelCount = labelCountsByCanvasPosition.getOrDefault(roundedCanvasPoint, 0);
-		labelCountsByCanvasPosition.put(roundedCanvasPoint, existingLabelCount + 1);
-
-		int pixelsPerLabel = 15;
-		return existingLabelCount * pixelsPerLabel;
-	}
-
-	private String buildObjectLabelWithImpostorInfo(GameObject gameObject)
-	{
-		ObjectComposition objectComposition = client.getObjectDefinition(gameObject.getId());
-
-		String displayName;
-		if (objectComposition != null && objectComposition.getName() != null)
-		{
-			displayName = objectComposition.getName();
-		}
-		else
-		{
-			displayName = "Unknown";
-		}
-
-		StringBuilder labelBuilder = new StringBuilder();
-		labelBuilder.append(displayName).append(" (ID: ").append(gameObject.getId());
-
-		if (objectComposition != null)
-		{
-			int[] impostorIds = objectComposition.getImpostorIds();
-			boolean hasImpostorIds = (impostorIds != null && impostorIds.length > 0);
-			if (hasImpostorIds)
-			{
-				ObjectComposition impostorComposition = objectComposition.getImpostor();
-				if (impostorComposition != null)
-				{
-					labelBuilder.append(", Imp: ").append(impostorComposition.getId());
-				}
-			}
-		}
-
-		labelBuilder.append(")");
-		return labelBuilder.toString();
-	}
-
 }
