@@ -47,13 +47,13 @@ public class ObjectTracker
 	{
 		if (!state.isInTrialArea())
 		{
-			state.getLightningClouds().clear();
-			state.getDangerousClouds().clear();
+			state.clearLightningClouds();
+			state.clearDangerousClouds();
 			return;
 		}
 
-		state.getLightningClouds().clear();
-		state.getDangerousClouds().clear();
+		state.clearLightningClouds();
+		state.clearDangerousClouds();
 
 		WorldView topLevelWorldView = client.getTopLevelWorldView();
 		if (topLevelWorldView == null)
@@ -71,17 +71,17 @@ public class ObjectTracker
 			int npcId = npc.getId();
 			if (TemporTantrumConfig.LIGHTNING_CLOUD_NPC_IDS.contains(npcId))
 			{
-				state.getLightningClouds().add(npc);
+				state.addLightningCloud(npc);
 
-				if (!IsCloudSafe(npc.getAnimation()))
+				if (!isCloudSafe(npc.getAnimation()))
 				{
-					state.getDangerousClouds().add(npc);
+					state.addDangerousCloud(npc);
 				}
 			}
 		}
 	}
 
-	public static boolean IsCloudSafe(int animationId)
+	public static boolean isCloudSafe(int animationId)
 	{
 		return animationId == State.CLOUD_ANIM_HARMLESS || animationId == State.CLOUD_ANIM_HARMLESS_ALT;
 	}
@@ -200,7 +200,7 @@ public class ObjectTracker
 								knownToadPillarTiles.addAll(ObjectTracker.getObjectTiles(client, obj));
 							}
 
-							onToadPillarTick(knownToadPillars, obj, matchingToadPillarByParentId);
+							onToadPillarTick(obj, matchingToadPillarByParentId);
 							continue;
 						}
 					}
@@ -209,7 +209,7 @@ public class ObjectTracker
 		}
 	}
 
-	public void onToadPillarTick(Map<WorldPoint, Boolean> knownToadPillars, GameObject newToadPillarObj, JubblyJiveToadPillar toadPillar)
+	public void onToadPillarTick(GameObject newToadPillarObj, JubblyJiveToadPillar toadPillar)
 	{
 		var objectComposition = client.getObjectDefinition(newToadPillarObj.getId());
 		if (objectComposition == null)
@@ -224,7 +224,7 @@ public class ObjectTracker
 			isInteractedWith = impostor.getId() == toadPillar.getClickboxNoopObjectId();
 		}
 
-		var previousIsInteractedWith = knownToadPillars.put(newToadPillarObj.getWorldLocation(), isInteractedWith);
+		var previousIsInteractedWith = state.updateKnownToadPillar(newToadPillarObj.getWorldLocation(), isInteractedWith);
 
 		if (previousIsInteractedWith == null) return; // first time
 		if (previousIsInteractedWith == isInteractedWith) return; // no change

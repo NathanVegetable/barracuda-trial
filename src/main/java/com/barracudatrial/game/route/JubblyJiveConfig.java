@@ -176,11 +176,6 @@ public class JubblyJiveConfig implements TrialConfig
 		return SHIPMENT_IMPOSTOR_ID;
 	}
 
-	public WorldPoint getToadPickupLocation()
-	{
-		return TOAD_PICKUP_LOCATION;
-	}
-
 	@Override
 	public List<RouteWaypoint> getRoute(Difficulty difficulty)
 	{

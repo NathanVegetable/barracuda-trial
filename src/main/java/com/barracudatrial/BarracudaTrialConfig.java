@@ -27,7 +27,7 @@ public interface BarracudaTrialConfig extends Config
 	String objectivesSection = "objectivesSection";
 
 	@ConfigSection(
-		name = "Object Hightlighting",
+		name = "Object Highlighting",
 		description = "Settings for object highlighting",
 		position = 2
 	)

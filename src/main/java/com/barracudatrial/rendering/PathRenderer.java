@@ -423,8 +423,8 @@ public class PathRenderer
 			);
 
 			Color color = completed
-				? new Color(144, 238, 144, 150)   // light green
-				: new Color(255, 255, 153, 150);  // light yellow
+				? new Color(144, 238, 144, 150)  // light green
+				: new Color(255, 255, 153, 150); // light yellow
 
 			RenderingUtils.renderTileHighlightAtWorldPoint(client, graphics, location, color, label);
 		}

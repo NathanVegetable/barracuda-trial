@@ -9,7 +9,7 @@ import lombok.Getter;
 @Getter
 public enum Difficulty
 {
-	SWORDFISH(),
-	SHARK(),
-	MARLIN();
+	SWORDFISH,
+	SHARK,
+	MARLIN
 }

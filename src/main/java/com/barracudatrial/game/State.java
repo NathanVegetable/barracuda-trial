@@ -142,6 +142,76 @@ public class State
 		completedWaypointIndices.clear();
 	}
 
+	public void clearLightningClouds()
+	{
+		lightningClouds.clear();
+	}
+
+	public void addLightningCloud(NPC npc)
+	{
+		lightningClouds.add(npc);
+	}
+
+	public Set<NPC> getLightningClouds()
+	{
+		return Collections.unmodifiableSet(lightningClouds);
+	}
+
+	public void clearDangerousClouds()
+	{
+		dangerousClouds.clear();
+	}
+
+	public void addDangerousCloud(NPC npc)
+	{
+		dangerousClouds.add(npc);
+	}
+
+	public Set<NPC> getDangerousClouds()
+	{
+		return Collections.unmodifiableSet(dangerousClouds);
+	}
+
+	public Set<GameObject> getSpeedBoosts()
+	{
+		return Collections.unmodifiableSet(speedBoosts);
+	}
+
+	public Set<WorldPoint> getKnownRockLocations()
+	{
+		return Collections.unmodifiableSet(knownRockLocations);
+	}
+
+	public Map<WorldPoint, List<WorldPoint>> getKnownSpeedBoostLocations()
+	{
+		return Collections.unmodifiableMap(knownSpeedBoostLocations);
+	}
+
+	public Set<WorldPoint> getKnownFetidPoolLocations()
+	{
+		return Collections.unmodifiableSet(knownFetidPoolLocations);
+	}
+
+	public Set<WorldPoint> getKnownToadPillarLocations()
+	{
+		return Collections.unmodifiableSet(knownToadPillarLocations);
+	}
+
+	public Map<WorldPoint, Boolean> getKnownToadPillars()
+	{
+		return Collections.unmodifiableMap(knownToadPillars);
+	}
+
+	public Boolean updateKnownToadPillar(WorldPoint location, boolean isInteractedWith)
+	{
+		return knownToadPillars.put(location, isInteractedWith);
+	}
+
+	public Set<Integer> getCompletedWaypointIndices()
+	{
+		return Collections.unmodifiableSet(completedWaypointIndices);
+	}
+
 	public void markWaypointCompleted(int waypointIndex)
 	{
 		completedWaypointIndices.add(waypointIndex);

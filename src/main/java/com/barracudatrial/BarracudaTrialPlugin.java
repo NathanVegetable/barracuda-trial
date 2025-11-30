@@ -315,11 +315,6 @@ public class BarracudaTrialPlugin extends Plugin
 		}
 	}
 
-	public boolean isPointInExclusionZone(WorldPoint point)
-	{
-		return locationManager.isPointInsideExclusionZone(point);
-	}
-
 	private void checkPortalExitProximity()
 	{
 		var route = gameState.getCurrentStaticRoute();

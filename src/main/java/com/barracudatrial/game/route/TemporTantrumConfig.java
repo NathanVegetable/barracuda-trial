@@ -90,16 +90,6 @@ public class TemporTantrumConfig implements TrialConfig
 		return SHIPMENT_IMPOSTOR_ID;
 	}
 
-	public WorldPoint getRumPickupLocation()
-	{
-		return RUM_PICKUP_LOCATION;
-	}
-
-	public WorldPoint getRumDropoffLocation()
-	{
-		return RUM_DROPOFF_LOCATION;
-	}
-
 	@Override
 	public List<RouteWaypoint> getRoute(Difficulty difficulty)
 	{

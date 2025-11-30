@@ -155,7 +155,7 @@ public class ObjectHighlightRenderer
 		{
 			int currentAnimation = cloudNpc.getAnimation();
 
-			boolean isCloudSafe = ObjectTracker.IsCloudSafe(currentAnimation);
+			boolean isCloudSafe = ObjectTracker.isCloudSafe(currentAnimation);
 			if (isCloudSafe)
 			{
 				continue;
