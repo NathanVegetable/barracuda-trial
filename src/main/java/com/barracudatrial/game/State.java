@@ -78,13 +78,7 @@ public class State
 	private int currentLap = 1;
 
 	@Setter
-	private List<WorldPoint> optimalPath = new ArrayList<>();
-
-	@Setter
-	private List<WorldPoint> currentSegmentPath = new ArrayList<>();
-
-	@Setter
-	private List<WorldPoint> nextSegmentPath = new ArrayList<>();
+	private List<WorldPoint> path = new ArrayList<>();
 
 	@Setter
 	private String lastPathRecalcCaller = "none";
@@ -138,9 +132,7 @@ public class State
 		hasThrowableObjective = false;
 		boatLocation = null;
 		currentLap = 1;
-		optimalPath = new ArrayList<>();
-		currentSegmentPath = new ArrayList<>();
-		nextSegmentPath = new ArrayList<>();
+		path = new ArrayList<>();
 		ticksSinceLastPathRecalc = 0;
 		exclusionZoneMinX = 0;
 		exclusionZoneMaxX = 0;

@@ -16,6 +16,7 @@ import net.runelite.api.coords.LocalPoint;
 import net.runelite.api.coords.WorldPoint;
 
 import java.util.*;
+import java.util.function.Predicate;
 
 @Slf4j
 public class PathPlanner
@@ -47,9 +48,7 @@ public class PathPlanner
 
 		if (!state.isInTrialArea())
 		{
-			state.getOptimalPath().clear();
-			state.getCurrentSegmentPath().clear();
-			state.getNextSegmentPath().clear();
+			state.getPath().clear();
 			return;
 		}
 
@@ -75,18 +74,14 @@ public class PathPlanner
 
 		if (nextWaypoints.isEmpty())
 		{
-			state.setCurrentSegmentPath(new ArrayList<>());
-			state.setNextSegmentPath(new ArrayList<>());
-			state.setOptimalPath(new ArrayList<>());
+			state.setPath(new ArrayList<>());
 			log.debug("No uncompleted waypoints found in static route");
 			return;
 		}
 
 		List<WorldPoint> fullPath = pathThroughMultipleWaypoints(playerBoatLocation, nextWaypoints);
 
-		state.setCurrentSegmentPath(fullPath);
-		state.setOptimalPath(new ArrayList<>(fullPath));
-		state.setNextSegmentPath(new ArrayList<>());
+		state.setPath(fullPath);
 
 		log.debug("Pathing through {} waypoints starting at index {}", nextWaypoints.size(), state.getNextNavigatableWaypointIndex());
 	}
@@ -827,7 +822,7 @@ public class PathPlanner
 	 * @param isValid Function that returns true if a candidate point is valid
 	 * @return The furthest valid point toward target, or start if none found
 	 */
-	private static WorldPoint findNearestValidPoint(WorldPoint start, WorldPoint target, java.util.function.Predicate<WorldPoint> isValid)
+	private static WorldPoint findNearestValidPoint(WorldPoint start, WorldPoint target, Predicate<WorldPoint> isValid)
 	{
 		int dx = target.getX() - start.getX();
 		int dy = target.getY() - start.getY();

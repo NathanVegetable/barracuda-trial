@@ -271,9 +271,7 @@ public class BarracudaTrialPlugin extends Plugin
 							log.info("Advanced to lap {} (portal enter)", waypoint.getLap());
 						}
 
-						gameState.getOptimalPath().clear();
-						gameState.getCurrentSegmentPath().clear();
-						gameState.getNextSegmentPath().clear();
+						gameState.getPath().clear();
 						log.debug("Cleared path during portal transition");
 
 						break;

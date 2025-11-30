@@ -31,8 +31,8 @@ public class PathRenderer
 	public void renderOptimalPath(Graphics2D graphics)
 	{
 		CachedConfig cachedConfig = plugin.getCachedConfig();
-		List<WorldPoint> currentSegmentPath = plugin.getGameState().getCurrentSegmentPath();
-		if (currentSegmentPath.isEmpty())
+		List<WorldPoint> path = plugin.getGameState().getPath();
+		if (path.isEmpty())
 		{
 			return;
 		}
@@ -47,7 +47,7 @@ public class PathRenderer
 
 		// Trim the path to start from the closest point to our visual position
 		// This prevents visual lag when the pathfinding position is behind the rendering position
-		List<WorldPoint> trimmedPath = getTrimmedPathForRendering(visualFrontPositionTransformed, currentSegmentPath);
+		List<WorldPoint> trimmedPath = getTrimmedPathForRendering(visualFrontPositionTransformed, path);
 
 		drawSmoothPathWithBezier(graphics, trimmedPath, visualFrontPositionTransformed);
 		renderWindCatcherHighlights(graphics);
@@ -406,7 +406,7 @@ public class PathRenderer
 		}
 
 		Set<Integer> completedIndices = plugin.getGameState().getCompletedWaypointIndices();
-		List<WorldPoint> currentPath = plugin.getGameState().getCurrentSegmentPath();
+		List<WorldPoint> currentPath = plugin.getGameState().getPath();
 
 		// Render all waypoints with their information
 		for (int i = 0; i < staticRoute.size(); i++)
