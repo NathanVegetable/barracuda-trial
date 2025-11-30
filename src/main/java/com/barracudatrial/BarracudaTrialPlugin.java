@@ -4,10 +4,14 @@ import com.barracudatrial.game.*;
 import com.barracudatrial.game.route.Difficulty;
 import com.barracudatrial.game.route.RouteWaypoint;
 import com.barracudatrial.game.route.TrialType;
+import com.barracudatrial.ui.EditableWaypoint;
+import com.barracudatrial.ui.RouteEditorPanel;
 import com.google.inject.Provides;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.*;
+import net.runelite.api.Menu;
+import net.runelite.api.Point;
 import net.runelite.api.coords.WorldPoint;
 import net.runelite.api.events.*;
 import net.runelite.client.config.ConfigManager;
@@ -15,10 +19,17 @@ import net.runelite.client.eventbus.Subscribe;
 import net.runelite.client.events.ConfigChanged;
 import net.runelite.client.plugins.Plugin;
 import net.runelite.client.plugins.PluginDescriptor;
+import net.runelite.client.ui.ClientToolbar;
+import net.runelite.client.ui.NavigationButton;
 import net.runelite.client.ui.overlay.OverlayManager;
+import net.runelite.client.util.ImageUtil;
 
 import javax.inject.Inject;
+import javax.swing.*;
+import java.awt.*;
+import java.awt.image.BufferedImage;
 import java.util.List;
+import java.util.Objects;
 
 @Slf4j
 @PluginDescriptor(
@@ -40,6 +51,9 @@ public class BarracudaTrialPlugin extends Plugin
 	@Inject
 	private BarracudaTrialOverlay overlay;
 
+	@Inject
+	private ClientToolbar clientToolbar;
+
 	@Getter
 	private final State gameState = new State();
 
@@ -50,6 +64,14 @@ public class BarracudaTrialPlugin extends Plugin
 	private LocationManager locationManager;
 	private ProgressTracker progressTracker;
 	private PathPlanner pathPlanner;
+
+	@Getter
+	private RouteCapture routeCapture;
+
+	// Route Editor UI
+	private RouteEditorPanel routeEditorPanel;
+	private NavigationButton navButton;
+	private com.barracudatrial.ui.RouteEditorOverlay routeEditorOverlay;
 
 	@Override
 	protected void startUp() throws Exception
@@ -63,6 +85,36 @@ public class BarracudaTrialPlugin extends Plugin
 		locationManager = new LocationManager(client, gameState);
 		progressTracker = new ProgressTracker(client, gameState);
 		pathPlanner = new PathPlanner(client, gameState, cachedConfig);
+		routeCapture = new RouteCapture(gameState);
+
+		// Setup Route Editor Panel
+		routeEditorPanel = new RouteEditorPanel();
+		setupRouteEditorIntegration();
+		routeEditorOverlay = new com.barracudatrial.ui.RouteEditorOverlay(client, routeEditorPanel);
+		overlayManager.add(routeEditorOverlay);
+
+		try {
+			final BufferedImage icon = ImageUtil.loadImageResource(getClass(), "/icon.png");
+			navButton = NavigationButton.builder()
+				.tooltip("Barracuda Route Editor")
+				.icon(icon)
+				.priority(5)
+				.panel(routeEditorPanel)
+				.build();
+			clientToolbar.addNavigation(navButton);
+		} catch (Exception e) {
+			log.warn("Could not load route editor icon, creating simple panel", e);
+			// Create icon if resource not found - simple colored square
+			BufferedImage icon = new BufferedImage(16, 16, BufferedImage.TYPE_INT_ARGB);
+			navButton = NavigationButton.builder()
+				.tooltip("Barracuda Route Editor")
+				.icon(icon)
+				.priority(5)
+				.panel(routeEditorPanel)
+				.build();
+			clientToolbar.addNavigation(navButton);
+		}
+		log.info("Route Editor panel registered - right-click tiles in-game to add waypoints");
 	}
 
 	@Override
@@ -73,6 +125,17 @@ public class BarracudaTrialPlugin extends Plugin
 		gameState.resetAllTemporaryState();
 		pathPlanner.reset();
 		gameState.clearPersistentStorage();
+
+		// Remove Route Editor Panel and Overlay
+		if (navButton != null) {
+			clientToolbar.removeNavigation(navButton);
+		}
+		if (routeEditorOverlay != null) {
+			overlayManager.remove(routeEditorOverlay);
+		}
+		routeEditorPanel = null;
+		routeEditorOverlay = null;
+		navButton = null;
 	}
 
 	@Subscribe
@@ -119,6 +182,10 @@ public class BarracudaTrialPlugin extends Plugin
 			boolean shipmentsCollected = objectTracker.updateRouteWaypointShipmentTracking();
 			if (shipmentsCollected)
 			{
+				if (routeEditorPanel != null)
+				{
+					SwingUtilities.invokeLater(() -> routeEditorPanel.refreshDisplay());
+				}
 				pathPlanner.recalculateOptimalPathFromCurrentState("shipment collected");
 			}
 
@@ -177,6 +244,10 @@ public class BarracudaTrialPlugin extends Plugin
 					{
 						gameState.markWaypointCompleted(i);
 						log.info("Marked RUM_PICKUP waypoint as completed at index {}: {}", i, waypoint.getLocation());
+						if (routeEditorPanel != null)
+						{
+							SwingUtilities.invokeLater(() -> routeEditorPanel.refreshDisplay());
+						}
 						break;
 					}
 				}
@@ -201,6 +272,10 @@ public class BarracudaTrialPlugin extends Plugin
 					{
 						gameState.markWaypointCompleted(i);
 						log.info("Marked RUM_DROPOFF waypoint as completed at index {}: {}", i, waypoint.getLocation());
+						if (routeEditorPanel != null)
+						{
+							SwingUtilities.invokeLater(() -> routeEditorPanel.refreshDisplay());
+						}
 						break;
 					}
 				}
@@ -249,6 +324,10 @@ public class BarracudaTrialPlugin extends Plugin
 					{
 						gameState.markWaypointCompleted(i);
 						log.info("Marked TOAD_PICKUP waypoint as completed at index {}: {}", i, waypoint.getLocation());
+						if (routeEditorPanel != null)
+						{
+							SwingUtilities.invokeLater(() -> routeEditorPanel.refreshDisplay());
+						}
 						break;
 					}
 				}
@@ -273,6 +352,17 @@ public class BarracudaTrialPlugin extends Plugin
 					{
 						gameState.markWaypointCompleted(i);
 						log.info("Marked PORTAL_ENTER waypoint as completed at index {}: {}", i, waypoint.getLocation());
+
+						if (waypoint.getLap() > gameState.getCurrentLap())
+						{
+							gameState.setCurrentLap(waypoint.getLap());
+							log.info("Advanced to lap {} (portal enter)", waypoint.getLap());
+						}
+
+						if (routeEditorPanel != null)
+						{
+							SwingUtilities.invokeLater(() -> routeEditorPanel.refreshDisplay());
+						}
 
 						gameState.getOptimalPath().clear();
 						gameState.getCurrentSegmentPath().clear();
@@ -412,6 +502,202 @@ public class BarracudaTrialPlugin extends Plugin
 	public boolean isPointInExclusionZone(WorldPoint point)
 	{
 		return locationManager.isPointInsideExclusionZone(point);
+	}
+
+	private int getImpostorId(int objectId)
+	{
+		try
+		{
+			ObjectComposition objectComposition = client.getObjectDefinition(objectId);
+			if (objectComposition == null)
+			{
+				return -1;
+			}
+
+			int[] impostorIds = objectComposition.getImpostorIds();
+			if (impostorIds == null)
+			{
+				return -1;
+			}
+
+			ObjectComposition activeImpostor = objectComposition.getImpostor();
+			if (activeImpostor != null)
+			{
+				return activeImpostor.getId();
+			}
+
+			return -1;
+		}
+		catch (Exception e)
+		{
+			return -1;
+		}
+	}
+
+	@Subscribe
+	public void onMenuEntryAdded(final MenuEntryAdded event)
+	{
+		// Only add route editor menu when panel exists
+		if (routeEditorPanel == null) {
+			return;
+		}
+
+		final MenuEntry menuEntry = event.getMenuEntry();
+		if (!Objects.equals(menuEntry.getOption(), "Walk here") && !Objects.equals(menuEntry.getOption(), "Set heading")) {
+			return;
+		}
+
+		final Menu menu = client.getMenu();
+		Point mousePos = client.getMouseCanvasPosition();
+		Scene scene = client.getScene();
+		Tile[][][] tiles = scene.getTiles();
+
+		int z = client.getPlane();
+		WorldPoint wp = null;
+
+		for (int x = 0; x < Constants.SCENE_SIZE; ++x)
+		{
+			for (int y = 0; y < Constants.SCENE_SIZE; ++y)
+			{
+				Tile tile = tiles[z][x][y];
+				if (tile == null) {
+					continue;
+				}
+
+				Polygon poly = Perspective.getCanvasTilePoly(client, tile.getLocalLocation());
+				if (poly != null && poly.contains(mousePos.getX(), mousePos.getY()))
+				{
+					wp = tile.getWorldLocation();
+					break;
+				}
+			}
+		}
+
+		if (wp != null)
+		{
+			WorldPoint finalWp = wp;
+
+			// Add "Add Wind Catcher" menu entry
+			menu.createMenuEntry(-1)
+				.setOption("Add Wind Catcher")
+				.setTarget("")
+				.setType(MenuAction.RUNELITE)
+				.onClick(e -> {
+					log.info("Adding wind catcher waypoint at {}", finalWp);
+					int defaultLap = routeEditorPanel.getDefaultLapForNewWaypoint();
+					EditableWaypoint waypoint = new EditableWaypoint(finalWp, RouteWaypoint.WaypointType.USE_WIND_CATCHER, defaultLap, null);
+					SwingUtilities.invokeLater(() -> routeEditorPanel.addWaypoint(waypoint));
+				});
+
+			// Add "Add Pathfinding Hint" menu entry
+			menu.createMenuEntry(-1)
+				.setOption("Add Pathfinding Hint")
+				.setTarget("")
+				.setType(MenuAction.RUNELITE)
+				.onClick(e -> {
+					log.info("Adding pathfinding hint at {}", finalWp);
+					int defaultLap = routeEditorPanel.getDefaultLapForNewWaypoint();
+					EditableWaypoint waypoint = new EditableWaypoint(finalWp, RouteWaypoint.WaypointType.PATHFINDING_HINT, defaultLap, null);
+					SwingUtilities.invokeLater(() -> routeEditorPanel.addWaypoint(waypoint));
+				});
+
+			// Add "Add Waypoint" menu entry (with smart detection)
+			menu.createMenuEntry(-1)
+				.setOption("Add Waypoint")
+				.setTarget("")
+				.setType(MenuAction.RUNELITE)
+				.onClick(e -> {
+					log.info("Adding waypoint at {}", finalWp);
+
+					// Smart detection: check for objects on this tile
+					RouteEditorPanel.DetectionResult detected = new RouteEditorPanel.DetectionResult(RouteWaypoint.WaypointType.SHIPMENT);
+					int defaultLap = routeEditorPanel.getDefaultLapForNewWaypoint();
+
+					Scene scene2 = client.getScene();
+					if (scene2 != null)
+					{
+						Tile[][][] tiles2 = scene2.getTiles();
+						int sceneX = finalWp.getX() - scene2.getBaseX();
+						int sceneY = finalWp.getY() - scene2.getBaseY();
+						int plane = finalWp.getPlane();
+
+						if (sceneX >= 0 && sceneX < 104 && sceneY >= 0 && sceneY < 104)
+						{
+							Tile tile = tiles2[plane][sceneX][sceneY];
+							if (tile != null)
+							{
+								for (GameObject obj : tile.getGameObjects())
+								{
+									if (obj != null)
+									{
+										int objectId = obj.getId();
+										int impostorId = getImpostorId(objectId);
+										detected = RouteEditorPanel.detectWaypointType(objectId, impostorId);
+										log.info("Detected object ID {} (impostor: {}) -> type: {} note: {}",
+											objectId, impostorId, detected.type, detected.note);
+										break; // Use first object found
+									}
+								}
+							}
+						}
+					}
+
+					RouteEditorPanel.DetectionResult finalDetected = detected;
+					EditableWaypoint waypoint = new EditableWaypoint(finalWp, finalDetected.type, defaultLap, finalDetected.note);
+					SwingUtilities.invokeLater(() -> routeEditorPanel.addWaypoint(waypoint));
+				});
+		}
+	}
+
+	/**
+	 * Sets up the integration between the route editor and the pathfinding system
+	 */
+	private void setupRouteEditorIntegration()
+	{
+		// Pass game state reference to the panel for completion tracking
+		routeEditorPanel.setGameState(gameState);
+
+		// Set up the callback for the "Load Static Route" button
+		routeEditorPanel.setLoadRouteCallback(this::loadCurrentRouteIntoEditor);
+
+		// Set up the listener for when the route is edited
+		routeEditorPanel.setRouteChangeListener(newRoute -> {
+			log.info("Route editor changed - updating static route with {} waypoints", newRoute.size());
+
+			// Update the game state with the new route
+			gameState.setCurrentStaticRoute(newRoute);
+
+			// Note: Completion indices are managed by the RouteEditorPanel when
+			// waypoints are added/deleted/reordered. We don't reset them here.
+
+			// Force a path recalculation through the path planner
+			if (gameState.isInTrialArea() && cachedConfig.isShowOptimalPath())
+			{
+				pathPlanner.recalculateOptimalPathFromCurrentState("route editor: route modified");
+			}
+		});
+	}
+
+	/**
+	 * Loads the current static route into the route editor
+	 */
+	private void loadCurrentRouteIntoEditor()
+	{
+		var route = gameState.getCurrentStaticRoute();
+		if (route == null || route.isEmpty())
+		{
+			log.warn("No static route loaded in game state - cannot load into editor");
+			javax.swing.JOptionPane.showMessageDialog(
+				routeEditorPanel,
+				"No static route is currently loaded!\nEnter a trial area first.",
+				"No Route Loaded",
+				javax.swing.JOptionPane.WARNING_MESSAGE
+			);
+			return;
+		}
+
+		routeEditorPanel.loadRoute(route);
+		log.info("Loaded current static route into editor ({} waypoints)", route.size());
 	}
 
 	/**
@@ -570,6 +856,17 @@ public class BarracudaTrialPlugin extends Plugin
 				{
 					gameState.markWaypointCompleted(i + 1);
 					log.info("Marked PORTAL_EXIT waypoint as completed at index {} (distance: {}): {}", i + 1, distance, nextWaypoint.getLocation());
+
+					if (nextWaypoint.getLap() > gameState.getCurrentLap())
+					{
+						gameState.setCurrentLap(nextWaypoint.getLap());
+						log.info("Advanced to lap {} (portal exit)", nextWaypoint.getLap());
+					}
+
+					if (routeEditorPanel != null)
+					{
+						SwingUtilities.invokeLater(() -> routeEditorPanel.refreshDisplay());
+					}
 
 					pathPlanner.recalculateOptimalPathFromCurrentState("portal exit proximity");
 					return;
