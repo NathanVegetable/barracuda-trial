@@ -220,8 +220,8 @@ public class ObjectTracker
 		var impostorIds = objectComposition.getImpostorIds();
 		if (impostorIds != null)
 		{
-			var imposter = objectComposition.getImpostor();
-			isInteractedWith = imposter.getId() == toadPillar.getClickboxNoopObjectId();
+			var impostor = objectComposition.getImpostor();
+			isInteractedWith = impostor.getId() == toadPillar.getClickboxNoopObjectId();
 		}
 
 		var previousIsInteractedWith = knownToadPillars.put(newToadPillarObj.getWorldLocation(), isInteractedWith);
@@ -274,7 +274,7 @@ public class ObjectTracker
 			return;
 		}
 
-		log.warn("Couldn't find a match to update! That seems wrong - how did we update the imposter without it being in the list?");
+		log.warn("Couldn't find a match to update! That seems wrong - how did we update the impostor without it being in the list?");
 	}
 
 	/**
@@ -327,9 +327,8 @@ public class ObjectTracker
 
 			if (hasBaseShipmentButNoImpostor(scene, location))
 			{
-				state.markWaypointCompleted(i);
 				anyCollected = true;
-				log.debug("Shipment collected at route waypoint index {}: {}", i, location);
+				log.info("Shipment collected at route waypoint index {}: {}", i, location);
 			}
 		}
 
@@ -384,12 +383,33 @@ public class ObjectTracker
 
 			int objectId = gameObject.getId();
 
-			if (shipmentIds.contains(objectId))
+			if (!shipmentIds.contains(objectId))
 			{
-				hasBaseShipment = true;
+				continue;
 			}
 
-			if (objectId == shipmentImpostorId)
+			hasBaseShipment = true;
+
+			var objectComposition = client.getObjectDefinition(objectId);
+			if (objectComposition == null)
+			{
+				continue;
+			}
+
+			var impostorIds = objectComposition.getImpostorIds();
+			if (impostorIds == null)
+			{
+				continue;
+			}
+
+			var impostor = objectComposition.getImpostor();
+			if (impostor == null)
+			{
+				continue;
+			}
+
+			var impostorId = impostor.getId();
+			if (impostorId == shipmentImpostorId)
 			{
 				hasImpostor = true;
 			}
