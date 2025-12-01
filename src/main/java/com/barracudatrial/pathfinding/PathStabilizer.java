@@ -50,16 +50,6 @@ public class PathStabilizer
 		this.activePathsByGoal = new HashMap<>();
 	}
 
-	/**
-	 * Returns the cost ratio threshold for switching paths.
-	 * Lower = more stable (harder to switch). 0.90 = new path must be 10% better, 0.60 = 40% better.
-	 * Prevents path thrashing from minor optimizations.
-	 */
-	private double getSwitchCostRatio(RouteOptimization optimization)
-	{
-		return optimization == RouteOptimization.EFFICIENT ? 0.85 : 0.70;
-	}
-
 	public PathResult findPath(BarracudaTileCostCalculator costCalculator, RouteOptimization routeOptimization, WorldPoint start, WorldPoint goal, int maxSearchDistance,
 	                                  int boatDirectionDx, int boatDirectionDy, int goalTolerance, boolean isPlayerCurrentlyOnPath)
 	{
@@ -166,9 +156,7 @@ public class PathStabilizer
 		int closestIndex = findClosestPointOnPath(start, activePathResult.getPath());
 		double oldRemainingCost = activePathResult.getCostFromIndex(closestIndex);
 
-		double switchCostRatio = getSwitchCostRatio(routeOptimization);
-
-		return newCost <= switchCostRatio * oldRemainingCost;
+		return newCost <= routeOptimization.getSwitchCostRatio() * oldRemainingCost;
 	}
 
 	private boolean doesPathIntersectNewDangerZones(PathResult pathResult, int fromIndex, Set<WorldPoint> oldDangerZones, Set<WorldPoint> currentDangerZones)

@@ -130,11 +130,11 @@ public class BarracudaTrialPlugin extends Plugin
 
 		if (cachedConfig.isShowOptimalPath())
 		{
-			// Recalculate path periodically to account for moving clouds
 			int ticksSinceLastPathRecalculation = gameState.getTicksSinceLastPathRecalc() + 1;
 			gameState.setTicksSinceLastPathRecalc(ticksSinceLastPathRecalculation);
 
-			if (ticksSinceLastPathRecalculation >= State.PATH_RECALC_INTERVAL)
+			int recalcInterval = cachedConfig.getRouteOptimization().getPathRecalcIntervalTicks();
+			if (ticksSinceLastPathRecalculation >= recalcInterval)
 			{
 				gameState.setTicksSinceLastPathRecalc(0);
 				pathPlanner.recalculateOptimalPathFromCurrentState("periodic (game tick)");

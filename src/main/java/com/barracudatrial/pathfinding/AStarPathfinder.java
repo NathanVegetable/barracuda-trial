@@ -200,7 +200,7 @@ public class AStarPathfinder
 		}
 
 		var angle = absDelta * 15;
-		var baseCost = routeOptimization == RouteOptimization.EFFICIENT ? 1.0 : 2.0;
+		var baseCost = routeOptimization.getTurnPenaltyBase();
 
 		return angle > 105 ? baseCost * 4 : baseCost;
 	}

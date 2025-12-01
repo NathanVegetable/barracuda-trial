@@ -27,8 +27,6 @@ public class State
 	public static final int CLOUD_ANIM_HARMLESS = -1;
 	public static final int CLOUD_ANIM_HARMLESS_ALT = 8879;
 
-	public static final int PATH_RECALC_INTERVAL = 2;
-
 	@Setter
 	private boolean inTrial = false;
 
