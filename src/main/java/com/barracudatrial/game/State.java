@@ -239,6 +239,25 @@ public class State
 	public void markWaypointCompleted(int waypointIndex)
 	{
 		completedWaypointIndices.add(waypointIndex);
+		
+		var route = getCurrentStaticRoute();
+		if (route == null || waypointIndex <= 0)
+		{
+			return;
+		}
+
+		for (int i = waypointIndex - 1; i >= 0; i--)
+		{
+			RouteWaypoint waypoint = route.get(i);
+			if (waypoint.getType().isNonNavigableHelper())
+			{
+				completedWaypointIndices.add(i);
+			}
+			else
+			{
+				break;
+			}
+		}
 	}
 
 	public boolean isWaypointCompleted(int waypointIndex)
