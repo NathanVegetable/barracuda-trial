@@ -2,6 +2,7 @@ package com.barracudatrial;
 
 import com.barracudatrial.game.*;
 import com.barracudatrial.game.route.Difficulty;
+import com.barracudatrial.game.route.RouteWaypoint;
 import com.barracudatrial.game.route.RouteWaypoint.WaypointType;
 import com.barracudatrial.game.route.TrialType;
 import com.google.inject.Provides;
@@ -169,7 +170,7 @@ public class BarracudaTrialPlugin extends Plugin
 				{
 					var waypoint = route.get(i);
 
-					if (waypoint.getType() == com.barracudatrial.game.route.RouteWaypoint.WaypointType.RUM_PICKUP
+					if (waypoint.getType() == RouteWaypoint.WaypointType.RUM_PICKUP
 						&& !gameState.isWaypointCompleted(i))
 					{
 						gameState.markWaypointCompleted(i);
@@ -192,40 +193,19 @@ public class BarracudaTrialPlugin extends Plugin
 			{
 				for (int i = 0; i < route.size(); i++)
 				{
-					com.barracudatrial.game.route.RouteWaypoint waypoint = route.get(i);
-					if (waypoint.getType() == com.barracudatrial.game.route.RouteWaypoint.WaypointType.RUM_DROPOFF
+					RouteWaypoint waypoint = route.get(i);
+					if (waypoint.getType() == RouteWaypoint.WaypointType.RUM_DROPOFF
 						&& !gameState.isWaypointCompleted(i))
 					{
 						gameState.markWaypointCompleted(i);
+						var lap = waypoint.getLap();
+						gameState.setCurrentLap(lap + 1);
 						log.info("Marked RUM_DROPOFF waypoint as completed at index {}: {}", i, waypoint.getLocation());
+						pathPlanner.recalculateOptimalPathFromCurrentState("chat: rum delivered");
 						break;
 					}
 				}
 			}
-
-			var currentDifficulty = State.getCurrentDifficulty(client);
-			var lapsRequired = 
-				currentDifficulty == Difficulty.SWORDFISH
-					? 1
-					: (currentDifficulty == Difficulty.SHARK
-						? 2
-						: 3);
-
-			var nextLapNumber = gameState.getCurrentLap() + 1;
-			var isCompletingFinalLap = lapsRequired == nextLapNumber;
-
-			if (isCompletingFinalLap)
-			{
-				// Reset will be handled by game, no need to reset here
-				log.info("Completed all {} laps!", lapsRequired);
-			}
-			else
-			{
-				gameState.setCurrentLap(nextLapNumber);
-				log.info("Advanced to lap {}/{}", nextLapNumber, lapsRequired);
-			}
-
-			pathPlanner.recalculateOptimalPathFromCurrentState("chat: rum delivered");
 		}
 		else if (chatMessage.contains("balloon toads. Time to lure"))
 		{
@@ -241,7 +221,7 @@ public class BarracudaTrialPlugin extends Plugin
 				{
 					var waypoint = route.get(i);
 
-					if (waypoint.getType() == com.barracudatrial.game.route.RouteWaypoint.WaypointType.TOAD_PICKUP
+					if (waypoint.getType() == RouteWaypoint.WaypointType.TOAD_PICKUP
 						&& !gameState.isWaypointCompleted(i))
 					{
 						gameState.markWaypointCompleted(i);
@@ -265,7 +245,7 @@ public class BarracudaTrialPlugin extends Plugin
 				{
 					var waypoint = route.get(i);
 
-					if (waypoint.getType() == com.barracudatrial.game.route.RouteWaypoint.WaypointType.PORTAL_ENTER
+					if (waypoint.getType() == RouteWaypoint.WaypointType.PORTAL_ENTER
 						&& !gameState.isWaypointCompleted(i))
 					{
 						gameState.markWaypointCompleted(i);
