@@ -2,6 +2,8 @@
 
 A RuneLite plugin for efficient Sailing skill training through Barracuda Trials. Uses A\* pathfinding to calculate optimal routes in real-time, navigating around hazards while maximizing speed boosts.
 
+Supports all three trials across all three difficulties.
+
 ![Barracuda Trial Example](docs/barracuda_trial_example.png)
 
 ## Features
@@ -34,10 +36,10 @@ https://github.com/user-attachments/assets/776a402f-2dd3-4a0b-8560-02c8fee8a969
 
 ### Gwenith Glide
 
-**Status: Work in Progress**
-
-Initial support added. Routes and waypoint data still need to be captured.
-
 **Supported difficulties:**
 
-- None yet (WIP)
+- Swordfish
+- Shark
+- Marlin
+
+[video tbd]
