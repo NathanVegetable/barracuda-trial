@@ -43,8 +43,8 @@ public class RouteWaypoint
 	public enum WaypointType
 	{
 		SHIPMENT(2),
-		RUM_PICKUP(7),
-		RUM_DROPOFF(7),
+		RUM_PICKUP(9),
+		RUM_DROPOFF(9),
 		TOAD_PICKUP(9),
 		TOAD_PILLAR(10),
 		PORTAL_ENTER(1),
