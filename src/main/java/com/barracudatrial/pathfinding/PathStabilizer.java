@@ -1,7 +1,6 @@
 package com.barracudatrial.pathfinding;
 
 import com.barracudatrial.RouteOptimization;
-import com.barracudatrial.game.route.RouteWaypoint;
 import lombok.Getter;
 import net.runelite.api.coords.WorldPoint;
 
@@ -51,17 +50,7 @@ public class PathStabilizer
 		this.activePathsByGoal = new HashMap<>();
 	}
 
-	/**
-	 * Returns the cost ratio threshold for switching paths.
-	 * Lower = more stable (harder to switch). 0.90 = new path must be 10% better, 0.60 = 40% better.
-	 * Prevents path thrashing from minor optimizations.
-	 */
-	private double getSwitchCostRatio(RouteOptimization optimization)
-	{
-		return optimization == RouteOptimization.EFFICIENT ? 0.85 : 0.70;
-	}
-
-	public PathResult findPath(BarracudaTileCostCalculator costCalculator, RouteOptimization routeOptimization, List<RouteWaypoint> currentStaticRoute, WorldPoint start, WorldPoint goal, int maxSearchDistance,
+	public PathResult findPath(BarracudaTileCostCalculator costCalculator, RouteOptimization routeOptimization, WorldPoint start, WorldPoint goal, int maxSearchDistance,
 	                                  int boatDirectionDx, int boatDirectionDy, int goalTolerance, boolean isPlayerCurrentlyOnPath)
 	{
 		PathResult newPathResult = pathfinder.findPath(costCalculator, routeOptimization, start, goal, maxSearchDistance, boatDirectionDx, boatDirectionDy, goalTolerance);
@@ -70,13 +59,13 @@ public class PathStabilizer
 		StabilizedPath activeStabilizedPath = activePathsByGoal.get(goal);
 		PathResult activePathResult = activeStabilizedPath != null ? activeStabilizedPath.getPathResult() : null;
 
-		if (shouldForceNewPath(activePathResult, newPathResult, goal))
+		if (shouldForceNewPath(activePathResult, newPathResult))
 		{
 			activePathsByGoal.put(goal, new StabilizedPath(newPathResult, currentDangerZones));
 			return newPathResult;
 		}
 
-		if (shouldKeepActivePath(costCalculator, routeOptimization, start, activeStabilizedPath, newPathResult, currentStaticRoute, currentDangerZones, isPlayerCurrentlyOnPath))
+		if (shouldKeepActivePath(routeOptimization, start, activeStabilizedPath, newPathResult, currentDangerZones, isPlayerCurrentlyOnPath))
 		{
 			return getTrimmedPathResult(start, activePathResult);
 		}
@@ -85,7 +74,7 @@ public class PathStabilizer
 		return newPathResult;
 	}
 
-	private boolean shouldForceNewPath(PathResult activePathResult, PathResult newPathResult, WorldPoint goal)
+	private boolean shouldForceNewPath(PathResult activePathResult, PathResult newPathResult)
 	{
 		if (activePathResult == null || activePathResult.getPath().isEmpty())
 		{
@@ -104,15 +93,10 @@ public class PathStabilizer
 
 		var activePathEnd = activePathResult.getPath().get(activePathResult.getPath().size() - 1);
 		var newPathEnd = newPathResult.getPath().get(newPathResult.getPath().size() - 1);
-		if (!activePathEnd.equals(newPathEnd))
-		{
-			return true;
-		}
-
-		return false;
+        return !activePathEnd.equals(newPathEnd);
     }
 
-	private boolean shouldKeepActivePath(BarracudaTileCostCalculator costCalculator, RouteOptimization routeOptimization, WorldPoint start, StabilizedPath activeStabilizedPath, PathResult newPathResult, List<RouteWaypoint> currentStaticRoute, Set<WorldPoint> currentDangerZones, boolean isPlayerCurrentlyOnPath)
+	private boolean shouldKeepActivePath(RouteOptimization routeOptimization, WorldPoint start, StabilizedPath activeStabilizedPath, PathResult newPathResult, Set<WorldPoint> currentDangerZones, boolean isPlayerCurrentlyOnPath)
 	{
 		PathResult activePathResult = activeStabilizedPath.getPathResult();
 
@@ -124,15 +108,15 @@ public class PathStabilizer
 			return false;
 		}
 
-		if (isPlayerCurrentlyOnPath && !isWithinProximityOfPath(start, activePathResult, currentStaticRoute))
+		if (isPlayerCurrentlyOnPath && !isWithinProximityOfPath(start, activePathResult))
 		{
 			return false;
 		}
 
-        return !isNewPathSignificantlyBetter(costCalculator, routeOptimization, start, activePathResult, newPathResult);
+        return !isNewPathSignificantlyBetter(routeOptimization, start, activePathResult, newPathResult);
     }
 
-	private boolean isWithinProximityOfPath(WorldPoint start, PathResult pathResult, List<RouteWaypoint> currentStaticRoute)
+	private boolean isWithinProximityOfPath(WorldPoint start, PathResult pathResult)
 	{
 		var pathNodes = pathResult.getPathNodes();
 		if (pathNodes.isEmpty())
@@ -165,16 +149,14 @@ public class PathStabilizer
 		return minDistance <= tolerance;
 	}
 
-	private boolean isNewPathSignificantlyBetter(BarracudaTileCostCalculator costCalculator, RouteOptimization routeOptimization, WorldPoint start, PathResult activePathResult, PathResult newPathResult)
+	private boolean isNewPathSignificantlyBetter(RouteOptimization routeOptimization, WorldPoint start, PathResult activePathResult, PathResult newPathResult)
 	{
 		double newCost = newPathResult.getCost();
 
 		int closestIndex = findClosestPointOnPath(start, activePathResult.getPath());
 		double oldRemainingCost = activePathResult.getCostFromIndex(closestIndex);
 
-		double switchCostRatio = getSwitchCostRatio(routeOptimization);
-
-		return newCost <= switchCostRatio * oldRemainingCost;
+		return newCost <= routeOptimization.getSwitchCostRatio() * oldRemainingCost;
 	}
 
 	private boolean doesPathIntersectNewDangerZones(PathResult pathResult, int fromIndex, Set<WorldPoint> oldDangerZones, Set<WorldPoint> currentDangerZones)

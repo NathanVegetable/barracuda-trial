@@ -27,18 +27,11 @@ public interface BarracudaTrialConfig extends Config
 	String objectivesSection = "objectivesSection";
 
 	@ConfigSection(
-		name = "Object Hightlighting",
+		name = "Object Highlighting",
 		description = "Settings for object highlighting",
 		position = 2
 	)
 	String objectHighlightingSection = "objectHighlightingSection";
-
-	@ConfigSection(
-		name = "Debug",
-		description = "Debug and development settings",
-		position = 4
-	)
-	String debugSection = "debugSection";
 
 	@ConfigItem(
 		keyName = "showOptimalPath",
@@ -101,6 +94,18 @@ public interface BarracudaTrialConfig extends Config
 	default int pathWidth()
 	{
 		return 2;
+	}
+
+	@ConfigItem(
+		keyName = "showPathTiles",
+		name = "Show Path Tiles",
+		description = "Display detailed information for each waypoint and path tile (type, completion status, coordinates)",
+		section = pathSection,
+		position = 6
+	)
+	default boolean showPathTiles()
+	{
+		return false;
 	}
 
 	@ConfigItem(
@@ -201,7 +206,7 @@ public interface BarracudaTrialConfig extends Config
 	)
 	default boolean highlightClouds()
 	{
-		return true;
+		return false;
 	}
 
 	@ConfigItem(
@@ -228,55 +233,5 @@ public interface BarracudaTrialConfig extends Config
 	default int cloudDangerRadius()
 	{
 		return 2;
-	}
-
-	@ConfigItem(
-		keyName = "highlightFetidPools",
-		name = "Highlight Fetid Pools",
-		description = "Highlight fetid pools",
-		section = objectHighlightingSection,
-		position = 5
-	)
-	default boolean highlightFetidPools()
-	{
-		return false;
-	}
-
-	@ConfigItem(
-		keyName = "fetidPoolColor",
-		name = "Fetid Pool Color",
-		description = "Color for fetid pool highlights",
-		section = objectHighlightingSection,
-		position = 6
-	)
-	@Alpha
-	default Color fetidPoolColor()
-	{
-		return new Color(255, 0, 0, 80);
-	}
-
-	// Debug Settings
-	@ConfigItem(
-		keyName = "debugMode",
-		name = "Debug Mode",
-		description = "Show debug overlays (exclusion zone, all rocks, lap info, supplies counts, performance timings)",
-		section = debugSection,
-		position = 0
-	)
-	default boolean debugMode()
-	{
-		return false;
-	}
-
-	@ConfigItem(
-		keyName = "showIDs",
-		name = "Show IDs",
-		description = "Show object IDs on all game objects (rocks, lost supplies, clouds, etc.)",
-		section = debugSection,
-		position = 1
-	)
-	default boolean showIDs()
-	{
-		return false;
 	}
 }

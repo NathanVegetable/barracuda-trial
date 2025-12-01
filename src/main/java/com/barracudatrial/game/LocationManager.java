@@ -26,7 +26,7 @@ public class LocationManager
 	 */
 	public void updateTemporRumLocations()
 	{
-		if (!state.isInTrialArea())
+		if (!state.isInTrial())
 		{
 			return;
 		}
@@ -229,17 +229,5 @@ public class LocationManager
 
 		log.debug("Exclusion zone: ({}, {}) to ({}, {})",
 			exclusionZoneMinX, exclusionZoneMinY, exclusionZoneMaxX, exclusionZoneMaxY);
-	}
-
-	/**
-	 * Checks if a point is inside the center exclusion zone
-	 * We want to path AROUND this area, never through it
-	 */
-	public boolean isPointInsideExclusionZone(WorldPoint worldPoint)
-	{
-		return worldPoint.getX() >= state.getExclusionZoneMinX()
-			&& worldPoint.getX() <= state.getExclusionZoneMaxX()
-			&& worldPoint.getY() >= state.getExclusionZoneMinY()
-			&& worldPoint.getY() <= state.getExclusionZoneMaxY();
 	}
 }

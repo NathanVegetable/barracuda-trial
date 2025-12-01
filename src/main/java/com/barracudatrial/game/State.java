@@ -3,13 +3,15 @@ package com.barracudatrial.game;
 import com.barracudatrial.game.route.Difficulty;
 import com.barracudatrial.game.route.RouteWaypoint;
 import com.barracudatrial.game.route.TrialConfig;
+
 import lombok.Getter;
 import lombok.Setter;
+import net.runelite.api.Client;
 import net.runelite.api.GameObject;
 import net.runelite.api.NPC;
 import net.runelite.api.coords.LocalPoint;
 import net.runelite.api.coords.WorldPoint;
-import net.runelite.api.gameval.ObjectID;
+import net.runelite.api.gameval.InterfaceID;
 
 import java.util.*;
 
@@ -25,26 +27,14 @@ public class State
 	public static final int CLOUD_ANIM_HARMLESS = -1;
 	public static final int CLOUD_ANIM_HARMLESS_ALT = 8879;
 
-	public static final int PATH_RECALC_INTERVAL = 2;
-
-	public static final int RUM_RETURN_BASE_OBJECT_ID = 59237; // No constant available
-	public static final int RUM_RETURN_IMPOSTOR_ID = ObjectID.SAILING_BT_TEMPOR_TANTRUM_NORTH_LOC_CHILD;
-	public static final int RUM_PICKUP_BASE_OBJECT_ID = 59240; // No constant available
-	public static final int RUM_PICKUP_IMPOSTOR_ID = ObjectID.SAILING_BT_TEMPOR_TANTRUM_SOUTH_LOC_CHILD;
-
 	@Setter
-	private boolean inTrialArea = false;
-
-	private final Set<GameObject> lostSupplies = new HashSet<>();
-
-	@Setter
-	private Set<WorldPoint> routeCaptureSupplyLocations = new HashSet<>();
+	private boolean inTrial = false;
 
 	private final Set<NPC> lightningClouds = new HashSet<>();
 
-	private final Set<GameObject> speedBoosts = new HashSet<>();
+	private final Set<NPC> dangerousClouds = new HashSet<>();
 
-	private final Set<GameObject> fetidPools = new HashSet<>();
+	private final Set<GameObject> speedBoosts = new HashSet<>();
 
 	@Setter
 	private WorldPoint rumPickupLocation = null;
@@ -54,9 +44,6 @@ public class State
 
 	@Setter
 	private int rumsCollected = 0;
-
-	@Setter
-	private int rumsNeeded = 0;
 
 	@Setter
 	private int lostSuppliesCollected = 0;
@@ -71,9 +58,6 @@ public class State
 	private int lastKnownDifficulty = 0;
 
 	@Setter
-	private String currentTrialName = null;
-
-	@Setter
 	private WorldPoint boatLocation = null;
 
 	@Setter
@@ -86,13 +70,7 @@ public class State
 	private int currentLap = 1;
 
 	@Setter
-	private List<WorldPoint> optimalPath = new ArrayList<>();
-
-	@Setter
-	private List<WorldPoint> currentSegmentPath = new ArrayList<>();
-
-	@Setter
-	private List<WorldPoint> nextSegmentPath = new ArrayList<>();
+	private List<WorldPoint> path = new ArrayList<>();
 
 	@Setter
 	private String lastPathRecalcCaller = "none";
@@ -107,8 +85,6 @@ public class State
 
 	// True if interacted with
 	private final Map<WorldPoint, Boolean> knownToadPillars = new HashMap<>();
-
-	private final Set<WorldPoint> knownLostSuppliesSpawnLocations = new HashSet<>();
 
 	@Setter
 	private int ticksSinceLastPathRecalc = 0;
@@ -128,30 +104,7 @@ public class State
 	@Setter
 	private List<RouteWaypoint> currentStaticRoute = null;
 
-	@Setter
-	@Getter(lombok.AccessLevel.NONE)
-	private int nextWaypointIndex = 0;
-
 	private final Set<Integer> completedWaypointIndices = new HashSet<>();
-
-	/**
-	 * Maps rumsNeeded to Difficulty enum
-	 * @return Difficulty level based on rumsNeeded (1=SWORDFISH, 2=SHARK, 3=MARLIN)
-	 */
-	public Difficulty getCurrentDifficulty()
-	{
-		switch (rumsNeeded)
-		{
-			case 1:
-				return Difficulty.SWORDFISH;
-			case 2:
-				return Difficulty.SHARK;
-			case 3:
-				return Difficulty.MARLIN;
-			default:
-				return Difficulty.SWORDFISH; // Default to easiest difficulty
-		}
-	}
 
 	/**
 	 * Clears all temporary state (called when leaving trial area)
@@ -159,37 +112,150 @@ public class State
 	public void resetAllTemporaryState()
 	{
 		currentTrial = null;
-		inTrialArea = false;
-		lostSupplies.clear();
-		routeCaptureSupplyLocations.clear();
+		inTrial = false;
 		lightningClouds.clear();
+		dangerousClouds.clear();
 		knownToadPillars.clear();
 		rumPickupLocation = null;
 		rumReturnLocation = null;
 		rumsCollected = 0;
-		rumsNeeded = 0;
 		lostSuppliesCollected = 0;
 		lostSuppliesTotal = 0;
 		hasThrowableObjective = false;
-		currentTrialName = null;
 		boatLocation = null;
 		currentLap = 1;
-		optimalPath = new ArrayList<>();
-		currentSegmentPath = new ArrayList<>();
-		nextSegmentPath = new ArrayList<>();
+		path = new ArrayList<>();
 		ticksSinceLastPathRecalc = 0;
 		exclusionZoneMinX = 0;
 		exclusionZoneMaxX = 0;
 		exclusionZoneMinY = 0;
 		exclusionZoneMaxY = 0;
 		currentStaticRoute = null;
-		nextWaypointIndex = 0;
 		completedWaypointIndices.clear();
+	}
+
+	public void clearLightningClouds()
+	{
+		lightningClouds.clear();
+	}
+
+	public void addLightningCloud(NPC npc)
+	{
+		lightningClouds.add(npc);
+	}
+
+	public Set<NPC> getLightningClouds()
+	{
+		return Collections.unmodifiableSet(lightningClouds);
+	}
+
+	public void clearDangerousClouds()
+	{
+		dangerousClouds.clear();
+	}
+
+	public void addDangerousCloud(NPC npc)
+	{
+		dangerousClouds.add(npc);
+	}
+
+	public Set<NPC> getDangerousClouds()
+	{
+		return Collections.unmodifiableSet(dangerousClouds);
+	}
+
+	public Set<GameObject> getSpeedBoosts()
+	{
+		return Collections.unmodifiableSet(speedBoosts);
+	}
+
+	public Set<WorldPoint> getKnownRockLocations()
+	{
+		return Collections.unmodifiableSet(knownRockLocations);
+	}
+
+	public Map<WorldPoint, List<WorldPoint>> getKnownSpeedBoostLocations()
+	{
+		return Collections.unmodifiableMap(knownSpeedBoostLocations);
+	}
+
+	public Set<WorldPoint> getKnownFetidPoolLocations()
+	{
+		return Collections.unmodifiableSet(knownFetidPoolLocations);
+	}
+
+	public Set<WorldPoint> getKnownToadPillarLocations()
+	{
+		return Collections.unmodifiableSet(knownToadPillarLocations);
+	}
+
+	public Map<WorldPoint, Boolean> getKnownToadPillars()
+	{
+		return Collections.unmodifiableMap(knownToadPillars);
+	}
+
+	public Boolean updateKnownToadPillar(WorldPoint location, boolean isInteractedWith)
+	{
+		return knownToadPillars.put(location, isInteractedWith);
+	}
+
+	public void updateKnownRockLocations(Set<WorldPoint> locations)
+	{
+		knownRockLocations.clear();
+		knownRockLocations.addAll(locations);
+	}
+
+	public void updateSpeedBoosts(Set<GameObject> boosts)
+	{
+		speedBoosts.clear();
+		speedBoosts.addAll(boosts);
+	}
+
+	public void updateKnownSpeedBoostLocations(Map<WorldPoint, List<WorldPoint>> locations)
+	{
+		knownSpeedBoostLocations.clear();
+		knownSpeedBoostLocations.putAll(locations);
+	}
+
+	public void updateKnownFetidPoolLocations(Set<WorldPoint> locations)
+	{
+		knownFetidPoolLocations.clear();
+		knownFetidPoolLocations.addAll(locations);
+	}
+
+	public void updateKnownToadPillarLocations(Set<WorldPoint> locations)
+	{
+		knownToadPillarLocations.clear();
+		knownToadPillarLocations.addAll(locations);
+	}
+
+	public Set<Integer> getCompletedWaypointIndices()
+	{
+		return Collections.unmodifiableSet(completedWaypointIndices);
 	}
 
 	public void markWaypointCompleted(int waypointIndex)
 	{
 		completedWaypointIndices.add(waypointIndex);
+		
+		var route = getCurrentStaticRoute();
+		if (route == null || waypointIndex <= 0)
+		{
+			return;
+		}
+
+		for (int i = waypointIndex - 1; i >= 0; i--)
+		{
+			RouteWaypoint waypoint = route.get(i);
+			if (waypoint.getType().isNonNavigableHelper())
+			{
+				completedWaypointIndices.add(i);
+			}
+			else
+			{
+				break;
+			}
+		}
 	}
 
 	public boolean isWaypointCompleted(int waypointIndex)
@@ -198,60 +264,52 @@ public class State
 	}
 
 	/**
-	 * Gets the next navigatable waypoint index.
-	 * nextWaypointIndex should always point to a navigatable waypoint, but this method
-	 * provides a safety check in case it somehow points to a helper waypoint.
-	 * @return Index of next navigatable waypoint
+	 * Calculates the next uncompleted navigable waypoint index by scanning the route.
+	 * @return Index of next navigable waypoint, or 0 if route is empty/null
 	 */
-	public int getNextNavigatableWaypointIndex()
+	public int getNextNavigableWaypointIndex()
 	{
 		if (currentStaticRoute == null || currentStaticRoute.isEmpty())
 		{
-			return nextWaypointIndex;
+			return 0;
 		}
 
 		int routeSize = currentStaticRoute.size();
-		for (int offset = 0; offset < routeSize; offset++)
+		for (int i = 0; i < routeSize; i++)
 		{
-			int checkIndex = (nextWaypointIndex + offset) % routeSize;
-			RouteWaypoint waypoint = currentStaticRoute.get(checkIndex);
-
-			if (!waypoint.getType().isNonNavigatableHelper())
+			if (!completedWaypointIndices.contains(i))
 			{
-				return checkIndex;
+				RouteWaypoint waypoint = currentStaticRoute.get(i);
+				if (!waypoint.getType().isNonNavigableHelper())
+				{
+					return i;
+				}
 			}
 		}
 
-		return nextWaypointIndex;
+		return 0;
 	}
 
-	/**
-	 * Find the first waypoint index that matches the given location
-	 * @return waypoint index, or -1 if not found
-	 */
-	public int findWaypointIndexByLocation(WorldPoint location)
+	public static Difficulty getCurrentDifficulty(Client client)
 	{
-		if (currentStaticRoute == null)
+		var widget = client.getWidget(InterfaceID.SailingBtHud.BT_RANK_GFX);
+		if (widget == null || widget.isHidden())
 		{
-			return -1;
+			return Difficulty.SWORDFISH;
 		}
 
-		for (int i = 0; i < currentStaticRoute.size(); i++)
+		var spriteId = widget.getSpriteId();
+		
+		switch (spriteId)
 		{
-			RouteWaypoint waypoint = currentStaticRoute.get(i);
-			if (waypoint.getLocation() != null && waypoint.getLocation().equals(location))
-			{
-				return i;
-			}
+			case 7027:
+				return Difficulty.SWORDFISH;
+			case 7028:
+				return Difficulty.SHARK;
+			case 7029:
+				return Difficulty.MARLIN;
+			default:
+				return Difficulty.SWORDFISH; // Default to easiest difficulty
 		}
-		return -1;
-	}
-
-	/**
-	 * Clears persistent storage (called when difficulty changes)
-	 */
-	public void clearPersistentStorage()
-	{
-		knownLostSuppliesSpawnLocations.clear();
 	}
 }

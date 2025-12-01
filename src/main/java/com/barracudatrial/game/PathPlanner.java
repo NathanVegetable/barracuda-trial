@@ -4,18 +4,24 @@ import com.barracudatrial.CachedConfig;
 import com.barracudatrial.game.route.*;
 import com.barracudatrial.pathfinding.AStarPathfinder;
 import com.barracudatrial.pathfinding.BarracudaTileCostCalculator;
+import com.barracudatrial.pathfinding.PathNode;
 import com.barracudatrial.pathfinding.PathResult;
 import com.barracudatrial.pathfinding.PathStabilizer;
-import com.barracudatrial.rendering.ObjectRenderer;
+import com.barracudatrial.rendering.RenderingUtils;
+
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.Client;
 import net.runelite.api.NPC;
-import net.runelite.api.World;
 import net.runelite.api.WorldView;
 import net.runelite.api.coords.LocalPoint;
 import net.runelite.api.coords.WorldPoint;
+import net.runelite.client.callback.ClientThread;
 
 import java.util.*;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Predicate;
 
 @Slf4j
 public class PathPlanner
@@ -23,21 +29,51 @@ public class PathPlanner
 	private final State state;
 	private final CachedConfig cachedConfig;
 	private final Client client;
+	private final ClientThread clientThread;
 	private final PathStabilizer pathStabilizer;
+	private final ExecutorService pathfindingExecutor;
+	private final AtomicBoolean pathfindingInProgress = new AtomicBoolean(false);
+	private final AtomicBoolean pendingRecalculation = new AtomicBoolean(false);
+	private volatile PathfindingRequest pendingRequest;
 
-	public PathPlanner(Client client, State state, CachedConfig cachedConfig)
+	public PathPlanner(Client client, State state, CachedConfig cachedConfig, ClientThread clientThread)
 	{
 		this.client = client;
 		this.state = state;
 		this.cachedConfig = cachedConfig;
+		this.clientThread = clientThread;
 
 		AStarPathfinder aStarPathfinder = new AStarPathfinder();
 		this.pathStabilizer = new PathStabilizer(aStarPathfinder);
+		this.pathfindingExecutor = Executors.newSingleThreadExecutor(r -> {
+			Thread thread = new Thread(r, "BarracudaTrial-Pathfinding");
+			thread.setDaemon(true);
+			return thread;
+		});
+	}
+
+	private static class PathfindingRequest
+	{
+		final WorldPoint startLocation;
+		final List<RouteWaypoint> waypoints;
+		final int waypointCount;
+		final int startIndex;
+		final String reason;
+
+		PathfindingRequest(WorldPoint startLocation, List<RouteWaypoint> waypoints, int waypointCount, int startIndex, String reason)
+		{
+			this.startLocation = startLocation;
+			this.waypoints = waypoints;
+			this.waypointCount = waypointCount;
+			this.startIndex = startIndex;
+			this.reason = reason;
+		}
 	}
 
 	/**
 	 * Recalculates the optimal path based on current game state
-	 * Uses static routes for strategic planning and A* for tactical navigation
+	 * Runs pathfinding asynchronously to avoid blocking the game tick
+	 * Only one pathfinding task runs at a time, with at most one queued request
 	 * @param recalculationTriggerReason Description of what triggered this recalculation (for debugging)
 	 */
 	public void recalculateOptimalPathFromCurrentState(String recalculationTriggerReason)
@@ -45,17 +81,14 @@ public class PathPlanner
 		state.setLastPathRecalcCaller(recalculationTriggerReason);
 		log.debug("Path recalculation triggered by: {}", recalculationTriggerReason);
 
-		if (!state.isInTrialArea())
+		if (!state.isInTrial())
 		{
-			state.getOptimalPath().clear();
-			state.getCurrentSegmentPath().clear();
-			state.getNextSegmentPath().clear();
+			state.getPath().clear();
 			return;
 		}
 
 		state.setTicksSinceLastPathRecalc(0);
 
-		// Use front boat tile for pathfinding (fallback to center if not available)
 		WorldPoint playerBoatLocation = state.getFrontBoatTileEstimatedActual();
 		if (playerBoatLocation == null)
 		{
@@ -75,20 +108,64 @@ public class PathPlanner
 
 		if (nextWaypoints.isEmpty())
 		{
-			state.setCurrentSegmentPath(new ArrayList<>());
-			state.setNextSegmentPath(new ArrayList<>());
-			state.setOptimalPath(new ArrayList<>());
+			state.setPath(new ArrayList<>());
 			log.debug("No uncompleted waypoints found in static route");
 			return;
 		}
 
-		List<WorldPoint> fullPath = pathThroughMultipleWaypoints(playerBoatLocation, nextWaypoints);
+		PathfindingRequest request = new PathfindingRequest(
+			playerBoatLocation,
+			nextWaypoints,
+			nextWaypoints.size(),
+			state.getNextNavigableWaypointIndex(),
+			recalculationTriggerReason
+		);
 
-		state.setCurrentSegmentPath(fullPath);
-		state.setOptimalPath(new ArrayList<>(fullPath));
-		state.setNextSegmentPath(new ArrayList<>());
+		if (pathfindingInProgress.get())
+		{
+			pendingRequest = request;
+			pendingRecalculation.set(true);
+			log.debug("Pathfinding already running, queued latest request: {}", recalculationTriggerReason);
+			return;
+		}
 
-		log.debug("Pathing through {} waypoints starting at index {}", nextWaypoints.size(), state.getNextNavigatableWaypointIndex());
+		executePathfinding(request);
+	}
+
+	private void executePathfinding(PathfindingRequest request)
+	{
+		pathfindingInProgress.set(true);
+
+		pathfindingExecutor.submit(() -> {
+			try
+			{
+				List<WorldPoint> fullPath = pathThroughMultipleWaypoints(request.startLocation, request.waypoints);
+
+				clientThread.invoke(() -> {
+					state.setPath(fullPath);
+					log.debug("Async path complete: {} waypoints starting at index {} ({})",
+						request.waypointCount, request.startIndex, request.reason);
+				});
+			}
+			catch (Exception e)
+			{
+				log.error("Pathfinding error", e);
+			}
+			finally
+			{
+				pathfindingInProgress.set(false);
+
+				if (pendingRecalculation.getAndSet(false))
+				{
+					PathfindingRequest nextRequest = pendingRequest;
+					if (nextRequest != null)
+					{
+						log.debug("Running queued pathfinding request: {}", nextRequest.reason);
+						executePathfinding(nextRequest);
+					}
+				}
+			}
+		});
 	}
 
 	private void loadStaticRouteForCurrentDifficulty()
@@ -101,7 +178,7 @@ public class PathPlanner
 			return;
 		}
 
-		Difficulty difficulty = state.getCurrentDifficulty();
+		Difficulty difficulty = State.getCurrentDifficulty(client);
 		List<RouteWaypoint> staticRoute = trial.getRoute(difficulty);
 
 		if (staticRoute == null || staticRoute.isEmpty())
@@ -112,8 +189,7 @@ public class PathPlanner
 		}
 
 		state.setCurrentStaticRoute(staticRoute);
-		state.setNextWaypointIndex(0);
-		log.debug("Loaded static route for {} difficulty {} with {} waypoints",
+		log.info("Loaded static route for {} difficulty {} with {} waypoints",
 			trial.getTrialType(), difficulty, staticRoute.size());
 	}
 
@@ -122,7 +198,7 @@ public class PathPlanner
 	 * Routes to waypoints even if not yet visible (game only reveals nearby shipments).
 	 * Supports backtracking if a waypoint was missed.
 	 *
-	 * @param count Maximum number of uncompleted navigatable waypoints
+	 * @param count Maximum number of uncompleted navigable waypoints
 	 * @return List of uncompleted waypoints in route order (includes all helper waypoints between real waypoints)
 	 */
 	private List<RouteWaypoint> findNextUncompletedWaypoints(int count)
@@ -136,9 +212,9 @@ public class PathPlanner
 		}
 
 		int routeSize = route.size();
-		int nextNavIndex = state.getNextNavigatableWaypointIndex();
+		int nextNavIndex = state.getNextNavigableWaypointIndex();
 
-		// Scan backwards from nextNavigatableWaypointIndex to find uncompleted helpers that precede it
+		// Scan backwards from nextNavigableWaypointIndex to find uncompleted helpers that precede it
 		List<RouteWaypoint> precedingHelpers = new ArrayList<>();
 		for (int i = 1; i < routeSize; i++)
 		{
@@ -150,7 +226,7 @@ public class PathPlanner
 				break;
 			}
 
-			if (waypoint.getType().isNonNavigatableHelper())
+			if (waypoint.getType().isNonNavigableHelper())
 			{
 				precedingHelpers.add(0, waypoint);
 			}
@@ -162,32 +238,284 @@ public class PathPlanner
 
 		uncompletedWaypoints.addAll(precedingHelpers);
 
-		boolean foundFirst = false;
-		int navigatableWaypointCount = 0;
+		int navigableWaypointCount = 0;
 
-		// Scan forward from nextNavigatableWaypointIndex
-		for (int offset = 0; offset < routeSize && navigatableWaypointCount < count; offset++)
+		// Scan forward from nextNavigableWaypointIndex
+		for (int offset = 0; offset < routeSize && navigableWaypointCount < count; offset++)
 		{
 			int checkIndex = (nextNavIndex + offset) % routeSize;
 			RouteWaypoint waypoint = route.get(checkIndex);
 
 			if (!state.isWaypointCompleted(checkIndex))
 			{
-				if (!foundFirst && !waypoint.getType().isNonNavigatableHelper())
-				{
-					state.setNextWaypointIndex(checkIndex);
-					foundFirst = true;
-				}
 				uncompletedWaypoints.add(waypoint);
 
-				if (!waypoint.getType().isNonNavigatableHelper())
+				if (!waypoint.getType().isNonNavigableHelper())
 				{
-					navigatableWaypointCount++;
+					navigableWaypointCount++;
 				}
 			}
 		}
 
 		return uncompletedWaypoints;
+	}
+
+	private static class BoatHeading
+	{
+		private final int dx;
+		private final int dy;
+
+		BoatHeading(int dx, int dy)
+		{
+			this.dx = dx;
+			this.dy = dy;
+		}
+
+		int dx()
+		{
+			return dx;
+		}
+
+		int dy()
+		{
+			return dy;
+		}
+	}
+
+	private List<WorldPoint> extendPath(List<WorldPoint> fullPath, List<WorldPoint> segment)
+	{
+		List<WorldPoint> result = new ArrayList<>(fullPath);
+
+		if (result.isEmpty())
+		{
+			result.addAll(segment);
+		}
+		else if (!segment.isEmpty())
+		{
+			result.addAll(segment.subList(1, segment.size()));
+		}
+
+		return result;
+	}
+
+	private BoatHeading calculateBoatHeading(List<WorldPoint> fullPath)
+	{
+		if (fullPath.isEmpty())
+		{
+			WorldPoint frontBoatTile = state.getFrontBoatTileEstimatedActual();
+			WorldPoint backBoatTile = state.getBoatLocation();
+
+			if (frontBoatTile != null && backBoatTile != null)
+			{
+				return new BoatHeading(
+					frontBoatTile.getX() - backBoatTile.getX(),
+					frontBoatTile.getY() - backBoatTile.getY()
+				);
+			}
+
+			return new BoatHeading(0, 0);
+		}
+
+		if (fullPath.size() >= 2)
+		{
+			WorldPoint prev = fullPath.get(fullPath.size() - 2);
+			WorldPoint last = fullPath.get(fullPath.size() - 1);
+			return new BoatHeading(
+				last.getX() - prev.getX(),
+				last.getY() - prev.getY()
+			);
+		}
+
+		return new BoatHeading(0, 0);
+	}
+
+	private WorldPoint handlePortalExitTeleport(WorldPoint currentPosition, WorldPoint portalExitLocation)
+	{
+		int distance = currentPosition.distanceTo(portalExitLocation);
+
+		if (distance > 10)
+		{
+			return portalExitLocation;
+		}
+
+		return currentPosition;
+	}
+
+	private static class WaypointHandlingResult
+	{
+		final List<WorldPoint> pathSegment;
+		final WorldPoint newPosition;
+		final boolean shouldStopPathing;
+		final int skipToIndex;
+
+		WaypointHandlingResult(List<WorldPoint> pathSegment, WorldPoint newPosition, boolean shouldStopPathing, int skipToIndex)
+		{
+			this.pathSegment = pathSegment;
+			this.newPosition = newPosition;
+			this.shouldStopPathing = shouldStopPathing;
+			this.skipToIndex = skipToIndex;
+		}
+	}
+
+	private WaypointHandlingResult handleSingleWaypoint(
+		WorldPoint currentPosition,
+		RouteWaypoint waypoint,
+		boolean isPlayerCurrentlyOnPath,
+		int initialBoatDx,
+		int initialBoatDy,
+		Set<WorldPoint> pathfindingHints,
+		boolean stopAfterPathing)
+	{
+		WorldPoint pathfindingTarget = getInSceneTarget(currentPosition, waypoint);
+		PathResult segmentResult = pathToSingleTarget(
+			currentPosition,
+			pathfindingTarget,
+			waypoint.getType().getToleranceTiles(),
+			isPlayerCurrentlyOnPath,
+			initialBoatDx,
+			initialBoatDy,
+			pathfindingHints
+		);
+
+		List<WorldPoint> segmentPath = segmentResult.getPath();
+		WorldPoint newPosition = segmentPath.isEmpty() ? currentPosition : segmentPath.get(segmentPath.size() - 1);
+		boolean shouldStop = stopAfterPathing || !segmentResult.isReachedGoal();
+
+		return new WaypointHandlingResult(segmentPath, newPosition, shouldStop, -1);
+	}
+
+	/**
+	 * Wind catchers provide speed boosts but force specific routes. Sometimes going direct is faster/safer.
+	 * This method tries BOTH options and picks the winner based on: goal reached > path cost.
+	 */
+	private WaypointHandlingResult handleWindCatcherSequence(
+		WorldPoint currentPosition,
+		List<RouteWaypoint> waypoints,
+		int currentIndex,
+		boolean isPlayerCurrentlyOnPath,
+		int initialBoatDx,
+		int initialBoatDy,
+		Set<WorldPoint> pathfindingHints)
+	{
+		List<RouteWaypoint> windCatcherSequence = collectConsecutiveWindCatchers(waypoints, currentIndex);
+
+		int indexAfterWindCatchers = currentIndex + windCatcherSequence.size();
+		RouteWaypoint destinationAfterWindCatchers = findDestinationAfterWindCatchers(waypoints, indexAfterWindCatchers);
+		Set<WorldPoint> hintsAfterWindCatchers = collectPathfindingHints(waypoints, indexAfterWindCatchers);
+
+		int nextWaypointIndex = indexAfterWindCatchers + hintsAfterWindCatchers.size();
+		if (destinationAfterWindCatchers != null)
+		{
+			nextWaypointIndex++;
+		}
+
+		WindCatcherPathResult pathUsingWindCatchers = pathThroughWindCatcherSequence(
+			currentPosition,
+			windCatcherSequence,
+			destinationAfterWindCatchers,
+			isPlayerCurrentlyOnPath,
+			initialBoatDx,
+			initialBoatDy,
+			pathfindingHints,
+			hintsAfterWindCatchers
+		);
+
+		PathResult pathSkippingWindCatchers = null;
+		if (destinationAfterWindCatchers != null)
+		{
+			WorldPoint directTarget = getInSceneTarget(currentPosition, destinationAfterWindCatchers);
+			pathSkippingWindCatchers = pathToSingleTarget(
+				currentPosition,
+				directTarget,
+				destinationAfterWindCatchers.getType().getToleranceTiles(),
+				isPlayerCurrentlyOnPath,
+				initialBoatDx,
+				initialBoatDy,
+				hintsAfterWindCatchers
+			);
+		}
+
+		List<WorldPoint> winningPath = chooseBetterPath(pathUsingWindCatchers, pathSkippingWindCatchers);
+		WorldPoint finalPosition = winningPath.isEmpty() ? currentPosition : winningPath.get(winningPath.size() - 1);
+
+		return new WaypointHandlingResult(winningPath, finalPosition, false, nextWaypointIndex);
+	}
+
+	private List<RouteWaypoint> collectConsecutiveWindCatchers(List<RouteWaypoint> waypoints, int startIndex)
+	{
+		List<RouteWaypoint> windCatchers = new ArrayList<>();
+		windCatchers.add(waypoints.get(startIndex));
+
+		for (int i = startIndex + 1; i < waypoints.size(); i++)
+		{
+			if (waypoints.get(i).getType() == RouteWaypoint.WaypointType.USE_WIND_CATCHER)
+			{
+				windCatchers.add(waypoints.get(i));
+			}
+			else
+			{
+				break;
+			}
+		}
+
+		return windCatchers;
+	}
+
+	private RouteWaypoint findDestinationAfterWindCatchers(List<RouteWaypoint> waypoints, int startIndex)
+	{
+		for (int i = startIndex; i < waypoints.size(); i++)
+		{
+			var type = waypoints.get(i).getType();
+			if (type != RouteWaypoint.WaypointType.PATHFINDING_HINT)
+			{
+				return waypoints.get(i);
+			}
+		}
+		return null;
+	}
+
+	private Set<WorldPoint> collectPathfindingHints(List<RouteWaypoint> waypoints, int startIndex)
+	{
+		Set<WorldPoint> hints = new HashSet<>();
+
+		for (int i = startIndex; i < waypoints.size(); i++)
+		{
+			if (waypoints.get(i).getType() == RouteWaypoint.WaypointType.PATHFINDING_HINT)
+			{
+				hints.add(waypoints.get(i).getLocation());
+			}
+			else
+			{
+				break;
+			}
+		}
+
+		return hints;
+	}
+
+	private List<WorldPoint> chooseBetterPath(WindCatcherPathResult windCatcherPath, PathResult directPath)
+	{
+		boolean windCatcherReachedGoal = windCatcherPath.reachedGoal;
+		boolean directReachedGoal = directPath != null && directPath.isReachedGoal();
+
+		if (windCatcherReachedGoal && !directReachedGoal)
+		{
+			return windCatcherPath.path;
+		}
+
+		if (directReachedGoal && !windCatcherReachedGoal)
+		{
+			return directPath.getPath();
+		}
+
+		if (windCatcherReachedGoal && directReachedGoal)
+		{
+			return windCatcherPath.cost <= directPath.getCost() ? windCatcherPath.path : directPath.getPath();
+		}
+
+		return (directPath != null && directPath.getCost() < windCatcherPath.cost)
+			? directPath.getPath()
+			: windCatcherPath.path;
 	}
 
 	/**
@@ -213,179 +541,80 @@ public class PathPlanner
 			RouteWaypoint waypoint = waypoints.get(i);
 			var waypointType = waypoint.getType();
 
-			// Skip PATHFINDING_HINT waypoints but collect their tiles
 			if (waypointType == RouteWaypoint.WaypointType.PATHFINDING_HINT)
 			{
 				pathfindingHints.add(waypoint.getLocation());
 				continue;
 			}
 
-			int initialBoatDx;
-			int initialBoatDy;
-
-			if (fullPath.isEmpty())
+			if (waypointType == RouteWaypoint.WaypointType.PORTAL_EXIT)
 			{
-				// First segment: use actual boat heading from state
-				WorldPoint frontBoatTile = state.getFrontBoatTileEstimatedActual();
-				WorldPoint backBoatTile = state.getBoatLocation();
-				if (frontBoatTile != null && backBoatTile != null)
-				{
-					initialBoatDx = frontBoatTile.getX() - backBoatTile.getX();
-					initialBoatDy = frontBoatTile.getY() - backBoatTile.getY();
-				}
-				else
-				{
-					initialBoatDx = 0;
-					initialBoatDy = 0;
-				}
-			}
-			else
-			{
-				// Subsequent segments: derive heading from last step of the accumulated fullPath
-				if (fullPath.size() >= 2)
-				{
-					WorldPoint prev = fullPath.get(fullPath.size() - 2);
-					WorldPoint last = fullPath.get(fullPath.size() - 1);
-					initialBoatDx = last.getX() - prev.getX();
-					initialBoatDy = last.getY() - prev.getY();
-				}
-				else
-				{
-					initialBoatDx = 0;
-					initialBoatDy = 0;
-				}
+				currentPosition = handlePortalExitTeleport(currentPosition, waypoint.getLocation());
+				continue;
 			}
 
-			// Handle wind catcher sequences: try both through wind catchers and direct
-			if (waypointType == RouteWaypoint.WaypointType.USE_WIND_CATCHER)
+			BoatHeading heading = calculateBoatHeading(fullPath);
+			int initialBoatDx = heading.dx();
+			int initialBoatDy = heading.dy();
+
+			if (waypointType == RouteWaypoint.WaypointType.PORTAL_ENTER)
 			{
-				List<RouteWaypoint> windCatcherSequence = new ArrayList<>();
-				windCatcherSequence.add(waypoint);
-
-				// Collect all consecutive wind catchers
-				int j = i + 1;
-				while (j < waypoints.size() && waypoints.get(j).getType() == RouteWaypoint.WaypointType.USE_WIND_CATCHER)
-				{
-					windCatcherSequence.add(waypoints.get(j));
-					j++;
-				}
-
-				// Find next normal waypoint after sequence and collect any PATHFINDING_HINTs in between
-				Set<WorldPoint> postWindCatcherHints = new HashSet<>();
-				RouteWaypoint nextNormalWaypoint = null;
-				while (j < waypoints.size())
-				{
-					var wpType = waypoints.get(j).getType();
-					if (wpType == RouteWaypoint.WaypointType.PATHFINDING_HINT)
-					{
-						postWindCatcherHints.add(waypoints.get(j).getLocation());
-					}
-					else
-					{
-						nextNormalWaypoint = waypoints.get(j);
-						break;
-					}
-					j++;
-				}
-
-				// Try wind catcher path
-				WindCatcherPathResult windCatcherPath = pathThroughWindCatcherSequence(
+				WaypointHandlingResult result = handleSingleWaypoint(
 					currentPosition,
-					windCatcherSequence,
-					nextNormalWaypoint,
+					waypoint,
 					isPlayerCurrentlyOnPath,
 					initialBoatDx,
 					initialBoatDy,
 					pathfindingHints,
-					postWindCatcherHints
+					true
 				);
 
-				// Try direct path (skipping wind catchers)
-				PathResult directPath = null;
-				if (nextNormalWaypoint != null)
-				{
-					WorldPoint directTarget = getInSceneTarget(currentPosition, nextNormalWaypoint);
-					directPath = pathToSingleTarget(
-						currentPosition,
-						directTarget,
-						nextNormalWaypoint.getType().getToleranceTiles(),
-						isPlayerCurrentlyOnPath,
-						initialBoatDx,
-						initialBoatDy,
-						postWindCatcherHints
-					);
-				}
-
-				// Choose the better path
-				List<WorldPoint> chosenSegment;
-				if (windCatcherPath.reachedGoal && (directPath == null || !directPath.isReachedGoal()))
-				{
-					chosenSegment = windCatcherPath.path;
-				}
-				else if (directPath != null && directPath.isReachedGoal() && !windCatcherPath.reachedGoal)
-				{
-					chosenSegment = directPath.getPath();
-				}
-				else if (windCatcherPath.reachedGoal && directPath != null && directPath.isReachedGoal())
-				{
-					chosenSegment = windCatcherPath.cost <= directPath.getCost() ? windCatcherPath.path : directPath.getPath();
-				}
-				else
-				{
-					// Neither reached goal, use the one with lower cost or wind catcher as fallback
-					chosenSegment = (directPath != null && directPath.getCost() < windCatcherPath.cost) ? directPath.getPath() : windCatcherPath.path;
-				}
-
 				pathfindingHints.clear();
-
-				if (fullPath.isEmpty())
-				{
-					fullPath.addAll(chosenSegment);
-				}
-				else if (!chosenSegment.isEmpty())
-				{
-					fullPath.addAll(chosenSegment.subList(1, chosenSegment.size()));
-				}
-
-				currentPosition = chosenSegment.isEmpty() ? currentPosition : chosenSegment.get(chosenSegment.size() - 1);
-				isPlayerCurrentlyOnPath = false;
-
-				// Skip all the wind catchers and the next waypoint we processed
-				i = j;
-				continue;
-			}
-
-			WorldPoint pathfindingTarget = getInSceneTarget(currentPosition, waypoint);
-
-			PathResult segmentResult = pathToSingleTarget(currentPosition, pathfindingTarget, waypoint.getType().getToleranceTiles(), isPlayerCurrentlyOnPath, initialBoatDx, initialBoatDy, pathfindingHints);
-			List<WorldPoint> segmentPath = segmentResult.getPath();
-
-			pathfindingHints.clear();
-
-			// If we couldn't reach this waypoint, stop here with the partial path we have
-			if (!segmentResult.isReachedGoal())
-			{
-				if (fullPath.isEmpty())
-				{
-					fullPath.addAll(segmentPath);
-				}
-				else if (!segmentPath.isEmpty())
-				{
-					fullPath.addAll(segmentPath.subList(1, segmentPath.size()));
-				}
+				fullPath = extendPath(fullPath, result.pathSegment);
 				break;
 			}
 
-			if (fullPath.isEmpty())
+			if (waypointType == RouteWaypoint.WaypointType.USE_WIND_CATCHER)
 			{
-				fullPath.addAll(segmentPath);
-			}
-			else if (!segmentPath.isEmpty())
-			{
-				fullPath.addAll(segmentPath.subList(1, segmentPath.size()));
+				WaypointHandlingResult result = handleWindCatcherSequence(
+					currentPosition,
+					waypoints,
+					i,
+					isPlayerCurrentlyOnPath,
+					initialBoatDx,
+					initialBoatDy,
+					pathfindingHints
+				);
+
+				pathfindingHints.clear();
+
+				fullPath = extendPath(fullPath, result.pathSegment);
+				currentPosition = result.newPosition;
+				isPlayerCurrentlyOnPath = false;
+
+				i = result.skipToIndex;
+				continue;
 			}
 
-			currentPosition = segmentPath.isEmpty() ? currentPosition : segmentPath.get(segmentPath.size() - 1);
+			WaypointHandlingResult result = handleSingleWaypoint(
+				currentPosition,
+				waypoint,
+				isPlayerCurrentlyOnPath,
+				initialBoatDx,
+				initialBoatDy,
+				pathfindingHints,
+				false
+			);
+
+			pathfindingHints.clear();
+			fullPath = extendPath(fullPath, result.pathSegment);
+
+			if (result.shouldStopPathing)
+			{
+				break;
+			}
+
+			currentPosition = result.newPosition;
 			isPlayerCurrentlyOnPath = false;
 		}
 
@@ -516,7 +745,7 @@ public class PathPlanner
 	 * @param start Starting position
 	 * @param target Target position
 	 * @param goalTolerance Number of tiles away from target that counts as reaching it (0 = exact)
-	 * @param isPlayerCurrentlyOnPath Whether or not this is the path that the player is currently navigating
+	 * @param isPlayerCurrentlyOnPath Whether this is the path that the player is currently navigating
 	 * @param pathfindingHints Set of tiles that should have reduced cost during pathfinding
 	 * @return PathResult containing path from start to target and whether goal was reached
 	 */
@@ -524,24 +753,19 @@ public class PathPlanner
 	{
 		var tileCostCalculator = getBarracudaTileCostCalculator(pathfindingHints);
 
-		// Use provided initial heading (may be 0,0 for neutral)
-		int boatDirectionDx = initialBoatDx;
-		int boatDirectionDy = initialBoatDy;
-
-		int tileDistance = start.distanceTo(target); // Chebyshev distance in tiles
+        int tileDistance = start.distanceTo(target); // Chebyshev distance in tiles
 
 		// Never too high, but allow seeking longer on long paths
 		int maximumAStarSearchDistance = Math.max(35, Math.min(80, tileDistance * 8));
 
-		var currentStaticRoute = state.getCurrentStaticRoute();
-
-		PathResult pathResult = pathStabilizer.findPath(tileCostCalculator, cachedConfig.getRouteOptimization(), currentStaticRoute, start, target, maximumAStarSearchDistance, boatDirectionDx, boatDirectionDy, goalTolerance, isPlayerCurrentlyOnPath);
+		PathResult pathResult = pathStabilizer.findPath(tileCostCalculator, cachedConfig.getRouteOptimization(), start, target, maximumAStarSearchDistance, initialBoatDx, initialBoatDy, goalTolerance, isPlayerCurrentlyOnPath);
 
 		if (pathResult.getPath().isEmpty())
 		{
-			List<WorldPoint> fallbackPath = new ArrayList<>();
-			fallbackPath.add(target);
-			return new PathResult(new ArrayList<>(), Double.POSITIVE_INFINITY, false);
+			List<PathNode> fallbackPath = new ArrayList<>();
+			fallbackPath.add(new PathNode(start, 0));
+			fallbackPath.add(new PathNode(target, Double.POSITIVE_INFINITY));
+			return new PathResult(fallbackPath, Double.POSITIVE_INFINITY, false);
 		}
 
 		return pathResult;
@@ -549,14 +773,7 @@ public class PathPlanner
 
 	private BarracudaTileCostCalculator getBarracudaTileCostCalculator(Set<WorldPoint> pathfindingHints)
 	{
-		Set<NPC> currentlyDangerousClouds = new HashSet<>();
-		for (NPC lightningCloud : state.getLightningClouds())
-		{
-			if (!ObjectTracker.IsCloudSafe(lightningCloud.getAnimation()))
-			{
-				currentlyDangerousClouds.add(lightningCloud);
-			}
-		}
+		Set<NPC> currentlyDangerousClouds = state.getDangerousClouds();
 
 		var trial = state.getCurrentTrial();
 		var boatExclusionWidth = trial != null && trial.getTrialType() == TrialType.TEMPOR_TANTRUM
@@ -660,7 +877,7 @@ public class PathPlanner
 		// 2. Any tile that exists in the extended scene
 		for (WorldPoint p : candidates)
 		{
-			if (ObjectRenderer.localPointFromWorldIncludingExtended(worldView, p) != null)
+			if (RenderingUtils.localPointFromWorldIncludingExtended(worldView, p) != null)
 			{
 				return p;
 			}
@@ -670,7 +887,7 @@ public class PathPlanner
 		return findNearestValidPoint(
 			start,
 			targetLocation,
-			p -> ObjectRenderer.localPointFromWorldIncludingExtended(worldView, p) != null
+			p -> RenderingUtils.localPointFromWorldIncludingExtended(worldView, p) != null
 		);
 	}
 
@@ -682,7 +899,7 @@ public class PathPlanner
 	 * @param isValid Function that returns true if a candidate point is valid
 	 * @return The furthest valid point toward target, or start if none found
 	 */
-	private static WorldPoint findNearestValidPoint(WorldPoint start, WorldPoint target, java.util.function.Predicate<WorldPoint> isValid)
+	private static WorldPoint findNearestValidPoint(WorldPoint start, WorldPoint target, Predicate<WorldPoint> isValid)
 	{
 		int dx = target.getX() - start.getX();
 		int dy = target.getY() - start.getY();
@@ -722,5 +939,14 @@ public class PathPlanner
 	public void reset()
 	{
 		pathStabilizer.clearActivePath();
+		pendingRecalculation.set(false);
+		pendingRequest = null;
+	}
+
+	public void shutdown()
+	{
+		pendingRecalculation.set(false);
+		pendingRequest = null;
+		pathfindingExecutor.shutdownNow();
 	}
 }

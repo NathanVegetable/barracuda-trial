@@ -1,52 +1,100 @@
 package com.barracudatrial.game;
 
 import com.barracudatrial.game.route.*;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.*;
 import net.runelite.api.coords.LocalPoint;
 import net.runelite.api.coords.WorldPoint;
+import net.runelite.api.gameval.NpcID;
 import net.runelite.api.gameval.ObjectID;
 
 import java.util.*;
-
-import static com.barracudatrial.game.RouteCapture.formatWorldPoint;
-
 
 /**
  * Handles tracking of game objects in the Barracuda Trial minigame
  * Tracks clouds, rocks, speed boosts, lost supplies, boat location, toad pillars, etc
  */
 @Slf4j
+@RequiredArgsConstructor
 public class ObjectTracker
 {
 	private final Client client;
 	private final State state;
 
-	// Speed boosts are shared across all trials
+	private static final Set<Integer> ROCK_IDS = Set.of(
+		ObjectID.SAILING_CHARTING_GENERIC_DESERT_TROUT,
+		ObjectID.SAILING_CHARTING_GENERIC_LIGHTNING_ROD,
+		ObjectID.SAILING_BARRACUDA_SHIPWRECK,
+		ObjectID.OCEAN_OUTCROP_ROCK02,
+		ObjectID.OCEAN_OUTCROP_ROCK03,
+		ObjectID.OCEAN_OUTCROP_ROCK05,
+		ObjectID.OCEAN_OUTCROP_ROCK06,
+		ObjectID.OCEAN_OUTCROP_ROCK07,
+		ObjectID.OCEAN_OUTCROP_ROCK08,
+		ObjectID.OCEAN_OUTCROP_ROCK09,
+		ObjectID.BOATS_CRYSTAL01_HULL01,
+		ObjectID.BOATS_CRYSTAL01_HULL01_BROKEN01,
+		ObjectID.BOATS_CRYSTAL01_HULL01_BROKEN01_M,
+		ObjectID.BOATS_CRYSTAL01_HULL01_BROKEN02,
+		ObjectID.BOATS_CRYSTAL01_HULL01_BROKEN02_M,
+		ObjectID.BOATS_CRYSTAL01_HULL02,
+		ObjectID.BOATS_CRYSTAL01_HULL02_MIRROR,
+		ObjectID.BOATS_CRYSTAL01_SUPPORT01,
+		ObjectID.BOATS_CRYSTAL01_SUPPORT01_M,
+		ObjectID.BOATS_CRYSTAL01_SUPPORT02,
+		ObjectID.BOATS_CRYSTAL01_SUPPORT02_M,
+		ObjectID.BOATS_CRYSTAL01_MAST01_BROKEN01,
+		ObjectID.BOATS_CRYSTAL01_MAST01_BROKEN02,
+		ObjectID.BOATS_CRYSTAL01_MAST01_BROKEN03,
+		ObjectID.BOATS_CRYSTAL01_WRECK01,
+		ObjectID.BOATS_CRYSTAL01_WRECK02,
+		ObjectID.BOATS_CRYSTAL01_WRECK03,
+		ObjectID.BOATS_CRYSTAL01_WRECK04,
+		ObjectID.BOATS_CRYSTAL01_WRECK05,
+		ObjectID.BOATS_CRYSTAL01_BARREL01,
+		ObjectID.BOATS_CRYSTAL01_CRATE01,
+		ObjectID.BOATS_CRYSTAL01_LARGE01,
+		ObjectID.BOATS_CRYSTAL01_OUTCROP01,
+		ObjectID.BOATS_CRYSTAL01_OUTCROP02,
+		ObjectID.BOATS_CRYSTAL01_OUTCROP03,
+		ObjectID.BOATS_CRYSTAL01_OUTCROP04,
+		ObjectID.BOATS_CRYSTAL01_OUTCROP05,
+		ObjectID.ROCK_CRYSTAL02_FLECKED01,
+		ObjectID.ROCK_CRYSTAL01_FLECKED01,
+		ObjectID.ROCK_CRYSTAL01_FLECKED02,
+		ObjectID.ROCK_CRYSTAL01_FLECKED03,
+		ObjectID.ROCK_CRYSTAL01_FLECKED04,
+		ObjectID.ROCK_CRYSTAL01_FLECKED05
+	);
+
 	private static final Set<Integer> SPEED_BOOST_IDS = Set.of(
 		ObjectID.SAILING_RAPIDS, ObjectID.SAILING_RAPIDS_STRONG,
 		ObjectID.SAILING_RAPIDS_POWERFUL, ObjectID.SAILING_RAPIDS_DEADLY
 	);
 
-	public ObjectTracker(Client client, State state)
-	{
-		this.client = client;
-		this.state = state;
-	}
+	private static final Set<Integer> BOAT_NPC_IDS = Set.of(
+			NpcID.BOAT_HP_NPC_TINY,
+			NpcID.BOAT_HP_NPC_SMALL,
+			NpcID.BOAT_HP_NPC_MEDIUM,
+			NpcID.BOAT_HP_NPC_LARGE,
+			NpcID.BOAT_HP_NPC_COLOSSAL
+	);
 
 	/**
 	 * Updates hazard NPC tracking (e.g., lightning clouds for Tempor Tantrum)
-	 * Spawn/despawn events are unreliable, so we actively scan instead
 	 */
 	public void updateLightningCloudTracking()
 	{
-		if (!state.isInTrialArea())
+		if (!state.isInTrial())
 		{
-			state.getLightningClouds().clear();
+			state.clearLightningClouds();
+			state.clearDangerousClouds();
 			return;
 		}
 
-		state.getLightningClouds().clear();
+		state.clearLightningClouds();
+		state.clearDangerousClouds();
 
 		WorldView topLevelWorldView = client.getTopLevelWorldView();
 		if (topLevelWorldView == null)
@@ -64,19 +112,24 @@ public class ObjectTracker
 			int npcId = npc.getId();
 			if (TemporTantrumConfig.LIGHTNING_CLOUD_NPC_IDS.contains(npcId))
 			{
-				state.getLightningClouds().add(npc);
+				state.addLightningCloud(npc);
+
+				if (!isCloudSafe(npc.getAnimation()))
+				{
+					state.addDangerousCloud(npc);
+				}
 			}
 		}
 	}
 
-	public static boolean IsCloudSafe(int animationId)
+	public static boolean isCloudSafe(int animationId)
 	{
 		return animationId == State.CLOUD_ANIM_HARMLESS || animationId == State.CLOUD_ANIM_HARMLESS_ALT;
 	}
 
 	public void updateHazardsSpeedBoostsAndToadPillars()
 	{
-		if (!state.isInTrialArea())
+		if (!state.isInTrial())
 		{
 			return;
 		}
@@ -114,20 +167,16 @@ public class ObjectTracker
 		{
 			return;
 		}
-		var rockIds = trial.getRockIds();
-		var speedBoostIds = trial.getSpeedBoostIds();
 		var fetidPoolIds = JubblyJiveConfig.FETID_POOL_IDS;
 
-		var knownRockTiles = state.getKnownRockLocations();
+		var knownRockTiles = new HashSet<>(state.getKnownRockLocations());
 
-		var knownBoosts = state.getSpeedBoosts();
-		var knownBoostTiles = state.getKnownSpeedBoostLocations();
+		var knownBoosts = new HashSet<>(state.getSpeedBoosts());
+		var knownBoostTiles = new HashMap<>(state.getKnownSpeedBoostLocations());
 
-		var knownFetidPools = state.getFetidPools();
-		var knownFetidPoolTiles = state.getKnownFetidPoolLocations();
+		var knownFetidPoolTiles = new HashSet<>(state.getKnownFetidPoolLocations());
 
-		var knownToadPillars = state.getKnownToadPillars();
-		var knownToadPillarTiles = state.getKnownToadPillarLocations();
+		var knownToadPillarTiles = new HashSet<>(state.getKnownToadPillarLocations());
 
 		for (var plane : tileArray)
 		{
@@ -154,18 +203,18 @@ public class ObjectTracker
 							continue;
 						}
 
-						if (!knownRockTiles.contains(tileWp) && rockIds.contains(id))
+						if (!knownRockTiles.contains(tileWp) && ROCK_IDS.contains(id))
 						{
 							knownRockTiles.addAll(ObjectTracker.getObjectTiles(client, obj));
 
 							continue;
 						}
 
-						if (!knownBoostTiles.containsKey(tileWp) && speedBoostIds.contains(id))
+						if (!knownBoostTiles.containsKey(tileWp) && SPEED_BOOST_IDS.contains(id))
 						{
 							knownBoosts.add(obj);
 
-							// getObjectTiles is 5x5 but we want 3x3 to encourage getting closer
+							// getObjectTiles is 5x5, but we want 3x3 to encourage getting closer
 							var speedTilesWithOneTolerance = ObjectTracker.getTilesWithTolerance(objTile, 1);
 							knownBoostTiles.put(objTile, speedTilesWithOneTolerance);
 							continue;
@@ -173,7 +222,6 @@ public class ObjectTracker
 
 						if (!knownFetidPoolTiles.contains(tileWp) && fetidPoolIds.contains(id))
 						{
-							knownFetidPools.add(obj);
 							knownFetidPoolTiles.addAll(ObjectTracker.getObjectTiles(client, obj));
 
 							continue;
@@ -192,16 +240,22 @@ public class ObjectTracker
 								knownToadPillarTiles.addAll(ObjectTracker.getObjectTiles(client, obj));
 							}
 
-							onToadPillarTick(knownToadPillars, obj, matchingToadPillarByParentId);
+							onToadPillarTick(obj, matchingToadPillarByParentId);
 							continue;
 						}
 					}
 				}
 			}
 		}
+
+		state.updateKnownRockLocations(knownRockTiles);
+		state.updateSpeedBoosts(knownBoosts);
+		state.updateKnownSpeedBoostLocations(knownBoostTiles);
+		state.updateKnownFetidPoolLocations(knownFetidPoolTiles);
+		state.updateKnownToadPillarLocations(knownToadPillarTiles);
 	}
 
-	public void onToadPillarTick(Map<WorldPoint, Boolean> knownToadPillars, GameObject newToadPillarObj, JubblyJiveToadPillar toadPillar)
+	public void onToadPillarTick(GameObject newToadPillarObj, JubblyJiveToadPillar toadPillar)
 	{
 		var objectComposition = client.getObjectDefinition(newToadPillarObj.getId());
 		if (objectComposition == null)
@@ -212,11 +266,11 @@ public class ObjectTracker
 		var impostorIds = objectComposition.getImpostorIds();
 		if (impostorIds != null)
 		{
-			var imposter = objectComposition.getImpostor();
-			isInteractedWith = imposter.getId() == toadPillar.getClickboxNoopObjectId();
+			var impostor = objectComposition.getImpostor();
+			isInteractedWith = impostor.getId() == toadPillar.getClickboxNoopObjectId();
 		}
 
-		var previousIsInteractedWith = knownToadPillars.put(newToadPillarObj.getWorldLocation(), isInteractedWith);
+		var previousIsInteractedWith = state.updateKnownToadPillar(newToadPillarObj.getWorldLocation(), isInteractedWith);
 
 		if (previousIsInteractedWith == null) return; // first time
 		if (previousIsInteractedWith == isInteractedWith) return; // no change
@@ -259,276 +313,79 @@ public class ObjectTracker
 			var waypointLap = waypoint.getLap();
 			if (state.getCurrentLap() < waypointLap)
 			{
-				var lapsRequired = state.getCurrentDifficulty().rumsRequired;
-
-				log.info("Advanced to lap {}/{}", waypointLap, lapsRequired);
+				log.info("Advanced to lap {}", waypointLap);
 				state.setCurrentLap(waypointLap);
 			}
 
 			return;
 		}
 
-		log.warn("Couldn't find a match to update! That seems wrong - how did we update the imposter without it being in the list?");
+		log.warn("Couldn't find a match to update! That seems wrong - how did we update the impostor without it being in the list?");
 	}
 
 	/**
-	 * Updates lost supplies by scanning the scene
-	 */
-	public void updateLostSuppliesTracking()
-	{
-		if (!state.isInTrialArea())
-		{
-			return;
-		}
-
-		Set<GameObject> newlyFoundLostSupplies = new HashSet<>();
-
-		Scene scene = client.getScene();
-		if (scene == null)
-		{
-			return;
-		}
-
-		scanSceneForLostSupplies(scene, newlyFoundLostSupplies);
-
-		if (!state.getLostSupplies().equals(newlyFoundLostSupplies))
-		{
-			// Detect collected shipments: supplies that disappeared while the collected count increased
-			detectAndMarkCollectedShipments(newlyFoundLostSupplies);
-
-			state.getLostSupplies().clear();
-			state.getLostSupplies().addAll(newlyFoundLostSupplies);
-		}
-	}
-
-	/**
-	 * Detects shipments that were collected (disappeared from scene while count increased)
-	 */
-	private void detectAndMarkCollectedShipments(Set<GameObject> currentSupplies)
-	{
-		Set<WorldPoint> disappearedSupplyLocations = new HashSet<>();
-		for (GameObject previousSupply : state.getLostSupplies())
-		{
-			if (!currentSupplies.contains(previousSupply))
-			{
-				disappearedSupplyLocations.add(previousSupply.getWorldLocation());
-			}
-		}
-
-		// Shipments only disappear when collected
-		if (!disappearedSupplyLocations.isEmpty())
-		{
-			for (WorldPoint location : disappearedSupplyLocations)
-			{
-				int waypointIndex = state.findWaypointIndexByLocation(location);
-				if (waypointIndex != -1)
-				{
-					state.markWaypointCompleted(waypointIndex);
-					log.debug("Marked shipment waypoint as collected at index {}: {}", waypointIndex, location);
-				}
-			}
-			log.debug("Marked {} shipments as collected", disappearedSupplyLocations.size());
-		}
-	}
-
-	/**
-	 * Checks route waypoint tiles for shipment collection.
-	 * Detection method: If a base shipment object exists on a tile BUT the impostor ID (59244)
-	 * is missing, the shipment has been collected.
-	 * Only checks waypoints within 7 tiles of the player - close enough that impostor ID would be visible.
+	 * Checks shipment waypoints for collection and marks them completed.
+	 * Detection: base shipment object exists but impostor ID is missing = collected.
+	 * Only checks waypoints within 7 tiles (impostor ID visible range).
+	 *
 	 * @return true if any shipments were collected this tick
 	 */
 	public boolean updateRouteWaypointShipmentTracking()
 	{
 		var route = state.getCurrentStaticRoute();
-		if (!state.isInTrialArea() || route == null)
+		if (!state.isInTrial() || route == null)
 		{
 			return false;
 		}
 
-		Set<WorldPoint> waypointsToCheck = new HashSet<>();
+		WorldView worldView = client.getTopLevelWorldView();
+		if (worldView == null)
+		{
+			return false;
+		}
+
+		Scene scene = worldView.getScene();
+		WorldPoint boatLocation = state.getBoatLocation();
+		if (scene == null || boatLocation == null)
+		{
+			return false;
+		}
+
+		boolean anyCollected = false;
+
 		for (int i = 0; i < route.size(); i++)
 		{
 			RouteWaypoint waypoint = route.get(i);
-			if (waypoint.getType() == RouteWaypoint.WaypointType.SHIPMENT)
-			{
-				if (!state.isWaypointCompleted(i))
-				{
-					waypointsToCheck.add(waypoint.getLocation());
-				}
-			}
-		}
 
-		List<WorldPoint> collectedShipments = checkShipmentsForCollection(waypointsToCheck);
-
-		for (WorldPoint collected : collectedShipments)
-		{
-			int waypointIndex = state.findWaypointIndexByLocation(collected);
-			if (waypointIndex != -1)
-			{
-				state.markWaypointCompleted(waypointIndex);
-				log.debug("Shipment collected at route waypoint index {}: {}", waypointIndex, collected);
-			}
-		}
-
-		return !collectedShipments.isEmpty();
-	}
-
-	/**
-	 * Core shipment collection detection logic.
-	 * Checks a set of shipment locations and returns which ones were collected this tick.
-	 * Detection method: If a base shipment object exists BUT the impostor ID (59244) is missing,
-	 * the shipment has been collected.
-	 * Only checks locations within 7 tiles of the player (impostor ID only visible when close).
-	 *
-	 * @param shipmentsToCheck Set of shipment locations to check for collection
-	 * @return List of shipments that were collected this tick
-	 */
-	public List<WorldPoint> checkShipmentsForCollection(Set<WorldPoint> shipmentsToCheck)
-	{
-		List<WorldPoint> collectedShipments = new ArrayList<>();
-
-		if (shipmentsToCheck.isEmpty())
-		{
-			return collectedShipments;
-		}
-
-		Scene scene = client.getScene();
-		if (scene == null)
-		{
-			return collectedShipments;
-		}
-
-		WorldPoint playerBoatLocation = state.getBoatLocation();
-		if (playerBoatLocation == null)
-		{
-			return collectedShipments;
-		}
-
-		for (WorldPoint shipmentLocation : shipmentsToCheck)
-		{
-			// Only check waypoints within 7 tiles (impostor ID only visible when close)
-			double distance = Math.sqrt(
-				Math.pow(shipmentLocation.getX() - playerBoatLocation.getX(), 2) +
-				Math.pow(shipmentLocation.getY() - playerBoatLocation.getY(), 2)
-			);
-			if (distance > 7)
+			if (waypoint.getType() != RouteWaypoint.WaypointType.SHIPMENT)
 			{
 				continue;
 			}
 
-			if (hasBaseShipmentButNoImpostor(scene, shipmentLocation))
+			if (state.isWaypointCompleted(i))
 			{
-				collectedShipments.add(shipmentLocation);
+				continue;
+			}
+
+			WorldPoint location = waypoint.getLocation();
+
+			// Only check if within range (impostor ID only visible within 7 tiles)
+			int dx = Math.abs(location.getX() - boatLocation.getX());
+			int dy = Math.abs(location.getY() - boatLocation.getY());
+			if (Math.max(dx, dy) > 7)
+			{
+				continue;
+			}
+
+			if (hasBaseShipmentButNoImpostor(scene, location))
+			{
+				state.markWaypointCompleted(i);
+				anyCollected = true;
+				log.debug("Shipment collected at route waypoint index {}: {}", i, location);
 			}
 		}
 
-		return collectedShipments;
-	}
-
-	/**
-	 * Updates route capture supply locations by scanning all tiles (including extended tiles).
-	 * This is ONLY used for route capture mode to discover all supply spawn locations.
-	 * Normal pathfinding uses route waypoints instead.
-	 */
-	public void updateRouteCaptureSupplyLocations()
-	{
-		if (!state.isInTrialArea())
-		{
-			state.setRouteCaptureSupplyLocations(new HashSet<>());
-			return;
-		}
-
-		Scene scene = client.getScene();
-		if (scene == null)
-		{
-			state.setRouteCaptureSupplyLocations(new HashSet<>());
-			return;
-		}
-
-		Set<WorldPoint> oldSupplyLocations = state.getRouteCaptureSupplyLocations();
-		Set<WorldPoint> newSupplyLocations = scanTileArrayForShipments(scene.getTiles(), oldSupplyLocations);
-
-		Tile[][][] extendedTiles = scene.getExtendedTiles();
-		if (extendedTiles != null)
-		{
-			newSupplyLocations.addAll(scanTileArrayForShipments(extendedTiles, oldSupplyLocations));
-		}
-
-		state.setRouteCaptureSupplyLocations(newSupplyLocations);
-	}
-
-	/**
-	 * Checks all route capture supply locations for collection.
-	 * ONLY used during route capture mode to detect shipments without a predefined route.
-	 * Assumes updateRouteCaptureSupplyLocations() has already been called this tick.
-	 *
-	 * @return List of shipments that were collected this tick
-	 */
-	public List<WorldPoint> checkAllRouteCaptureShipmentsForCollection()
-	{
-		return checkShipmentsForCollection(state.getRouteCaptureSupplyLocations());
-	}
-
-	/**
-	 * Scans a tile array for shipment objects and returns their locations.
-	 * Skips logging for locations already in the old set for efficiency.
-	 */
-	private Set<WorldPoint> scanTileArrayForShipments(Tile[][][] tileArray, Set<WorldPoint> oldSupplyLocations)
-	{
-		Set<WorldPoint> foundSupplyLocations = new HashSet<>();
-
-		if (tileArray == null)
-		{
-			return foundSupplyLocations;
-		}
-
-		var trial = state.getCurrentTrial();
-		if (trial == null)
-		{
-			return foundSupplyLocations;
-		}
-
-		var shipmentIds = trial.getShipmentBaseIds();
-		int shipmentImpostorId = trial.getShipmentImpostorId();
-
-		for (var plane : tileArray)
-		{
-			if (plane == null) continue;
-
-			for (var column : plane)
-			{
-				if (column == null) continue;
-
-				for (var tile : column)
-				{
-					if (tile == null) continue;
-
-					for (var gameObject : tile.getGameObjects())
-					{
-						if (gameObject == null) continue;
-
-						int objectId = gameObject.getId();
-						if (!shipmentIds.contains(objectId)
-							&& objectId != shipmentImpostorId)
-						{
-							continue;
-						}
-
-						var worldLocation = gameObject.getWorldLocation();
-						if (!oldSupplyLocations.contains(worldLocation))
-						{
-							log.debug("[ROUTE CAPTURE] Found shipment id {} we can pick up on {}",
-								objectId, formatWorldPoint(worldLocation));
-						}
-
-						foundSupplyLocations.add(worldLocation);
-					}
-				}
-			}
-		}
-
-		return foundSupplyLocations;
+		return anyCollected;
 	}
 
 	/**
@@ -579,12 +436,33 @@ public class ObjectTracker
 
 			int objectId = gameObject.getId();
 
-			if (shipmentIds.contains(objectId))
+			if (!shipmentIds.contains(objectId))
 			{
-				hasBaseShipment = true;
+				continue;
 			}
 
-			if (objectId == shipmentImpostorId)
+			hasBaseShipment = true;
+
+			var objectComposition = client.getObjectDefinition(objectId);
+			if (objectComposition == null)
+			{
+				continue;
+			}
+
+			var impostorIds = objectComposition.getImpostorIds();
+			if (impostorIds == null)
+			{
+				continue;
+			}
+
+			var impostor = objectComposition.getImpostor();
+			if (impostor == null)
+			{
+				continue;
+			}
+
+			var impostorId = impostor.getId();
+			if (impostorId == shipmentImpostorId)
 			{
 				hasImpostor = true;
 			}
@@ -593,137 +471,13 @@ public class ObjectTracker
 		return hasBaseShipment && !hasImpostor;
 	}
 
-	public void scanSceneForLostSupplies(Scene scene, Set<GameObject> newlyFoundLostSupplies)
-	{
-		Tile[][][] regularTiles = scene.getTiles();
-		if (regularTiles != null)
-		{
-			scanTileArrayForLostSupplies(regularTiles, newlyFoundLostSupplies);
-		}
-
-		Tile[][][] extendedTiles = scene.getExtendedTiles();
-		if (extendedTiles != null)
-		{
-			scanTileArrayForLostSupplies(extendedTiles, newlyFoundLostSupplies);
-		}
-	}
-
-	private void scanTileArrayForLostSupplies(Tile[][][] tileArray, Set<GameObject> newlyFoundLostSupplies)
-	{
-        for (Tile[][] tiles : tileArray) {
-            if (tiles == null) {
-                continue;
-            }
-
-            for (Tile[] value : tiles) {
-                if (value == null) {
-                    continue;
-                }
-
-                for (Tile tile : value) {
-                    if (tile == null) {
-                        continue;
-                    }
-
-                    processLostSupplyTile(tile, newlyFoundLostSupplies);
-                }
-            }
-        }
-	}
-
-	public void processLostSupplyTile(Tile tile, Set<GameObject> newlyFoundLostSupplies)
-	{
-		var trial = state.getCurrentTrial();
-		if (trial == null)
-		{
-			return;
-		}
-
-		var shipmentIds = trial.getShipmentBaseIds();
-
-		GameObject[] gameObjects = tile.getGameObjects();
-		if (gameObjects == null)
-		{
-			return;
-		}
-
-		for (GameObject gameObject : gameObjects)
-		{
-			if (gameObject == null)
-			{
-				continue;
-			}
-
-			if (!shipmentIds.contains(gameObject.getId()))
-			{
-				continue;
-			}
-
-			WorldPoint supplyWorldLocation = gameObject.getWorldLocation();
-
-			boolean isNewSpawnLocation = state.getKnownLostSuppliesSpawnLocations().add(supplyWorldLocation);
-			if (isNewSpawnLocation)
-			{
-				log.debug("Discovered supply spawn location at {}, total known: {}",
-					supplyWorldLocation, state.getKnownLostSuppliesSpawnLocations().size());
-			}
-
-			if (isLostSupplyCurrentlyCollectible(gameObject))
-			{
-				newlyFoundLostSupplies.add(gameObject);
-			}
-		}
-	}
-
-	/**
-	 * Checks if a lost supply object is in collectible state
-	 * Uses the multiloc/impostor system to determine collectibility
-	 */
-	public boolean isLostSupplyCurrentlyCollectible(GameObject gameObject)
-	{
-		var trial = state.getCurrentTrial();
-		if (trial == null)
-		{
-			return false;
-		}
-
-		int shipmentImpostorId = trial.getShipmentImpostorId();
-
-		try
-		{
-			ObjectComposition objectComposition = client.getObjectDefinition(gameObject.getId());
-			if (objectComposition == null)
-			{
-				return false;
-			}
-
-			int[] impostorIds = objectComposition.getImpostorIds();
-			if (impostorIds == null)
-			{
-				return gameObject.getId() == shipmentImpostorId;
-			}
-
-			ObjectComposition activeImpostor = objectComposition.getImpostor();
-			if (activeImpostor == null)
-			{
-				return false;
-			}
-
-			return activeImpostor.getId() == shipmentImpostorId;
-		}
-		catch (Exception e)
-		{
-			return false;
-		}
-	}
-
 	/**
 	 * Updates the boat location (player's boat WorldEntity)
 	 * Falls back to player location if boat cannot be found
 	 */
 	public void updatePlayerBoatLocation()
 	{
-		if (!state.isInTrialArea())
+		if (!state.isInTrial())
 		{
 			state.setBoatLocation(null);
 			return;
@@ -784,7 +538,7 @@ public class ObjectTracker
 	 */
 	public void updateFrontBoatTile()
 	{
-		if (!state.isInTrialArea())
+		if (!state.isInTrial())
 		{
 			state.setFrontBoatTileEstimatedActual(null);
 			state.setFrontBoatTileLocal(null);
@@ -794,6 +548,7 @@ public class ObjectTracker
 		Player localPlayer = client.getLocalPlayer();
 		if (localPlayer == null)
 		{
+			log.warn("Local player is null when updating front boat tile");
 			state.setFrontBoatTileEstimatedActual(null);
 			state.setFrontBoatTileLocal(null);
 			return;
@@ -804,6 +559,7 @@ public class ObjectTracker
 			WorldView playerWorldView = localPlayer.getWorldView();
 			if (playerWorldView == null)
 			{
+				log.warn("Player WorldView is null when updating front boat tile");
 				state.setFrontBoatTileEstimatedActual(null);
 				state.setFrontBoatTileLocal(null);
 				return;
@@ -812,6 +568,7 @@ public class ObjectTracker
 			WorldView topLevelWorldView = client.getTopLevelWorldView();
 			if (topLevelWorldView == null)
 			{
+				log.warn("Top-level WorldView is null when updating front boat tile");
 				state.setFrontBoatTileEstimatedActual(null);
 				state.setFrontBoatTileLocal(null);
 				return;
@@ -821,6 +578,7 @@ public class ObjectTracker
 			WorldEntity boatWorldEntity = topLevelWorldView.worldEntities().byIndex(playerWorldViewId);
 			if (boatWorldEntity == null)
 			{
+				log.warn("Boat WorldEntity is null when updating front boat tile");
 				state.setFrontBoatTileEstimatedActual(null);
 				state.setFrontBoatTileLocal(null);
 				return;
@@ -829,6 +587,7 @@ public class ObjectTracker
 			WorldView boatWorldView = boatWorldEntity.getWorldView();
 			if (boatWorldView == null)
 			{
+				log.warn("Boat WorldView is null when updating front boat tile");
 				state.setFrontBoatTileEstimatedActual(null);
 				state.setFrontBoatTileLocal(null);
 				return;
@@ -837,12 +596,12 @@ public class ObjectTracker
 			Scene boatScene = boatWorldView.getScene();
 			if (boatScene == null)
 			{
+				log.warn("Boat Scene is null when updating front boat tile");
 				state.setFrontBoatTileEstimatedActual(null);
 				state.setFrontBoatTileLocal(null);
 				return;
 			}
 
-			// Find the local player in the boat's WorldView
 			Player boatPlayer = null;
 			for (Player p : boatWorldView.players())
 			{
@@ -860,19 +619,18 @@ public class ObjectTracker
 				return;
 			}
 
-			// Find the NPC on the boat (center marker)
 			NPC boatNpc = null;
 			for (NPC npc : boatWorldView.npcs())
 			{
-				if (npc != null)
-				{
-					boatNpc = npc;
-					break;
-				}
+				if (npc == null || !BOAT_NPC_IDS.contains(npc.getId()))
+					continue;
+				boatNpc = npc;
+				break;
 			}
 
 			if (boatNpc == null)
 			{
+				log.warn("Boat NPC is null when updating front boat tile");
 				state.setFrontBoatTileEstimatedActual(null);
 				state.setFrontBoatTileLocal(null);
 				return;
@@ -883,6 +641,7 @@ public class ObjectTracker
 
 			if (npcLocalPoint == null || boatPlayerLocalPoint == null)
 			{
+				log.warn("NPC or Boat Player local point is null when updating front boat tile");
 				state.setFrontBoatTileEstimatedActual(null);
 				state.setFrontBoatTileLocal(null);
 				return;
@@ -913,6 +672,7 @@ public class ObjectTracker
 			LocalPoint frontMainWorldLocal = boatWorldEntity.transformToMainWorld(frontLocalPoint);
 			if (frontMainWorldLocal == null)
 			{
+				log.warn("Front main world LocalPoint is null when updating front boat tile");
 				state.setFrontBoatTileEstimatedActual(null);
 				return;
 			}
@@ -923,9 +683,9 @@ public class ObjectTracker
 		}
 		catch (Exception e)
 		{
+			log.error("Error calculating front boat tile: {}", e.getMessage());
 			state.setFrontBoatTileEstimatedActual(null);
 			state.setFrontBoatTileLocal(null);
-			log.debug("Error calculating front boat tile: {}", e.getMessage());
 		}
 	}
 
@@ -940,7 +700,18 @@ public class ObjectTracker
 			return Collections.singletonList(obj.getWorldLocation());
 		}
 
-		Scene scene = client.getScene();
+		WorldView worldView = client.getTopLevelWorldView();
+		if (worldView == null)
+		{
+			return Collections.singletonList(obj.getWorldLocation());
+		}
+
+		Scene scene = worldView.getScene();
+		if (scene == null)
+		{
+			return Collections.singletonList(obj.getWorldLocation());
+		}
+
 		int baseX = scene.getBaseX();
 		int baseY = scene.getBaseY();
 		int plane = obj.getPlane();
@@ -966,7 +737,6 @@ public class ObjectTracker
 	 * Computes all tiles within a given tolerance distance from target locations.
 	 * Uses Chebyshev distance (max of dx, dy) for square areas.
 	 *
-	 * @param center
 	 * @param tolerance Distance in tiles (1 = 3x3 area, 2 = 5x5 area, etc.)
 	 * @return Map from grabbable tile to its center point
 	 */

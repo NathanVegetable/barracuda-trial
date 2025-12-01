@@ -12,21 +12,4 @@ public enum TrialType
 	GWENITH_GLIDE("Gwenith Glide");
 
 	private final String displayName;
-
-	public static TrialType fromDisplayName(String name)
-	{
-		if (name == null)
-		{
-			return null;
-		}
-
-		for (TrialType type : values())
-		{
-			if (type.displayName.equalsIgnoreCase(name))
-			{
-				return type;
-			}
-		}
-		return null;
-	}
 }

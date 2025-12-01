@@ -43,12 +43,12 @@ public class RouteWaypoint
 	public enum WaypointType
 	{
 		SHIPMENT(2),
-		RUM_PICKUP(7),
-		RUM_DROPOFF(7),
+		RUM_PICKUP(9),
+		RUM_DROPOFF(9),
 		TOAD_PICKUP(9),
 		TOAD_PILLAR(10),
-		CRYSTAL_MOTE(5),
-		PORTAL(7),
+		PORTAL_ENTER(1),
+		PORTAL_EXIT(0),
 		PATHFINDING_HINT(0),
 		USE_WIND_CATCHER(0);
 
@@ -59,9 +59,9 @@ public class RouteWaypoint
 			this.toleranceTiles = toleranceTiles;
 		}
 
-		public boolean isNonNavigatableHelper()
+		public boolean isNonNavigableHelper()
 		{
-			return this == PATHFINDING_HINT || this == USE_WIND_CATCHER;
+			return this == PATHFINDING_HINT || this == USE_WIND_CATCHER || this == PORTAL_EXIT;
 		}
 	}
 

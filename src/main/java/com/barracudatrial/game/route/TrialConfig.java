@@ -11,9 +11,6 @@ public interface TrialConfig
 	Set<Integer> getShipmentBaseIds();
 	int getShipmentImpostorId();
 
-	Set<Integer> getRockIds();
-	Set<Integer> getSpeedBoostIds();
-
 	// Routes
 	List<RouteWaypoint> getRoute(Difficulty difficulty);
 }

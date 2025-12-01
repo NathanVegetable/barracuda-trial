@@ -18,6 +18,7 @@ public class CachedConfig
 	@Getter private Color pathColor;
 	@Getter private int pathWidth;
 	@Getter private int pathLookahead;
+	@Getter private boolean showPathTiles;
 
 	// Objective settings
 	@Getter private boolean highlightObjectives;
@@ -32,12 +33,6 @@ public class CachedConfig
 	@Getter private boolean highlightClouds;
 	@Getter private Color cloudColor;
 	@Getter private int cloudDangerRadius;
-	@Getter private boolean highlightFetidPools;
-	@Getter private Color fetidPoolColor;
-
-	// Debug settings
-	@Getter private boolean debugMode;
-	@Getter private boolean showIDs;
 
 	public CachedConfig(BarracudaTrialConfig config)
 	{
@@ -56,6 +51,7 @@ public class CachedConfig
 		pathColor = config.pathColor();
 		pathWidth = config.pathWidth();
 		pathLookahead = config.pathLookahead();
+		showPathTiles = config.showPathTiles();
 
 		highlightObjectives = config.highlightObjectives();
 		objectivesColorCurrentWaypoint = config.objectivesColorCurrentWaypoint();
@@ -68,10 +64,5 @@ public class CachedConfig
 		highlightClouds = config.highlightClouds();
 		cloudColor = config.cloudColor();
 		cloudDangerRadius = config.cloudDangerRadius();
-		highlightFetidPools = config.highlightFetidPools();
-		fetidPoolColor = config.fetidPoolColor();
-
-		debugMode = config.debugMode();
-		showIDs = config.showIDs();
 	}
 }

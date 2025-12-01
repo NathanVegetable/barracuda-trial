@@ -1,15 +1,16 @@
 package com.barracudatrial;
 
 import com.barracudatrial.game.*;
-import com.barracudatrial.game.route.JubblyJiveConfig;
+import com.barracudatrial.game.route.Difficulty;
 import com.barracudatrial.game.route.RouteWaypoint;
+import com.barracudatrial.game.route.RouteWaypoint.WaypointType;
 import com.barracudatrial.game.route.TrialType;
 import com.google.inject.Provides;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.*;
-import net.runelite.api.coords.WorldPoint;
 import net.runelite.api.events.*;
+import net.runelite.client.callback.ClientThread;
 import net.runelite.client.config.ConfigManager;
 import net.runelite.client.eventbus.Subscribe;
 import net.runelite.client.events.ConfigChanged;
@@ -18,8 +19,8 @@ import net.runelite.client.plugins.PluginDescriptor;
 import net.runelite.client.ui.overlay.OverlayManager;
 
 import javax.inject.Inject;
-import java.util.List;
 
+@SuppressWarnings("unused")
 @Slf4j
 @PluginDescriptor(
 	name = "Barracuda Trials Pathfinder",
@@ -40,6 +41,9 @@ public class BarracudaTrialPlugin extends Plugin
 	@Inject
 	private BarracudaTrialOverlay overlay;
 
+	@Inject
+	private ClientThread clientThread;
+
 	@Getter
 	private final State gameState = new State();
 
@@ -51,10 +55,8 @@ public class BarracudaTrialPlugin extends Plugin
 	private ProgressTracker progressTracker;
 	private PathPlanner pathPlanner;
 
-	@Getter
-	private RouteCapture routeCapture;
-
 	@Override
+	@SuppressWarnings("RedundantThrows")
 	protected void startUp() throws Exception
 	{
 		log.info("Barracuda Trial plugin started!");
@@ -65,30 +67,28 @@ public class BarracudaTrialPlugin extends Plugin
 		objectTracker = new ObjectTracker(client, gameState);
 		locationManager = new LocationManager(client, gameState);
 		progressTracker = new ProgressTracker(client, gameState);
-		pathPlanner = new PathPlanner(client, gameState, cachedConfig);
-		routeCapture = new RouteCapture(gameState);
+		pathPlanner = new PathPlanner(client, gameState, cachedConfig, clientThread);
 	}
 
 	@Override
+	@SuppressWarnings("RedundantThrows")
 	protected void shutDown() throws Exception
 	{
 		log.info("Barracuda Trial plugin stopped!");
 		overlayManager.remove(overlay);
 		gameState.resetAllTemporaryState();
-		pathPlanner.reset();
-		gameState.clearPersistentStorage();
+		pathPlanner.shutdown();
 	}
 
 	@Subscribe
 	public void onGameTick(GameTick event)
 	{
-		boolean trialAreaStateChanged = progressTracker.checkIfPlayerIsInTrialArea();
-		if (trialAreaStateChanged && !gameState.isInTrialArea())
+		boolean trialAreaStateChanged = progressTracker.checkIfPlayerIsInTrial();
+		if (trialAreaStateChanged && !gameState.isInTrial())
 		{
-			routeCapture.reset();
 			pathPlanner.reset();
 		}
-		if (!gameState.isInTrialArea())
+		if (!gameState.isInTrial())
 		{
 			return;
 		}
@@ -108,47 +108,33 @@ public class BarracudaTrialPlugin extends Plugin
 
 		if (cachedConfig.isShowOptimalPath()
 			|| cachedConfig.isHighlightSpeedBoosts()
-		 	|| routeCapture.isCapturing()
 			|| cachedConfig.isHighlightObjectives())
 		{
 			objectTracker.updateHazardsSpeedBoostsAndToadPillars();
 		}
 
-		progressTracker.updateTrialProgressFromWidgets();
-		
 		if (cachedConfig.isShowOptimalPath())
 		{
 			objectTracker.updatePlayerBoatLocation();
 
 			objectTracker.updateFrontBoatTile();
-		
+
 			boolean shipmentsCollected = objectTracker.updateRouteWaypointShipmentTracking();
 			if (shipmentsCollected)
 			{
 				pathPlanner.recalculateOptimalPathFromCurrentState("shipment collected");
 			}
-		}
 
-		if (cachedConfig.isShowOptimalPath() || routeCapture.isCapturing())
-		{
-			objectTracker.updateLostSuppliesTracking();
-		}
-
-		// Route capture mode: scan for all supply locations to build routes
-		if (routeCapture.isCapturing())
-		{
-			objectTracker.updateRouteCaptureSupplyLocations();
-			List<WorldPoint> collected = objectTracker.checkAllRouteCaptureShipmentsForCollection();
-			routeCapture.onShipmentsCollected(collected);
+			checkPortalExitProximity();
 		}
 
 		if (cachedConfig.isShowOptimalPath())
 		{
-			// Recalculate path periodically to account for moving clouds
 			int ticksSinceLastPathRecalculation = gameState.getTicksSinceLastPathRecalc() + 1;
 			gameState.setTicksSinceLastPathRecalc(ticksSinceLastPathRecalculation);
 
-			if (ticksSinceLastPathRecalculation >= State.PATH_RECALC_INTERVAL)
+			int recalcInterval = cachedConfig.getRouteOptimization().getPathRecalcIntervalTicks();
+			if (ticksSinceLastPathRecalculation >= recalcInterval)
 			{
 				gameState.setTicksSinceLastPathRecalc(0);
 				pathPlanner.recalculateOptimalPathFromCurrentState("periodic (game tick)");
@@ -159,7 +145,7 @@ public class BarracudaTrialPlugin extends Plugin
 	@Subscribe
 	public void onChatMessage(ChatMessage event)
 	{
-		if (!gameState.isInTrialArea())
+		if (!gameState.isInTrial())
 		{
 			return;
 		}
@@ -175,11 +161,6 @@ public class BarracudaTrialPlugin extends Plugin
 		{
 			log.debug("Rum collected! Message: {}", chatMessage);
 			gameState.setHasThrowableObjective(true);
-
-			if (routeCapture.isCapturing())
-			{
-				routeCapture.onRumPickedUp();
-			}
 
 			var route = gameState.getCurrentStaticRoute();
 
@@ -217,45 +198,20 @@ public class BarracudaTrialPlugin extends Plugin
 						&& !gameState.isWaypointCompleted(i))
 					{
 						gameState.markWaypointCompleted(i);
+						var lap = waypoint.getLap();
+						gameState.setCurrentLap(lap + 1);
 						log.info("Marked RUM_DROPOFF waypoint as completed at index {}: {}", i, waypoint.getLocation());
+						pathPlanner.recalculateOptimalPathFromCurrentState("chat: rum delivered");
 						break;
 					}
 				}
-			}
-
-			var lapsRequired = gameState.getCurrentDifficulty().rumsRequired;
-			var nextLapNumber = gameState.getCurrentLap() + 1;
-			var isCompletingFinalLap = lapsRequired == nextLapNumber;
-
-			if (isCompletingFinalLap)
-			{
-				// Reset will be handled by game, no need to reset here
-				log.info("Completed all {} laps!", lapsRequired);
-			}
-			else
-			{
-				gameState.setCurrentLap(nextLapNumber);
-				log.info("Advanced to lap {}/{}", nextLapNumber, lapsRequired);
-			}
-
-			pathPlanner.recalculateOptimalPathFromCurrentState("chat: rum delivered");
-
-			if (routeCapture.isCapturing())
-			{
-				routeCapture.onRumDelivered(isCompletingFinalLap);
 			}
 		}
 		else if (chatMessage.contains("balloon toads. Time to lure"))
 		{
 			log.debug("Toads collected! Message: {}", chatMessage);
-			
-			gameState.setHasThrowableObjective(true);
 
-			if (routeCapture.isCapturing())
-			{
-				// TODO: Handle capturing
-				// routeCapture.onRumPickedUp();
-			}
+			gameState.setHasThrowableObjective(true);
 
 			var route = gameState.getCurrentStaticRoute();
 
@@ -277,16 +233,55 @@ public class BarracudaTrialPlugin extends Plugin
 
 			pathPlanner.recalculateOptimalPathFromCurrentState("chat: toads collected");
 		}
+		else if (chatMessage.contains("through the portal"))
+		{
+			log.debug("Portal traversed! Message: {}", chatMessage);
+
+			var route = gameState.getCurrentStaticRoute();
+
+			if (route != null)
+			{
+				for (int i = 0, n = route.size(); i < n; i++)
+				{
+					var waypoint = route.get(i);
+
+					if (waypoint.getType() == RouteWaypoint.WaypointType.PORTAL_ENTER
+						&& !gameState.isWaypointCompleted(i))
+					{
+						gameState.markWaypointCompleted(i);
+						log.info("Marked PORTAL_ENTER waypoint as completed at index {}: {}", i, waypoint.getLocation());
+
+						if (waypoint.getLap() > gameState.getCurrentLap())
+						{
+							gameState.setCurrentLap(waypoint.getLap());
+							log.info("Advanced to lap {} (portal enter)", waypoint.getLap());
+						}
+
+						pathPlanner.recalculateOptimalPathFromCurrentState("chat: portal entered");
+
+						break;
+					}
+				}
+			}
+		}
+	}
+	
+	@Subscribe
+	public void onScriptPreFired(ScriptPreFired event)
+	{
+		// TODO: remove once fade out is fixed in Sailing helper
+		var FADE_OUT_TRANSITION_SCRIPT_ID = 948;
+
+        if (event.getScriptId() == FADE_OUT_TRANSITION_SCRIPT_ID)
+        {
+            event.getScriptEvent().getArguments()[4] = 255;
+            event.getScriptEvent().getArguments()[5] = 0;
+        }
 	}
 
 	@Subscribe
 	public void onConfigChanged(ConfigChanged event)
 	{
-		if (!gameState.isInTrialArea())
-		{
-			return;
-		}
-		
 		if (!event.getGroup().equals("barracudatrial"))
 		{
 			return;
@@ -294,230 +289,52 @@ public class BarracudaTrialPlugin extends Plugin
 
 		cachedConfig.updateCache();
 
-		if (event.getKey().equals("routeOptimization") && gameState.isInTrialArea())
+		if (event.getKey().equals("routeOptimization") && gameState.isInTrial())
 		{
 			pathPlanner.recalculateOptimalPathFromCurrentState("config: route optimization changed");
 		}
 	}
 
-	@Subscribe
-	public void onMenuOptionClicked(MenuOptionClicked event)
+	private void checkPortalExitProximity()
 	{
-		if (!cachedConfig.isDebugMode() || !gameState.isInTrialArea())
+		var route = gameState.getCurrentStaticRoute();
+		if (route == null || route.isEmpty())
 		{
 			return;
 		}
 
-		if (!event.getMenuOption().equals("Examine"))
+		var boatLocation = gameState.getBoatLocation();
+		if (boatLocation == null)
 		{
 			return;
 		}
 
-		int sceneX = event.getParam0();
-		int sceneY = event.getParam1();
-		if (sceneX < 0 || sceneY < 0)
+		for (int i = 0; i < route.size() - 1; i++)
 		{
-			return;
-		}
+			var waypoint = route.get(i);
+			var nextWaypoint = route.get(i + 1);
 
-		int plane = client.getPlane();
-		WorldPoint worldPoint = WorldPoint.fromScene(client, sceneX, sceneY, plane);
-
-		Scene scene = client.getScene();
-		int sceneBaseX = scene != null ? scene.getBaseX() : -1;
-		int sceneBaseY = scene != null ? scene.getBaseY() : -1;
-
-		WorldPoint boatWorldLocation = getBoatWorldLocationForSceneTile(sceneX, sceneY, plane);
-
-		int objectId = event.getId();
-
-		String impostorInfo = "none";
-		try
-		{
-			ObjectComposition objectComposition = client.getObjectDefinition(objectId);
-			if (objectComposition != null)
+			if (waypoint.getType() == WaypointType.PORTAL_ENTER
+				&& gameState.isWaypointCompleted(i)
+				&& nextWaypoint.getType() == WaypointType.PORTAL_EXIT
+				&& !gameState.isWaypointCompleted(i + 1))
 			{
-				impostorInfo = "none (with object comp)";
-
-				var impostorIds = objectComposition.getImpostorIds();
-				if (impostorIds == null)
+				int distance = boatLocation.distanceTo(nextWaypoint.getLocation());
+				if (distance <= 10)
 				{
-					impostorInfo = "none (null ids)";
-				}
-				else
-				{
-					ObjectComposition activeImpostor = objectComposition.getImpostor();
-					if (activeImpostor != null) {
-						impostorInfo = String.valueOf(activeImpostor.getId());
-					}
-				}
-			}
-		}
-		catch (Exception e)
-		{
-			impostorInfo += "[error: " + e + "]";
-		}
+					gameState.markWaypointCompleted(i + 1);
+					log.info("Marked PORTAL_EXIT waypoint as completed at index {} (distance: {}): {}", i + 1, distance, nextWaypoint.getLocation());
 
-		log.info("[EXAMINE] ObjectID: {}, ImpostorID: {}, SceneXY: ({}, {}), SceneBase: ({}, {}), Plane: {}, WorldPoint: {}, BoatWorldLoc: {}",
-			objectId, impostorInfo, sceneX, sceneY, sceneBaseX, sceneBaseY, plane, worldPoint,
-			boatWorldLocation != null ? boatWorldLocation : "null");
-
-		if (scene != null)
-		{
-			var tiles = scene.getTiles();
-			var tile = tiles[plane][sceneX][sceneY];
-
-			for (GameObject gameObject : tile.getGameObjects()) {
-				if (gameObject == null)
-					continue;
-
-				var id = gameObject.getId();
-				if (id == objectId)
-					continue;
-
-				log.info("[EXAMINE] Found another Object on this tile: {}", id);
-			}
-
-			if (objectId == State.RUM_RETURN_BASE_OBJECT_ID || objectId == State.RUM_RETURN_IMPOSTOR_ID) {
-				WorldPoint rumLocation = boatWorldLocation != null ? boatWorldLocation : worldPoint;
-				routeCapture.onExamineRumDropoff(rumLocation, sceneX, sceneY, sceneBaseX, sceneBaseY, objectId, impostorInfo);
-			}
-			// else if (JubblyJiveConfig.TOAD_PILLAR_IDS.contains(objectId))
-			// {
-			// 	routeCapture.onExamineToadPillar(worldPoint, objectId);
-			// }
-		}
-	}
-
-	public boolean isPointInExclusionZone(WorldPoint point)
-	{
-		return locationManager.isPointInsideExclusionZone(point);
-	}
-
-	/**
-	 * Gets the boat/entity world location for an object at the given scene coordinates.
-	 * Objects on boats have scene-local coordinates that shift as the boat moves.
-	 */
-	private WorldPoint getBoatWorldLocationForSceneTile(int sceneX, int sceneY, int plane)
-	{
-		try
-		{
-			Scene scene = client.getScene();
-			if (scene == null || sceneX < 0 || sceneY < 0 || sceneX >= 104 || sceneY >= 104)
-			{
-				return null;
-			}
-
-			Tile[][][] tiles = scene.getTiles();
-			if (tiles == null || tiles[plane] == null)
-			{
-				return null;
-			}
-
-			Tile tile = tiles[plane][sceneX][sceneY];
-			if (tile == null)
-			{
-				return null;
-			}
-
-			GameObject rumObject = null;
-			for (GameObject gameObject : tile.getGameObjects())
-			{
-				if (gameObject == null)
-				{
-					continue;
-				}
-
-				int objectId = gameObject.getId();
-				if (objectId == State.RUM_RETURN_BASE_OBJECT_ID || objectId == State.RUM_RETURN_IMPOSTOR_ID ||
-					objectId == State.RUM_PICKUP_BASE_OBJECT_ID || objectId == State.RUM_PICKUP_IMPOSTOR_ID)
-				{
-					rumObject = gameObject;
-					break;
-				}
-			}
-
-			if (rumObject == null)
-			{
-				return null;
-			}
-
-			WorldPoint rumWorldLocation = rumObject.getWorldLocation();
-
-			WorldView topLevelWorldView = client.getTopLevelWorldView();
-			if (topLevelWorldView == null)
-			{
-				return null;
-			}
-
-			for (WorldEntity worldEntity : topLevelWorldView.worldEntities())
-			{
-				if (worldEntity == null)
-				{
-					continue;
-				}
-
-				WorldView entityWorldView = worldEntity.getWorldView();
-				if (entityWorldView == null)
-				{
-					continue;
-				}
-
-				Scene entityScene = entityWorldView.getScene();
-				if (entityScene == null)
-				{
-					continue;
-				}
-
-				int entitySceneX = rumWorldLocation.getX() - entityScene.getBaseX();
-				int entitySceneY = rumWorldLocation.getY() - entityScene.getBaseY();
-
-				if (entitySceneX >= 0 && entitySceneX < 104 && entitySceneY >= 0 && entitySceneY < 104)
-				{
-					Tile[][][] entityTiles = entityScene.getTiles();
-					if (entityTiles == null || plane >= entityTiles.length || entityTiles[plane] == null)
+					if (nextWaypoint.getLap() > gameState.getCurrentLap())
 					{
-						continue;
+						gameState.setCurrentLap(nextWaypoint.getLap());
+						log.info("Advanced to lap {} (portal exit)", nextWaypoint.getLap());
 					}
 
-					Tile entityTile = entityTiles[plane][entitySceneX][entitySceneY];
-					if (entityTile != null)
-					{
-						boolean foundRumOnThisTile = false;
-						for (GameObject gameObject : entityTile.getGameObjects())
-						{
-							if (gameObject == null)
-							{
-								continue;
-							}
-
-							int objectId = gameObject.getId();
-							if (objectId == State.RUM_RETURN_BASE_OBJECT_ID || objectId == State.RUM_RETURN_IMPOSTOR_ID ||
-								objectId == State.RUM_PICKUP_BASE_OBJECT_ID || objectId == State.RUM_PICKUP_IMPOSTOR_ID)
-							{
-								foundRumOnThisTile = true;
-								break;
-							}
-						}
-
-						if (foundRumOnThisTile)
-						{
-							var boatLocalLocation = worldEntity.getLocalLocation();
-							if (boatLocalLocation != null)
-							{
-								return WorldPoint.fromLocalInstance(client, boatLocalLocation);
-							}
-						}
-					}
+					pathPlanner.recalculateOptimalPathFromCurrentState("portal exit proximity");
+					return;
 				}
 			}
-
-			return null;
-		}
-		catch (Exception e)
-		{
-			log.debug("Error getting boat world location: {}", e.getMessage());
-			return null;
 		}
 	}
 

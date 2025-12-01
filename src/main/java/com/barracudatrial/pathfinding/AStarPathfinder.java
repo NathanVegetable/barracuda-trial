@@ -200,7 +200,7 @@ public class AStarPathfinder
 		}
 
 		var angle = absDelta * 15;
-		var baseCost = routeOptimization == RouteOptimization.EFFICIENT ? 1.0 : 2.0;
+		var baseCost = routeOptimization.getTurnPenaltyBase();
 
 		return angle > 105 ? baseCost * 4 : baseCost;
 	}
@@ -262,35 +262,6 @@ public class AStarPathfinder
 		// Reverse to get path from start to goal
 		Collections.reverse(pathNodes);
 		return pathNodes;
-	}
-
-	/**
-	 * Computes all tiles within a given tolerance distance from target locations.
-	 * Uses Chebyshev distance (max of dx, dy) for square areas.
-	 *
-	 * @param locations Center points
-	 * @param tolerance Distance in tiles (1 = 3x3 area, 2 = 5x5 area, etc.)
-	 * @return Map from grabbable tile to its center point
-	 */
-	public static Map<WorldPoint, WorldPoint> computeGrabbableTiles(Set<WorldPoint> locations, int tolerance)
-	{
-		Map<WorldPoint, WorldPoint> grabbableTiles = new HashMap<>();
-
-		for (WorldPoint center : locations)
-		{
-			int plane = center.getPlane();
-
-			for (int dx = -tolerance; dx <= tolerance; dx++)
-			{
-				for (int dy = -tolerance; dy <= tolerance; dy++)
-				{
-					WorldPoint tile = new WorldPoint(center.getX() + dx, center.getY() + dy, plane);
-					grabbableTiles.put(tile, center);
-				}
-			}
-		}
-
-		return grabbableTiles;
 	}
 
 	private static final int[][] DIRS = {
