@@ -381,7 +381,7 @@ public class ObjectTracker
 			{
 				state.markWaypointCompleted(i);
 				anyCollected = true;
-				log.info("Shipment collected at route waypoint index {}: {}", i, location);
+				log.debug("Shipment collected at route waypoint index {}: {}", i, location);
 			}
 		}
 

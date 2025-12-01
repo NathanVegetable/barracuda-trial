@@ -325,30 +325,45 @@ public class ObjectHighlightRenderer
 
 	public void renderRumLocations(Graphics2D graphics)
 	{
-		CachedConfig cachedConfig = plugin.getCachedConfig();
-		Color rumHighlightColor = cachedConfig.getObjectivesColorCurrentLap();
+		var cached = plugin.getCachedConfig();
+		var state = plugin.getGameState();
+		var route = state.getCurrentStaticRoute();
+		if (route == null || route.isEmpty())
+			return;
 
-		var isCarryingRum = plugin.getGameState().isHasThrowableObjective();
-		WorldPoint targetRumLocation;
+		int currentLap = state.getCurrentLap();
+		var completed = state.getCompletedWaypointIndices();
+		int nextWaypointIndex = state.getNextNavigableWaypointIndex();
 
-		if (isCarryingRum)
+		for (int i = 0; i < route.size(); i++)
 		{
-			targetRumLocation = plugin.getGameState().getRumReturnLocation();
-		}
-		else
-		{
-			targetRumLocation = plugin.getGameState().getRumPickupLocation();
-		}
+			var waypoint = route.get(i);
+			var waypointType = waypoint.getType();
 
-		if (targetRumLocation != null)
-		{
-			boolean isNextWaypoint = isRumLocationNextWaypoint(targetRumLocation);
+			if (waypointType != RouteWaypoint.WaypointType.RUM_PICKUP &&
+			    waypointType != RouteWaypoint.WaypointType.RUM_DROPOFF)
+				continue;
 
-			if (isNextWaypoint)
+			if (completed.contains(i))
+				continue;
+
+			if (waypoint.getLap() != currentLap)
+				continue;
+
+			var loc = waypoint.getLocation();
+
+			Color color;
+			if (i == nextWaypointIndex || i == nextWaypointIndex + 1)
 			{
-				boatZoneRenderer.renderBoatZoneRectangle(graphics, targetRumLocation, rumHighlightColor);
-				renderRumLocationHighlight(graphics, targetRumLocation, rumHighlightColor);
+				color = cached.getObjectivesColorCurrentWaypoint();
 			}
+			else
+			{
+				color = cached.getObjectivesColorCurrentLap();
+			}
+
+			boatZoneRenderer.renderBoatZoneRectangle(graphics, loc, color);
+			renderRumLocationHighlight(graphics, loc, color);
 		}
 	}
 
