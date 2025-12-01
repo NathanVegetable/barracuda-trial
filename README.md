@@ -26,4 +26,6 @@ https://github.com/user-attachments/assets/776a402f-2dd3-4a0b-8560-02c8fee8a969
 
 ### Gwenith Glide
 
+*Note:* Does *not* path towards Crystal motes. Recommended to slightly swerve from the path to pick them up as you need.
+
 https://github.com/user-attachments/assets/0cb2db84-53f4-46fa-8cfe-a92518b43192
