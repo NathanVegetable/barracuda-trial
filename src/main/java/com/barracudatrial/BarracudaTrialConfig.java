@@ -206,7 +206,7 @@ public interface BarracudaTrialConfig extends Config
 	)
 	default boolean highlightClouds()
 	{
-		return true;
+		return false;
 	}
 
 	@ConfigItem(
