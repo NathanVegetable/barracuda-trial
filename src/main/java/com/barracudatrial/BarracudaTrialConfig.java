@@ -48,7 +48,7 @@ public interface BarracudaTrialConfig extends Config
 	@ConfigItem(
 		keyName = "routeOptimization",
 		name = "Route Optimization",
-		description = "Relaxed: fewer turns overall (smoother). Efficient: grab nearby boosts (more dynamic).",
+		description = "Relaxed: smoother path with fewer turns and updates.<br>Efficient: dynamic routing with frequent updates, actively seeks speed boosts.",
 		section = pathSection,
 		position = 1
 	)
@@ -72,8 +72,8 @@ public interface BarracudaTrialConfig extends Config
 
 	@ConfigItem(
 		keyName = "pathColor",
-		name = "Path Color",
-		description = "Color of the optimal path line",
+		name = "Path",
+		description = "Color for optimal path",
 		section = pathSection,
 		position = 4
 	)
@@ -86,7 +86,7 @@ public interface BarracudaTrialConfig extends Config
 	@ConfigItem(
 		keyName = "pathWidth",
 		name = "Path Width",
-		description = "Width of the path line",
+		description = "Width of optimal path",
 		section = pathSection,
 		position = 5
 	)
@@ -99,7 +99,7 @@ public interface BarracudaTrialConfig extends Config
 	@ConfigItem(
 		keyName = "showPathTiles",
 		name = "Show Path Tiles",
-		description = "Display detailed information for each waypoint and path tile (type, completion status, coordinates)",
+		description = "Show detailed waypoint information (type, status, coordinates)",
 		section = pathSection,
 		position = 6
 	)
@@ -136,7 +136,7 @@ public interface BarracudaTrialConfig extends Config
 	@ConfigItem(
 		keyName = "objectivesColorCurrentLap",
 		name = "Current Lap",
-		description = "Color for objective highlights on current lap",
+		description = "Color for objectives on current lap",
 		section = objectivesSection,
 		position = 2
 	)
@@ -149,7 +149,7 @@ public interface BarracudaTrialConfig extends Config
 	@ConfigItem(
 		keyName = "objectivesColorLaterLaps",
 		name = "Later Lap",
-		description = "Color for objective highlights on later laps",
+		description = "Color for objectives on later laps",
 		section = objectivesSection,
 		position = 3
 	)
@@ -161,8 +161,8 @@ public interface BarracudaTrialConfig extends Config
 
 	@ConfigItem(
 		keyName = "windCatcherColor",
-		name = "Wind Catcher Color",
-		description = "Color for wind catcher path segments and tile highlights",
+		name = "Wind Catcher",
+		description = "Color for path where wind catcher should be used",
 		section = objectivesSection,
 		position = 4
 	)
@@ -175,7 +175,7 @@ public interface BarracudaTrialConfig extends Config
 	@ConfigItem(
 		keyName = "highlightSpeedBoosts",
 		name = "Highlight Speed Boosts",
-		description = "Highlight speed boost areas",
+		description = "Highlight speed boosts",
 		section = objectHighlightingSection,
 		position = 0
 	)
@@ -186,8 +186,8 @@ public interface BarracudaTrialConfig extends Config
 
 	@ConfigItem(
 		keyName = "speedBoostColor",
-		name = "Speed Boost Color",
-		description = "Color for speed boost highlights",
+		name = "Speed Boost",
+		description = "Color for speed boosts",
 		section = objectHighlightingSection,
 		position = 1
 	)
@@ -211,8 +211,8 @@ public interface BarracudaTrialConfig extends Config
 
 	@ConfigItem(
 		keyName = "cloudColor",
-		name = "Cloud Color",
-		description = "Color for lightning cloud highlights",
+		name = "Lightning Cloud",
+		description = "Color for lightning clouds",
 		section = objectHighlightingSection,
 		position = 3
 	)
