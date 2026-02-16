@@ -63,12 +63,14 @@ public class BarracudaTileCostCalculator
 		this.boatExclusionHeight = boatExclusionHeight;
 		this.pathfindingHintTiles = pathfindingHintTiles != null ? pathfindingHintTiles : new HashSet<>();
 
-		this.rockLocations = knownRockLocations;
+		this.rockLocations = new HashSet<>(knownRockLocations);
+		this.fetidPoolLocations = new HashSet<>(knownFetidPoolLocations);
+		this.toadPillarLocations = new HashSet<>(knownToadPillarLocations);
+		Set<NPC> lightningCloudsCopy = new HashSet<>(lightningClouds);
+
 		this.closeToRocks = precomputeTileProximity(rockLocations, 1);
-		this.cloudDangerZones = precomputeCloudDangerZones(lightningClouds);
+		this.cloudDangerZones = precomputeCloudDangerZones(lightningCloudsCopy);
 		this.boostGrabbableTiles = knownSpeedBoostLocations;
-		this.fetidPoolLocations = knownFetidPoolLocations;
-		this.toadPillarLocations = knownToadPillarLocations;
 		this.closeToFetidPoolsAndToadPillars = precomputeTileProximity(fetidPoolLocations, 1);
 		this.closeToFetidPoolsAndToadPillars.addAll(precomputeTileProximity(toadPillarLocations, 1));
 	}
