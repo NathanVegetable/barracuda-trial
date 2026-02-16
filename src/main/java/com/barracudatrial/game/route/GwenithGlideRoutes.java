@@ -335,7 +335,7 @@ public class GwenithGlideRoutes
 			new RouteWaypoint(8, WaypointType.SHIPMENT, new WorldPoint(2162, 3520, 0)),
 			new RouteWaypoint(8, WaypointType.PORTAL_ENTER, new WorldPoint(2172, 3523, 0)),
 			new RouteWaypoint(8, WaypointType.PORTAL_EXIT, new WorldPoint(2107, 3413, 0)),
-			new RouteWaypoint(8, WaypointType.SHIPMENT, new WorldPoint(2094, 3419, 0)),
+			new RouteWaypoint(8, WaypointType.SHIPMENT, new WorldPoint(2094, 3418, 0)),
 			new RouteWaypoint(8, WaypointType.SHIPMENT, new WorldPoint(2085, 3413, 0)),
 			new RouteWaypoint(8, WaypointType.SHIPMENT, new WorldPoint(2081, 3426, 0)),
 			new RouteWaypoint(8, WaypointType.SHIPMENT, new WorldPoint(2080, 3439, 0)),
