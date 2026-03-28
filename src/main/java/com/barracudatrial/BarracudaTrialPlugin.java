@@ -282,7 +282,7 @@ public class BarracudaTrialPlugin extends Plugin
 		     key.equals(BarracudaTrialConfig.KEY_PATH_LOOKAHEAD) ||
 		     key.equals(BarracudaTrialConfig.KEY_PATHFINDING_EFFORT)))
 		{
-			pathPlanner.recalculateOptimalPathFromCurrentState("config: " + key + " changed");
+			clientThread.invoke(() -> pathPlanner.recalculateOptimalPathFromCurrentState("config: " + key + " changed"));
 		}
 	}
 
