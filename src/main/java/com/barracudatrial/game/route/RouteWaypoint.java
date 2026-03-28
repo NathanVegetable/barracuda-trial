@@ -42,21 +42,23 @@ public class RouteWaypoint
 	@Getter
 	public enum WaypointType
 	{
-		SHIPMENT(2),
-		RUM_PICKUP(9),
-		RUM_DROPOFF(9),
-		TOAD_PICKUP(9),
-		TOAD_PILLAR(10),
-		PORTAL_ENTER(1),
-		PORTAL_EXIT(0),
-		PATHFINDING_HINT(0),
-		USE_WIND_CATCHER(0);
+		SHIPMENT(2, 150),
+		RUM_PICKUP(9, 150),
+		RUM_DROPOFF(9, 150),
+		TOAD_PICKUP(9, 150),
+		TOAD_PILLAR(10, 150),
+		PORTAL_ENTER(1, 150),
+		PORTAL_EXIT(0, 150),
+		PATHFINDING_HINT(0, 50),
+		USE_WIND_CATCHER(0, 150);
 
 		private final int toleranceTiles;
+		private final int alpha;
 
-		WaypointType(int toleranceTiles)
+		WaypointType(int toleranceTiles, int alpha)
 		{
 			this.toleranceTiles = toleranceTiles;
+			this.alpha = alpha;
 		}
 
 		public boolean isNonNavigableHelper()

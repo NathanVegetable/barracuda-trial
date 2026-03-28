@@ -434,9 +434,10 @@ public class PathRenderer
 				location.getY()
 			);
 
+			int alpha = waypoint.getType().getAlpha();
 			Color color = completed
-				? new Color(144, 238, 144, 150)  // light green
-				: new Color(255, 255, 153, 150); // light yellow
+				? new Color(144, 238, 144, alpha)  // light green
+				: new Color(255, 255, 153, alpha); // light yellow
 
 			RenderingUtils.renderTileHighlightAtWorldPoint(client, graphics, location, color, label);
 		}
