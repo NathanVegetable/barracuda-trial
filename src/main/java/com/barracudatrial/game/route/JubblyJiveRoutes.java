@@ -62,9 +62,13 @@ public class JubblyJiveRoutes
 			new RouteWaypoint(WaypointType.PATHFINDING_HINT, new WorldPoint(2436, 2991, 0)),
 			new RouteWaypoint(WaypointType.PATHFINDING_HINT, new WorldPoint(2434, 2992, 0)),
 			new RouteWaypoint(WaypointType.SHIPMENT, new WorldPoint(2439, 2990, 0)),
-			new RouteWaypoint(WaypointType.PATHFINDING_HINT, new WorldPoint(2435, 2985, 0)),
-			new RouteWaypoint(WaypointType.PATHFINDING_HINT, new WorldPoint(2436, 2988, 0)),
+			new RouteWaypoint(WaypointType.PATHFINDING_HINT, new WorldPoint(2438, 2991, 0)),
+			new RouteWaypoint(WaypointType.PATHFINDING_HINT, new WorldPoint(2437, 2993, 0)),
 			new JubblyJiveToadPillarWaypoint(TOAD_PILLARS[6]), // ID : 59160 impostor: 59162. with toad impostor = 59161
+			new RouteWaypoint(WaypointType.PATHFINDING_HINT, new WorldPoint(2436, 2996, 0)),
+			new RouteWaypoint(WaypointType.PATHFINDING_HINT, new WorldPoint(2436, 3000, 0)),
+			new RouteWaypoint(WaypointType.PATHFINDING_HINT, new WorldPoint(2436, 3004, 0)),
+			new RouteWaypoint(WaypointType.PATHFINDING_HINT, new WorldPoint(2436, 3008, 0)),
 			new JubblyJiveToadPillarWaypoint(TOAD_PILLARS[7]) // ID : 59166 impostor: 59168. with toad impostor = 59167
 		));
 
@@ -121,9 +125,13 @@ public class JubblyJiveRoutes
 			new RouteWaypoint(WaypointType.PATHFINDING_HINT, new WorldPoint(2436, 2991, 0)),
 			new RouteWaypoint(WaypointType.PATHFINDING_HINT, new WorldPoint(2434, 2992, 0)),
 			new RouteWaypoint(WaypointType.SHIPMENT, new WorldPoint(2439, 2990, 0)),
-			new RouteWaypoint(WaypointType.PATHFINDING_HINT, new WorldPoint(2435, 2985, 0)),
-			new RouteWaypoint(WaypointType.PATHFINDING_HINT, new WorldPoint(2436, 2988, 0)),
+			new RouteWaypoint(WaypointType.PATHFINDING_HINT, new WorldPoint(2438, 2991, 0)),
+			new RouteWaypoint(WaypointType.PATHFINDING_HINT, new WorldPoint(2437, 2993, 0)),
 			new JubblyJiveToadPillarWaypoint(TOAD_PILLARS[6]), // ID : 59160 impostor: 59162. with toad impostor = 59161
+			new RouteWaypoint(WaypointType.PATHFINDING_HINT, new WorldPoint(2436, 2996, 0)),
+			new RouteWaypoint(WaypointType.PATHFINDING_HINT, new WorldPoint(2436, 3000, 0)),
+			new RouteWaypoint(WaypointType.PATHFINDING_HINT, new WorldPoint(2436, 3004, 0)),
+			new RouteWaypoint(WaypointType.PATHFINDING_HINT, new WorldPoint(2436, 3008, 0)),
 
 			new JubblyJiveToadPillarWaypoint(2, TOAD_PILLARS[7]), // 59166 impostor: 59168. with toad impostor = 59167
 			new RouteWaypoint(2, WaypointType.PATHFINDING_HINT, new WorldPoint(2431, 3014, 0)),
@@ -207,9 +215,12 @@ public class JubblyJiveRoutes
 			new RouteWaypoint(WaypointType.PATHFINDING_HINT, new WorldPoint(2436, 2991, 0)),
 			new RouteWaypoint(WaypointType.PATHFINDING_HINT, new WorldPoint(2434, 2992, 0)),
 			new RouteWaypoint(WaypointType.SHIPMENT, new WorldPoint(2439, 2990, 0)),
-			new RouteWaypoint(WaypointType.PATHFINDING_HINT, new WorldPoint(2435, 2985, 0)),
-			new RouteWaypoint(WaypointType.PATHFINDING_HINT, new WorldPoint(2436, 2988, 0)),
-			
+			new RouteWaypoint(WaypointType.PATHFINDING_HINT, new WorldPoint(2438, 2991, 0)),
+			new RouteWaypoint(WaypointType.PATHFINDING_HINT, new WorldPoint(2437, 2993, 0)),
+			new RouteWaypoint(WaypointType.PATHFINDING_HINT, new WorldPoint(2436, 2996, 0)),
+			new RouteWaypoint(WaypointType.PATHFINDING_HINT, new WorldPoint(2436, 3000, 0)),
+			new RouteWaypoint(WaypointType.PATHFINDING_HINT, new WorldPoint(2436, 3004, 0)),
+			new RouteWaypoint(WaypointType.PATHFINDING_HINT, new WorldPoint(2436, 3008, 0)),
 			new JubblyJiveToadPillarWaypoint(2, TOAD_PILLARS[7]), // ID : 59160 impostor: 59162. with toad impostor = 59161
 			new RouteWaypoint(2, WaypointType.PATHFINDING_HINT, new WorldPoint(2433, 3016, 0)),
 			new RouteWaypoint(2, WaypointType.PATHFINDING_HINT, new WorldPoint(2429, 3015, 0)),
@@ -224,6 +235,7 @@ public class JubblyJiveRoutes
 			new JubblyJiveToadPillarWaypoint(2, TOAD_PILLARS[5]), // ID : 59154 impostor: 59156. with toad impostor = 59155
 			new RouteWaypoint(2, WaypointType.SHIPMENT, new WorldPoint(2409, 2948, 0)),
 			new RouteWaypoint(2, WaypointType.SHIPMENT, new WorldPoint(2390, 2956, 0)),
+			new RouteWaypoint(2, WaypointType.PATHFINDING_HINT, new WorldPoint(2388, 2955, 0)),
 			new JubblyJiveToadPillarWaypoint(2, TOAD_PILLARS[4]), // ID : 59148 impostor: 59150. with toad impostor = 59149
 			new RouteWaypoint(2, WaypointType.SHIPMENT, new WorldPoint(2382, 2970, 0)),
 			new RouteWaypoint(2, WaypointType.USE_WIND_CATCHER, new WorldPoint(2376, 2976, 0)),
@@ -331,6 +343,8 @@ public class JubblyJiveRoutes
 			new RouteWaypoint(3, WaypointType.PATHFINDING_HINT, new WorldPoint(2348, 3029, 0)),
 			new RouteWaypoint(3, WaypointType.PATHFINDING_HINT, new WorldPoint(2345, 3030, 0)),
 			new RouteWaypoint(3, WaypointType.SHIPMENT, new WorldPoint(2341, 3031, 0)),
+			new RouteWaypoint(3, WaypointType.PATHFINDING_HINT, new WorldPoint(2335, 3031, 0)),
+			new RouteWaypoint(3, WaypointType.PATHFINDING_HINT, new WorldPoint(2329, 3031, 0)),
 			new RouteWaypoint(3, WaypointType.SHIPMENT, new WorldPoint(2323, 3037, 0)),
 			new RouteWaypoint(3, WaypointType.PATHFINDING_HINT, new WorldPoint(2321, 3038, 0)),
 			new RouteWaypoint(3, WaypointType.PATHFINDING_HINT, new WorldPoint(2319, 3040, 0)),
