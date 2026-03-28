@@ -34,6 +34,9 @@ public class CachedConfig
 	@Getter private Color cloudColor;
 	@Getter private int cloudDangerRadius;
 
+	// Debug settings
+	@Getter private boolean showWaypointDetails;
+
 	public CachedConfig(BarracudaTrialConfig config)
 	{
 		this.config = config;
@@ -64,5 +67,7 @@ public class CachedConfig
 		highlightClouds = config.highlightClouds();
 		cloudColor = config.cloudColor();
 		cloudDangerRadius = config.cloudDangerRadius();
+
+		showWaypointDetails = config.showWaypointDetails();
 	}
 }

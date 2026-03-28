@@ -33,6 +33,13 @@ public interface BarracudaTrialConfig extends Config
 	)
 	String objectHighlightingSection = "objectHighlightingSection";
 
+	@ConfigSection(
+		name = "Debug",
+		description = "Debug and diagnostic settings",
+		position = 3
+	)
+	String debugSection = "debugSection";
+
 	@ConfigItem(
 		keyName = "showOptimalPath",
 		name = "Show Optimal Path",
@@ -99,7 +106,7 @@ public interface BarracudaTrialConfig extends Config
 	@ConfigItem(
 		keyName = "showPathTiles",
 		name = "Show Path Tiles",
-		description = "Show detailed waypoint information (type, status, coordinates)",
+		description = "Highlight individual tiles along the calculated path",
 		section = pathSection,
 		position = 6
 	)
@@ -233,5 +240,17 @@ public interface BarracudaTrialConfig extends Config
 	default int cloudDangerRadius()
 	{
 		return 2;
+	}
+
+	@ConfigItem(
+		keyName = "showWaypointDetails",
+		name = "Show Waypoint Details",
+		description = "Show detailed waypoint information (type, status, coordinates)",
+		section = debugSection,
+		position = 0
+	)
+	default boolean showWaypointDetails()
+	{
+		return false;
 	}
 }

@@ -56,7 +56,12 @@ public class PathRenderer
 
 		if (cachedConfig.isShowPathTiles())
 		{
-			renderPathTiles(graphics);
+			renderCalculatedPathTiles(graphics);
+		}
+
+		if (cachedConfig.isShowWaypointDetails())
+		{
+			renderWaypointDetails(graphics);
 		}
 	}
 
@@ -406,7 +411,7 @@ public class PathRenderer
 		}
 	}
 
-	private void renderPathTiles(Graphics2D graphics)
+	private void renderWaypointDetails(Graphics2D graphics)
 	{
 		List<RouteWaypoint> staticRoute = plugin.getGameState().getCurrentStaticRoute();
 		if (staticRoute == null || staticRoute.isEmpty())
@@ -415,7 +420,6 @@ public class PathRenderer
 		}
 
 		Set<Integer> completedIndices = plugin.getGameState().getCompletedWaypointIndices();
-		List<WorldPoint> currentPath = plugin.getGameState().getPath();
 
 		for (int i = 0; i < staticRoute.size(); i++)
 		{
@@ -436,7 +440,11 @@ public class PathRenderer
 
 			RenderingUtils.renderTileHighlightAtWorldPoint(client, graphics, location, color, label);
 		}
+	}
 
+	private void renderCalculatedPathTiles(Graphics2D graphics)
+	{
+		List<WorldPoint> currentPath = plugin.getGameState().getPath();
 		WorldView worldView = client.getTopLevelWorldView();
 		Scene scene = worldView != null ? worldView.getScene() : null;
 
