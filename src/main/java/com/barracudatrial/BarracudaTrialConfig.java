@@ -12,6 +12,11 @@ import java.awt.Color;
 @ConfigGroup("barracudatrial")
 public interface BarracudaTrialConfig extends Config
 {
+	// Config key names
+	String KEY_ROUTE_OPTIMIZATION = "routeOptimization";
+	String KEY_PATH_LOOKAHEAD = "pathLookahead";
+	String KEY_MAX_PATHFINDING_DISTANCE = "maxPathfindingDistance";
+
 	@ConfigSection(
 		name = "Path Display",
 		description = "Settings for the optimal path overlay",
@@ -53,7 +58,7 @@ public interface BarracudaTrialConfig extends Config
 	}
 
 	@ConfigItem(
-		keyName = "routeOptimization",
+		keyName = KEY_ROUTE_OPTIMIZATION,
 		name = "Route Optimization",
 		description = "Relaxed: smoother path with fewer turns and updates.<br>Efficient: dynamic routing with frequent updates, actively seeks speed boosts.",
 		section = pathSection,
@@ -231,7 +236,7 @@ public interface BarracudaTrialConfig extends Config
 	}
 
 	@ConfigItem(
-		keyName = "pathLookahead",
+		keyName = KEY_PATH_LOOKAHEAD,
 		name = "Path Lookahead",
 		description = "Number of shipments to path ahead. Higher values increase CPU usage.",
 		section = debugSection,
@@ -244,7 +249,7 @@ public interface BarracudaTrialConfig extends Config
 	}
 
 	@ConfigItem(
-		keyName = "maxPathfindingDistance",
+		keyName = KEY_MAX_PATHFINDING_DISTANCE,
 		name = "Max Pathfinding Distance",
 		description = "Maximum search distance for pathfinding. Higher values allow pathing to further targets but increase CPU usage.",
 		section = debugSection,

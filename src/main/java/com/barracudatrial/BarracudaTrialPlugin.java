@@ -276,9 +276,13 @@ public class BarracudaTrialPlugin extends Plugin
 
 		cachedConfig.updateCache();
 
-		if (event.getKey().equals("routeOptimization") && gameState.isInTrial())
+		String key = event.getKey();
+		if (gameState.isInTrial() &&
+		    (key.equals(BarracudaTrialConfig.KEY_ROUTE_OPTIMIZATION) ||
+		     key.equals(BarracudaTrialConfig.KEY_PATH_LOOKAHEAD) ||
+		     key.equals(BarracudaTrialConfig.KEY_MAX_PATHFINDING_DISTANCE)))
 		{
-			pathPlanner.recalculateOptimalPathFromCurrentState("config: route optimization changed");
+			pathPlanner.recalculateOptimalPathFromCurrentState("config: " + key + " changed");
 		}
 	}
 
