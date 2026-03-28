@@ -1,7 +1,6 @@
 package com.barracudatrial.pathfinding;
 
 import com.barracudatrial.RouteOptimization;
-import net.runelite.api.NPC;
 import net.runelite.api.coords.WorldPoint;
 
 import java.util.HashSet;
@@ -41,7 +40,7 @@ public class BarracudaTileCostCalculator
 		Set<WorldPoint> knownRockLocations,
 		Set<WorldPoint> knownFetidPoolLocations,
 		Set<WorldPoint> knownToadPillarLocations,
-		Set<NPC> lightningClouds,
+		Set<WorldPoint> cloudLocations,
 		int exclusionZoneMinX,
 		int exclusionZoneMaxX,
 		int exclusionZoneMinY,
@@ -67,10 +66,8 @@ public class BarracudaTileCostCalculator
 		this.rockLocations = new HashSet<>(knownRockLocations);
 		this.fetidPoolLocations = new HashSet<>(knownFetidPoolLocations);
 		this.toadPillarLocations = new HashSet<>(knownToadPillarLocations);
-		Set<NPC> lightningCloudsCopy = new HashSet<>(lightningClouds);
-
 		this.closeToRocks = precomputeTileProximity(rockLocations, 1);
-		this.cloudDangerZones = precomputeCloudDangerZones(lightningCloudsCopy);
+		this.cloudDangerZones = precomputeCloudDangerZones(cloudLocations);
 		this.boostGrabbableTiles = knownSpeedBoostLocations;
 		this.closeToFetidPoolsAndToadPillars = precomputeTileProximity(fetidPoolLocations, 1);
 		this.closeToFetidPoolsAndToadPillars.addAll(precomputeTileProximity(toadPillarLocations, 1));
@@ -292,13 +289,12 @@ public class BarracudaTileCostCalculator
 	/**
 	 * Precomputes all tiles within cloud danger zones for O(1) lookup
 	 */
-	private Set<WorldPoint> precomputeCloudDangerZones(Set<NPC> lightningClouds)
+	private Set<WorldPoint> precomputeCloudDangerZones(Set<WorldPoint> cloudLocations)
 	{
 		Set<WorldPoint> dangerZones = new HashSet<>();
 
-		for (NPC cloud : lightningClouds)
+		for (WorldPoint cloudLoc : cloudLocations)
 		{
-			WorldPoint cloudLoc = cloud.getWorldLocation();
 			int plane = cloudLoc.getPlane();
 
 			// Add all tiles within distance 3 of cloud

@@ -35,6 +35,7 @@ public class PathPlanner
 	private final AtomicBoolean pathfindingInProgress = new AtomicBoolean(false);
 	private final AtomicBoolean pendingRecalculation = new AtomicBoolean(false);
 	private volatile PathfindingRequest pendingRequest;
+	private Set<WorldPoint> activeCloudLocationSnapshot = new HashSet<>();
 
 	public PathPlanner(Client client, State state, CachedConfig cachedConfig, ClientThread clientThread)
 	{
@@ -59,14 +60,16 @@ public class PathPlanner
 		final int waypointCount;
 		final int startIndex;
 		final String reason;
+		final Set<WorldPoint> cloudLocationSnapshot;
 
-		PathfindingRequest(WorldPoint startLocation, List<RouteWaypoint> waypoints, int waypointCount, int startIndex, String reason)
+		PathfindingRequest(WorldPoint startLocation, List<RouteWaypoint> waypoints, int waypointCount, int startIndex, String reason, Set<WorldPoint> cloudLocationSnapshot)
 		{
 			this.startLocation = startLocation;
 			this.waypoints = waypoints;
 			this.waypointCount = waypointCount;
 			this.startIndex = startIndex;
 			this.reason = reason;
+			this.cloudLocationSnapshot = cloudLocationSnapshot;
 		}
 	}
 
@@ -93,9 +96,11 @@ public class PathPlanner
 		if (playerBoatLocation == null)
 		{
 			playerBoatLocation = state.getBoatLocation();
+			log.debug("Front boat tile null, falling back to boat center: {}", playerBoatLocation);
 		}
 		if (playerBoatLocation == null)
 		{
+			log.debug("Boat location is null, skipping pathfinding");
 			return;
 		}
 
@@ -113,12 +118,20 @@ public class PathPlanner
 			return;
 		}
 
+		// Snapshot cloud locations on client thread since NPC.getWorldLocation() requires it
+		Set<WorldPoint> cloudLocationSnapshot = new HashSet<>();
+		for (NPC cloud : state.getDangerousClouds())
+		{
+			cloudLocationSnapshot.add(cloud.getWorldLocation());
+		}
+
 		PathfindingRequest request = new PathfindingRequest(
 			playerBoatLocation,
 			nextWaypoints,
 			nextWaypoints.size(),
 			state.getNextNavigableWaypointIndex(),
-			recalculationTriggerReason
+			recalculationTriggerReason,
+			cloudLocationSnapshot
 		);
 
 		if (pathfindingInProgress.get())
@@ -129,6 +142,7 @@ public class PathPlanner
 			return;
 		}
 
+		log.debug("Starting pathfinding from {} to {} waypoints", request.startLocation, request.waypointCount);
 		executePathfinding(request);
 	}
 
@@ -139,17 +153,20 @@ public class PathPlanner
 		pathfindingExecutor.submit(() -> {
 			try
 			{
+				long startTime = System.currentTimeMillis();
+				activeCloudLocationSnapshot = request.cloudLocationSnapshot;
 				List<WorldPoint> fullPath = pathThroughMultipleWaypoints(request.startLocation, request.waypoints);
+				long elapsed = System.currentTimeMillis() - startTime;
 
 				clientThread.invoke(() -> {
 					state.setPath(fullPath);
-					log.debug("Async path complete: {} waypoints starting at index {} ({})",
-						request.waypointCount, request.startIndex, request.reason);
+					log.debug("Async path complete in {}ms: {} tiles, {} waypoints starting at index {} ({})",
+						elapsed, fullPath.size(), request.waypointCount, request.startIndex, request.reason);
 				});
 			}
-			catch (Exception e)
+			catch (Throwable e)
 			{
-				log.error("Pathfinding error", e);
+				log.error("Pathfinding error: {}", e.getClass().getSimpleName(), e);
 			}
 			finally
 			{
@@ -751,6 +768,8 @@ public class PathPlanner
 	 */
 	private PathResult pathToSingleTarget(WorldPoint start, WorldPoint target, int goalTolerance, boolean isPlayerCurrentlyOnPath, int initialBoatDx, int initialBoatDy, Set<WorldPoint> pathfindingHints)
 	{
+		log.debug("pathToSingleTarget: {} -> {} (distance: {}, tolerance: {})", start, target, start.distanceTo(target), goalTolerance);
+
 		var tileCostCalculator = getBarracudaTileCostCalculator(pathfindingHints);
 
         int tileDistance = start.distanceTo(target);
@@ -762,7 +781,11 @@ public class PathPlanner
 		int maximumAStarSearchDistance = Math.max(35, Math.min(maxSearchDistance, tileDistance * 8));
 
 		long timeoutMs = cachedConfig.getPathfindingTimeout();
+		long segmentStart = System.currentTimeMillis();
 		PathResult pathResult = pathStabilizer.findPath(tileCostCalculator, cachedConfig.getRouteOptimization(), start, target, maximumAStarSearchDistance, minSpatialDistance, initialBoatDx, initialBoatDy, goalTolerance, isPlayerCurrentlyOnPath, timeoutMs);
+		long segmentElapsed = System.currentTimeMillis() - segmentStart;
+
+		log.debug("pathToSingleTarget result: {} tiles in {}ms, goalReached={}", pathResult.getPath().size(), segmentElapsed, pathResult.isReachedGoal());
 
 		if (pathResult.getPath().isEmpty())
 		{
@@ -777,7 +800,6 @@ public class PathPlanner
 
 	private BarracudaTileCostCalculator getBarracudaTileCostCalculator(Set<WorldPoint> pathfindingHints)
 	{
-		Set<NPC> currentlyDangerousClouds = state.getDangerousClouds();
 
 		var trial = state.getCurrentTrial();
 		var boatExclusionWidth = trial != null && trial.getTrialType() == TrialType.TEMPOR_TANTRUM
@@ -824,7 +846,7 @@ public class PathPlanner
 			state.getKnownRockLocations(),
 			state.getKnownFetidPoolLocations(),
 			state.getKnownToadPillarLocations(),
-			currentlyDangerousClouds,
+			activeCloudLocationSnapshot,
 			state.getExclusionZoneMinX(),
 			state.getExclusionZoneMaxX(),
 			state.getExclusionZoneMinY(),
