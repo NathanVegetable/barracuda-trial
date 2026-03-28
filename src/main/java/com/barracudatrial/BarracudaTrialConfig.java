@@ -262,28 +262,28 @@ public interface BarracudaTrialConfig extends Config
 	}
 
 	@ConfigItem(
-		keyName = "showWaypointDetails",
-		name = "Show Waypoint Details",
-		description = "Show detailed waypoint information (type, status, coordinates)",
-		section = debugSection,
-		position = 2
-	)
-	default boolean showWaypointDetails()
-	{
-		return false;
-	}
-
-	@ConfigItem(
 		keyName = KEY_PATHFINDING_TIMEOUT,
-		name = "Pathfinding Timeout (ms)",
+		name = "Pathfinding Timeout",
 		description = "Maximum time in milliseconds to spend on each pathfinding segment. Returns best path found so far if exceeded.",
 		section = debugSection,
-		position = 3
+		position = 2
 	)
 	@Range(min = 500, max = 10000)
 	default int pathfindingTimeout()
 	{
 		return 3000;
+	}
+
+	@ConfigItem(
+		keyName = "showWaypointDetails",
+		name = "Show Waypoint Details",
+		description = "Show detailed waypoint information (type, status, coordinates)",
+		section = debugSection,
+		position = 3
+	)
+	default boolean showWaypointDetails()
+	{
+		return false;
 	}
 
 	@ConfigItem(
