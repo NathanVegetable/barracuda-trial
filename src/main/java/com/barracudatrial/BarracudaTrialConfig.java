@@ -271,4 +271,16 @@ public interface BarracudaTrialConfig extends Config
 	{
 		return false;
 	}
+
+	@ConfigItem(
+		keyName = "showBoatTiles",
+		name = "Show Boat Tiles",
+		description = "Show the boat center tile and the front-of-boat tile used for pathfinding",
+		section = debugSection,
+		position = 3
+	)
+	default boolean showBoatTiles()
+	{
+		return false;
+	}
 }

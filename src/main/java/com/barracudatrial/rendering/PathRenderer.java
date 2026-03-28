@@ -33,6 +33,7 @@ public class PathRenderer
 	public void renderOptimalPath(Graphics2D graphics)
 	{
 		CachedConfig cachedConfig = plugin.getCachedConfig();
+
 		List<WorldPoint> path = plugin.getGameState().getPath();
 		if (path.isEmpty())
 		{
@@ -59,10 +60,6 @@ public class PathRenderer
 			renderCalculatedPathTiles(graphics);
 		}
 
-		if (cachedConfig.isShowWaypointDetails())
-		{
-			renderWaypointDetails(graphics);
-		}
 	}
 
 	private LocalPoint getTransformedFrontPosition()
@@ -411,7 +408,7 @@ public class PathRenderer
 		}
 	}
 
-	private void renderWaypointDetails(Graphics2D graphics)
+	public void renderWaypointDetails(Graphics2D graphics)
 	{
 		List<RouteWaypoint> staticRoute = plugin.getGameState().getCurrentStaticRoute();
 		if (staticRoute == null || staticRoute.isEmpty())
@@ -440,6 +437,24 @@ public class PathRenderer
 				: new Color(255, 255, 153, alpha); // light yellow
 
 			RenderingUtils.renderTileHighlightAtWorldPoint(client, graphics, location, color, label);
+		}
+	}
+
+	public void renderBoatTiles(Graphics2D graphics)
+	{
+		WorldPoint boatCenter = plugin.getGameState().getBoatLocation();
+		WorldPoint frontBoatTile = plugin.getGameState().getFrontBoatTileEstimatedActual();
+
+		if (boatCenter != null)
+		{
+			String label = String.format("BOAT CENTER\n(%d, %d)", boatCenter.getX(), boatCenter.getY());
+			RenderingUtils.renderTileHighlightAtWorldPoint(client, graphics, boatCenter, new Color(255, 165, 0, 180), label);
+		}
+
+		if (frontBoatTile != null)
+		{
+			String label = String.format("FRONT BOAT\n(%d, %d)", frontBoatTile.getX(), frontBoatTile.getY());
+			RenderingUtils.renderTileHighlightAtWorldPoint(client, graphics, frontBoatTile, new Color(255, 0, 255, 180), label);
 		}
 	}
 

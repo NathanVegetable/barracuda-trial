@@ -78,6 +78,16 @@ public class BarracudaTrialOverlay extends Overlay
 			highlightRenderer.renderRumLocations(graphics);
 		}
 
+		if (cachedConfig.isShowBoatTiles())
+		{
+			pathRenderer.renderBoatTiles(graphics);
+		}
+
+		if (cachedConfig.isShowWaypointDetails())
+		{
+			pathRenderer.renderWaypointDetails(graphics);
+		}
+
 		return null;
 	}
 }
