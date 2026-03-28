@@ -761,7 +761,8 @@ public class PathPlanner
 		// Scale with distance but cap to prevent excessive computation on long paths
 		int maximumAStarSearchDistance = Math.max(35, Math.min(maxSearchDistance, tileDistance * 8));
 
-		PathResult pathResult = pathStabilizer.findPath(tileCostCalculator, cachedConfig.getRouteOptimization(), start, target, maximumAStarSearchDistance, minSpatialDistance, initialBoatDx, initialBoatDy, goalTolerance, isPlayerCurrentlyOnPath);
+		long timeoutMs = cachedConfig.getPathfindingTimeout();
+		PathResult pathResult = pathStabilizer.findPath(tileCostCalculator, cachedConfig.getRouteOptimization(), start, target, maximumAStarSearchDistance, minSpatialDistance, initialBoatDx, initialBoatDy, goalTolerance, isPlayerCurrentlyOnPath, timeoutMs);
 
 		if (pathResult.getPath().isEmpty())
 		{

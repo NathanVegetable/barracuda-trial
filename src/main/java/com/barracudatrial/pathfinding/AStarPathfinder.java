@@ -3,16 +3,21 @@ package com.barracudatrial.pathfinding;
 import com.barracudatrial.RouteOptimization;
 import net.runelite.api.coords.WorldPoint;
 
+import lombok.extern.slf4j.Slf4j;
+
 import java.util.*;
 
 /**
  * A* pathfinding algorithm for finding optimal routes between points
  * considering variable tile costs (speed boosts, clouds, rocks, etc.)
  */
+@Slf4j
 public class AStarPathfinder
 {
-	public PathResult findPath(BarracudaTileCostCalculator costCalculator, RouteOptimization routeOptimization, WorldPoint start, WorldPoint goal, int maxSearchDistance, int minSpatialDistance, int boatDirectionDx, int boatDirectionDy, int goalTolerance)
+	public PathResult findPath(BarracudaTileCostCalculator costCalculator, RouteOptimization routeOptimization, WorldPoint start, WorldPoint goal, int maxSearchDistance, int minSpatialDistance, int boatDirectionDx, int boatDirectionDy, int goalTolerance, long timeoutMs)
 	{
+		long startTime = System.nanoTime();
+		long timeoutNanos = timeoutMs * 1_000_000L;
 		PriorityQueue<Node> openSet = new PriorityQueue<>(
 			Comparator.comparingDouble((Node n) -> n.fScore)
 		);
@@ -82,6 +87,13 @@ public class AStarPathfinder
 			// Ensure we search minimum distance forward even when obstacles consume node budget
 			if (nodesExplored > maxSearchDistance * maxSearchDistance && maxSpatialDistanceReached >= minSpatialDistance)
 			{
+				break;
+			}
+
+			if ((nodesExplored & 0xFF) == 0 && (System.nanoTime() - startTime) > timeoutNanos)
+			{
+				log.info("Pathfinding timeout after {}ms ({} nodes explored, best distance to goal: {})",
+					timeoutMs, nodesExplored, bestDistanceToGoal);
 				break;
 			}
 

@@ -16,6 +16,7 @@ public interface BarracudaTrialConfig extends Config
 	String KEY_ROUTE_OPTIMIZATION = "routeOptimization";
 	String KEY_PATH_LOOKAHEAD = "pathLookahead";
 	String KEY_PATHFINDING_EFFORT = "pathfindingEffort";
+	String KEY_PATHFINDING_TIMEOUT = "pathfindingTimeout";
 
 	@ConfigSection(
 		name = "Path Display",
@@ -273,11 +274,24 @@ public interface BarracudaTrialConfig extends Config
 	}
 
 	@ConfigItem(
+		keyName = KEY_PATHFINDING_TIMEOUT,
+		name = "Pathfinding Timeout (ms)",
+		description = "Maximum time in milliseconds to spend on each pathfinding segment. Returns best path found so far if exceeded.",
+		section = debugSection,
+		position = 3
+	)
+	@Range(min = 500, max = 10000)
+	default int pathfindingTimeout()
+	{
+		return 3000;
+	}
+
+	@ConfigItem(
 		keyName = "showBoatTiles",
 		name = "Show Boat Tiles",
 		description = "Show the boat center tile and the front-of-boat tile used for pathfinding",
 		section = debugSection,
-		position = 3
+		position = 4
 	)
 	default boolean showBoatTiles()
 	{

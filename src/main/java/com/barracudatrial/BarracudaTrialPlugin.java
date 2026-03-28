@@ -280,7 +280,8 @@ public class BarracudaTrialPlugin extends Plugin
 		if (gameState.isInTrial() &&
 		    (key.equals(BarracudaTrialConfig.KEY_ROUTE_OPTIMIZATION) ||
 		     key.equals(BarracudaTrialConfig.KEY_PATH_LOOKAHEAD) ||
-		     key.equals(BarracudaTrialConfig.KEY_PATHFINDING_EFFORT)))
+		     key.equals(BarracudaTrialConfig.KEY_PATHFINDING_EFFORT) ||
+		     key.equals(BarracudaTrialConfig.KEY_PATHFINDING_TIMEOUT)))
 		{
 			pathPlanner.recalculateOptimalPathFromCurrentState("config: " + key + " changed");
 		}
