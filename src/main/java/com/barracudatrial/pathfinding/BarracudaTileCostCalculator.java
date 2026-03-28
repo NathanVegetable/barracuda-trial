@@ -24,6 +24,7 @@ public class BarracudaTileCostCalculator
 
 	private int speedBoostTilesRemaining = 0;
 	private WorldPoint lastTile = null;
+	private boolean wasOnHintLastTile = false;
 	private final Set<WorldPoint> consumedBoosts = new HashSet<>();
 
 	// Precomputed spatial lookups for O(1) cost checks
@@ -77,20 +78,32 @@ public class BarracudaTileCostCalculator
 
 	public double getTileCost(WorldPoint from, WorldPoint to)
 	{
-		if (pathfindingHintTiles.contains(to))
-		{
-			return -1.5;
-		}
-
-		int maxTileCost = 100000;
+		boolean isHintTile = pathfindingHintTiles.contains(to);
 
 		if (lastTile == null || !lastTile.equals(from))
 		{
 			speedBoostTilesRemaining = 0;
+			wasOnHintLastTile = false;
 		}
+
+		if (isHintTile)
+		{
+			lastTile = to;
+			wasOnHintLastTile = true;
+			return -10.0;
+		}
+
+		int maxTileCost = 100000;
 		lastTile = to;
 
 		double cost = 1.0;
+
+		if (wasOnHintLastTile)
+		{
+			cost *= 0.75;
+		}
+
+		wasOnHintLastTile = false;
 
 		WorldPoint unconsumedBoost = getUnconsumedBoost(to);
 		if (unconsumedBoost != null)
