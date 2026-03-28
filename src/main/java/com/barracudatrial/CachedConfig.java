@@ -37,7 +37,6 @@ public class CachedConfig
 	@Getter private int pathLookahead;
 	@Getter private PathfindingEffort pathfindingEffort;
 	@Getter private boolean showWaypointDetails;
-	@Getter private int pathfindingTimeout;
 	@Getter private boolean showBoatTiles;
 
 	public CachedConfig(BarracudaTrialConfig config)
@@ -73,7 +72,6 @@ public class CachedConfig
 		pathLookahead = config.pathLookahead();
 		pathfindingEffort = config.pathfindingEffort();
 		showWaypointDetails = config.showWaypointDetails();
-		pathfindingTimeout = config.pathfindingTimeout();
 		showBoatTiles = config.showBoatTiles();
 	}
 }

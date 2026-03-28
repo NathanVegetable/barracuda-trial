@@ -14,10 +14,12 @@ import java.util.*;
 @Slf4j
 public class AStarPathfinder
 {
-	public PathResult findPath(BarracudaTileCostCalculator costCalculator, RouteOptimization routeOptimization, WorldPoint start, WorldPoint goal, int maxSearchDistance, int minSpatialDistance, int boatDirectionDx, int boatDirectionDy, int goalTolerance, long timeoutMs)
+	private static final long TIMEOUT_MS = 3000;
+	private static final long TIMEOUT_NANOS = TIMEOUT_MS * 1_000_000L;
+
+	public PathResult findPath(BarracudaTileCostCalculator costCalculator, RouteOptimization routeOptimization, WorldPoint start, WorldPoint goal, int maxSearchDistance, int minSpatialDistance, int boatDirectionDx, int boatDirectionDy, int goalTolerance)
 	{
 		long startTime = System.nanoTime();
-		long timeoutNanos = timeoutMs * 1_000_000L;
 		PriorityQueue<Node> openSet = new PriorityQueue<>(
 			Comparator.comparingDouble((Node n) -> n.fScore)
 		);
@@ -90,10 +92,10 @@ public class AStarPathfinder
 				break;
 			}
 
-			if ((nodesExplored & 0xFF) == 0 && (System.nanoTime() - startTime) > timeoutNanos)
+			if ((nodesExplored & 0xFF) == 0 && (System.nanoTime() - startTime) > TIMEOUT_NANOS)
 			{
-				log.info("Pathfinding timeout after {}ms ({} nodes explored, best distance to goal: {})",
-					timeoutMs, nodesExplored, bestDistanceToGoal);
+				log.warn("Pathfinding timeout after {}ms ({} nodes explored, best distance to goal: {})",
+					TIMEOUT_MS, nodesExplored, bestDistanceToGoal);
 				break;
 			}
 
