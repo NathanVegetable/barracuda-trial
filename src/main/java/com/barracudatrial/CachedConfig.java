@@ -17,7 +17,6 @@ public class CachedConfig
 	@Getter private RouteOptimization routeOptimization;
 	@Getter private Color pathColor;
 	@Getter private int pathWidth;
-	@Getter private int pathLookahead;
 	@Getter private boolean showPathTiles;
 
 	// Objective settings
@@ -35,6 +34,8 @@ public class CachedConfig
 	@Getter private int cloudDangerRadius;
 
 	// Debug settings
+	@Getter private int pathLookahead;
+	@Getter private int maxPathfindingDistance;
 	@Getter private boolean showWaypointDetails;
 
 	public CachedConfig(BarracudaTrialConfig config)
@@ -53,7 +54,6 @@ public class CachedConfig
 		routeOptimization = config.routeOptimization();
 		pathColor = config.pathColor();
 		pathWidth = config.pathWidth();
-		pathLookahead = config.pathLookahead();
 		showPathTiles = config.showPathTiles();
 
 		highlightObjectives = config.highlightObjectives();
@@ -68,6 +68,8 @@ public class CachedConfig
 		cloudColor = config.cloudColor();
 		cloudDangerRadius = config.cloudDangerRadius();
 
+		pathLookahead = config.pathLookahead();
+		maxPathfindingDistance = config.maxPathfindingDistance();
 		showWaypointDetails = config.showWaypointDetails();
 	}
 }

@@ -64,18 +64,6 @@ public interface BarracudaTrialConfig extends Config
 		return RouteOptimization.RELAXED;
 	}
 
-	@ConfigItem(
-		keyName = "pathLookahead",
-		name = "Path Lookahead",
-		description = "Number of shipments to path ahead. Lower values improve performance and reduce visual clutter.",
-		section = pathSection,
-		position = 2
-	)
-	@Range(min = 1, max = 10)
-	default int pathLookahead()
-	{
-		return 3;
-	}
 
 	@ConfigItem(
 		keyName = "pathColor",
@@ -243,11 +231,37 @@ public interface BarracudaTrialConfig extends Config
 	}
 
 	@ConfigItem(
+		keyName = "pathLookahead",
+		name = "Path Lookahead",
+		description = "Number of shipments to path ahead. Higher values increase CPU usage.",
+		section = debugSection,
+		position = 0
+	)
+	@Range(min = 1, max = 10)
+	default int pathLookahead()
+	{
+		return 3;
+	}
+
+	@ConfigItem(
+		keyName = "maxPathfindingDistance",
+		name = "Max Pathfinding Distance",
+		description = "Maximum search distance for pathfinding. Higher values allow pathing to further targets but increase CPU usage.",
+		section = debugSection,
+		position = 1
+	)
+	@Range(min = 50, max = 200)
+	default int maxPathfindingDistance()
+	{
+		return 100;
+	}
+
+	@ConfigItem(
 		keyName = "showWaypointDetails",
 		name = "Show Waypoint Details",
 		description = "Show detailed waypoint information (type, status, coordinates)",
 		section = debugSection,
-		position = 0
+		position = 2
 	)
 	default boolean showWaypointDetails()
 	{

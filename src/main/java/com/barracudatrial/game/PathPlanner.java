@@ -756,7 +756,8 @@ public class PathPlanner
         int tileDistance = start.distanceTo(target); // Chebyshev distance in tiles
 
 		// Never too high, but allow seeking longer on long paths
-		int maximumAStarSearchDistance = Math.max(35, Math.min(80, tileDistance * 8));
+		int maxSearchDistance = cachedConfig.getMaxPathfindingDistance();
+		int maximumAStarSearchDistance = Math.max(35, Math.min(maxSearchDistance, tileDistance * 8));
 
 		PathResult pathResult = pathStabilizer.findPath(tileCostCalculator, cachedConfig.getRouteOptimization(), start, target, maximumAStarSearchDistance, initialBoatDx, initialBoatDy, goalTolerance, isPlayerCurrentlyOnPath);
 
