@@ -60,7 +60,7 @@ public interface BarracudaTrialConfig extends Config
 	@ConfigItem(
 		keyName = "pathLookahead",
 		name = "Path Lookahead",
-		description = "Number of waypoints to calculate ahead. Lower values improve performance and reduce visual clutter.",
+		description = "Number of shipments to path ahead. Lower values improve performance and reduce visual clutter.",
 		section = pathSection,
 		position = 2
 	)

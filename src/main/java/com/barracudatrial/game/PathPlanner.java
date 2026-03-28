@@ -250,7 +250,7 @@ public class PathPlanner
 			{
 				uncompletedWaypoints.add(waypoint);
 
-				if (!waypoint.getType().isNonNavigableHelper())
+				if (waypoint.getType() == RouteWaypoint.WaypointType.SHIPMENT)
 				{
 					navigableWaypointCount++;
 				}
