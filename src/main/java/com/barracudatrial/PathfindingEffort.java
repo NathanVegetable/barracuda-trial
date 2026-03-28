@@ -5,9 +5,9 @@ import lombok.Getter;
 @Getter
 public enum PathfindingEffort
 {
-	LOW(80, 8),
-	MEDIUM(100, 12),
-	HIGH(150, 20);
+	LOW(100, 10),
+	MEDIUM(125, 15),
+	HIGH(190, 25);
 
 	private final int maxSearchNodes;
 	private final int minSpatialDistance;
