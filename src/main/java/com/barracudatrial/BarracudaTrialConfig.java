@@ -15,7 +15,7 @@ public interface BarracudaTrialConfig extends Config
 	// Config key names
 	String KEY_ROUTE_OPTIMIZATION = "routeOptimization";
 	String KEY_PATH_LOOKAHEAD = "pathLookahead";
-	String KEY_MAX_PATHFINDING_DISTANCE = "maxPathfindingDistance";
+	String KEY_PATHFINDING_EFFORT = "pathfindingEffort";
 
 	@ConfigSection(
 		name = "Path Display",
@@ -249,16 +249,15 @@ public interface BarracudaTrialConfig extends Config
 	}
 
 	@ConfigItem(
-		keyName = KEY_MAX_PATHFINDING_DISTANCE,
-		name = "Max Pathfinding Distance",
-		description = "Maximum search distance for pathfinding. Higher values allow pathing to further targets but increase CPU usage.",
+		keyName = KEY_PATHFINDING_EFFORT,
+		name = "Pathfinding Effort",
+		description = "Search effort for pathfinding. Higher values path further and handle obstacles better but use more CPU.",
 		section = debugSection,
 		position = 1
 	)
-	@Range(min = 50, max = 200)
-	default int maxPathfindingDistance()
+	default PathfindingEffort pathfindingEffort()
 	{
-		return 100;
+		return PathfindingEffort.MEDIUM;
 	}
 
 	@ConfigItem(

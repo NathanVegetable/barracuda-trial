@@ -753,13 +753,15 @@ public class PathPlanner
 	{
 		var tileCostCalculator = getBarracudaTileCostCalculator(pathfindingHints);
 
-        int tileDistance = start.distanceTo(target); // Chebyshev distance in tiles
+        int tileDistance = start.distanceTo(target);
 
-		// Never too high, but allow seeking longer on long paths
-		int maxSearchDistance = cachedConfig.getMaxPathfindingDistance();
+		var pathfindingEffort = cachedConfig.getPathfindingEffort();
+		int maxSearchDistance = pathfindingEffort.getMaxSearchNodes();
+		int minSpatialDistance = pathfindingEffort.getMinSpatialDistance();
+		// Scale with distance but cap to prevent excessive computation on long paths
 		int maximumAStarSearchDistance = Math.max(35, Math.min(maxSearchDistance, tileDistance * 8));
 
-		PathResult pathResult = pathStabilizer.findPath(tileCostCalculator, cachedConfig.getRouteOptimization(), start, target, maximumAStarSearchDistance, initialBoatDx, initialBoatDy, goalTolerance, isPlayerCurrentlyOnPath);
+		PathResult pathResult = pathStabilizer.findPath(tileCostCalculator, cachedConfig.getRouteOptimization(), start, target, maximumAStarSearchDistance, minSpatialDistance, initialBoatDx, initialBoatDy, goalTolerance, isPlayerCurrentlyOnPath);
 
 		if (pathResult.getPath().isEmpty())
 		{

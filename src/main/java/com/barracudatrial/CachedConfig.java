@@ -35,7 +35,7 @@ public class CachedConfig
 
 	// Debug settings
 	@Getter private int pathLookahead;
-	@Getter private int maxPathfindingDistance;
+	@Getter private PathfindingEffort pathfindingEffort;
 	@Getter private boolean showWaypointDetails;
 
 	public CachedConfig(BarracudaTrialConfig config)
@@ -69,7 +69,7 @@ public class CachedConfig
 		cloudDangerRadius = config.cloudDangerRadius();
 
 		pathLookahead = config.pathLookahead();
-		maxPathfindingDistance = config.maxPathfindingDistance();
+		pathfindingEffort = config.pathfindingEffort();
 		showWaypointDetails = config.showWaypointDetails();
 	}
 }

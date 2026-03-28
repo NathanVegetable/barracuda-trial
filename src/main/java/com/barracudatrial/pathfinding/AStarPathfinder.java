@@ -11,7 +11,7 @@ import java.util.*;
  */
 public class AStarPathfinder
 {
-	public PathResult findPath(BarracudaTileCostCalculator costCalculator, RouteOptimization routeOptimization, WorldPoint start, WorldPoint goal, int maxSearchDistance, int boatDirectionDx, int boatDirectionDy, int goalTolerance)
+	public PathResult findPath(BarracudaTileCostCalculator costCalculator, RouteOptimization routeOptimization, WorldPoint start, WorldPoint goal, int maxSearchDistance, int minSpatialDistance, int boatDirectionDx, int boatDirectionDy, int goalTolerance)
 	{
 		PriorityQueue<Node> openSet = new PriorityQueue<>(
 			Comparator.comparingDouble((Node n) -> n.fScore)
@@ -40,8 +40,9 @@ public class AStarPathfinder
 
 		Set<StateKey> closedSet = new HashSet<>();
 		int nodesExplored = 0;
-		Node bestNodeSoFar = startNode; // Track best node in case we don't reach goal
+		Node bestNodeSoFar = startNode;
 		int bestDistanceToGoal = Integer.MAX_VALUE;
+		int maxSpatialDistanceReached = 0;
 
 		while (!openSet.isEmpty())
 		{
@@ -72,8 +73,14 @@ public class AStarPathfinder
 			closedSet.add(currentKey);
 			nodesExplored++;
 
-			// Prevent runaway search
-			if (nodesExplored > maxSearchDistance * maxSearchDistance)
+			int spatialDistanceFromStart = Math.max(
+				Math.abs(current.position.getX() - start.getX()),
+				Math.abs(current.position.getY() - start.getY())
+			);
+			maxSpatialDistanceReached = Math.max(maxSpatialDistanceReached, spatialDistanceFromStart);
+
+			// Ensure we search minimum distance forward even when obstacles consume node budget
+			if (nodesExplored > maxSearchDistance * maxSearchDistance && maxSpatialDistanceReached >= minSpatialDistance)
 			{
 				break;
 			}

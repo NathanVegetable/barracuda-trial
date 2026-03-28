@@ -51,9 +51,9 @@ public class PathStabilizer
 	}
 
 	public PathResult findPath(BarracudaTileCostCalculator costCalculator, RouteOptimization routeOptimization, WorldPoint start, WorldPoint goal, int maxSearchDistance,
-	                                  int boatDirectionDx, int boatDirectionDy, int goalTolerance, boolean isPlayerCurrentlyOnPath)
+	                                  int minSpatialDistance, int boatDirectionDx, int boatDirectionDy, int goalTolerance, boolean isPlayerCurrentlyOnPath)
 	{
-		PathResult newPathResult = pathfinder.findPath(costCalculator, routeOptimization, start, goal, maxSearchDistance, boatDirectionDx, boatDirectionDy, goalTolerance);
+		PathResult newPathResult = pathfinder.findPath(costCalculator, routeOptimization, start, goal, maxSearchDistance, minSpatialDistance, boatDirectionDx, boatDirectionDy, goalTolerance);
 		Set<WorldPoint> currentDangerZones = costCalculator.getDangerZoneSnapshot();
 
 		StabilizedPath activeStabilizedPath = activePathsByGoal.get(goal);
