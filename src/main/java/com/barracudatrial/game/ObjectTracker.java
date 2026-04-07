@@ -293,17 +293,19 @@ public class ObjectTracker
 		Set<WorldPoint> existingLandTiles = state.getKnownLandTiles();
 		Set<WorldPoint> newLandTiles = new HashSet<>();
 
-		for (int sceneX = 0; sceneX < flags.length; sceneX++)
+		// Skip tiles near the scene boundary since edge tiles have unreliable collision flags
+		int margin = 5;
+		for (int sceneX = margin; sceneX < flags.length - margin; sceneX++)
 		{
-			for (int sceneY = 0; sceneY < flags[sceneX].length; sceneY++)
+			for (int sceneY = margin; sceneY < flags[sceneX].length - margin; sceneY++)
 			{
 				int flag = flags[sceneX][sceneY];
 
-				// Water tiles have BLOCK_MOVEMENT_FLOOR set (blocks walking).
-				// Tiles WITHOUT this flag are walkable land — impassable for boats.
-				boolean isFloorBlocked = (flag & CollisionDataFlag.BLOCK_MOVEMENT_FLOOR) != 0;
+				// Land tiles have BLOCK_MOVEMENT_FLOOR set (solid ground that blocks walking over water).
+				// Tiles WITH this flag are walkable land, impassable for boats.
+				boolean isLand = (flag & CollisionDataFlag.BLOCK_MOVEMENT_FLOOR) != 0;
 
-				if (!isFloorBlocked)
+				if (isLand)
 				{
 					WorldPoint worldPoint = new WorldPoint(baseX + sceneX, baseY + sceneY, plane);
 					if (!existingLandTiles.contains(worldPoint))
@@ -317,7 +319,6 @@ public class ObjectTracker
 		if (!newLandTiles.isEmpty())
 		{
 			state.addKnownLandTiles(newLandTiles);
-			log.debug("Detected {} new land tiles ({} total)", newLandTiles.size(), state.getKnownLandTiles().size());
 		}
 	}
 
