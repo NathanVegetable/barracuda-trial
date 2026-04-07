@@ -97,18 +97,6 @@ public interface BarracudaTrialConfig extends Config
 	}
 
 	@ConfigItem(
-		keyName = "showPathTiles",
-		name = "Show Path Tiles",
-		description = "Highlight individual tiles along the calculated path",
-		section = pathSection,
-		position = 6
-	)
-	default boolean showPathTiles()
-	{
-		return false;
-	}
-
-	@ConfigItem(
 		keyName = "highlightObjectives",
 		name = "Highlight Objectives",
 		description = "Highlight objectives in the trial area",
@@ -280,6 +268,18 @@ public interface BarracudaTrialConfig extends Config
 		position = 3
 	)
 	default boolean showBoatTiles()
+	{
+		return false;
+	}
+
+	@ConfigItem(
+		keyName = "showPathTiles",
+		name = "Show Pathfinding Debug",
+		description = "Highlight calculated path tiles, detected land tiles, and tile object IDs",
+		section = debugSection,
+		position = 4
+	)
+	default boolean showPathTiles()
 	{
 		return false;
 	}
