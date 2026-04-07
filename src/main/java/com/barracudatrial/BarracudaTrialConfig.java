@@ -71,6 +71,31 @@ public interface BarracudaTrialConfig extends Config
 
 
 	@ConfigItem(
+		keyName = KEY_PATH_LOOKAHEAD,
+		name = "Route Lookahead",
+		description = "Number of shipments to path ahead. Higher values plan further but use more CPU.",
+		section = pathSection,
+		position = 2
+	)
+	@Range(min = 1, max = 10)
+	default int pathLookahead()
+	{
+		return 3;
+	}
+
+	@ConfigItem(
+		keyName = KEY_PATHFINDING_EFFORT,
+		name = "Search Effort",
+		description = "Search effort for pathfinding. Higher values path further and handle obstacles better but use more CPU.",
+		section = pathSection,
+		position = 3
+	)
+	default PathfindingEffort pathfindingEffort()
+	{
+		return PathfindingEffort.MEDIUM;
+	}
+
+	@ConfigItem(
 		keyName = "pathColor",
 		name = "Path",
 		description = "Color for optimal path",
@@ -224,31 +249,6 @@ public interface BarracudaTrialConfig extends Config
 	}
 
 	@ConfigItem(
-		keyName = KEY_PATH_LOOKAHEAD,
-		name = "Path Lookahead",
-		description = "Number of shipments to path ahead. Higher values increase CPU usage.",
-		section = debugSection,
-		position = 0
-	)
-	@Range(min = 1, max = 10)
-	default int pathLookahead()
-	{
-		return 3;
-	}
-
-	@ConfigItem(
-		keyName = KEY_PATHFINDING_EFFORT,
-		name = "Pathfinding Effort",
-		description = "Search effort for pathfinding. Higher values path further and handle obstacles better but use more CPU.",
-		section = debugSection,
-		position = 1
-	)
-	default PathfindingEffort pathfindingEffort()
-	{
-		return PathfindingEffort.MEDIUM;
-	}
-
-	@ConfigItem(
 		keyName = "showWaypointDetails",
 		name = "Show Waypoint Details",
 		description = "Show detailed waypoint information (type, status, coordinates)",
@@ -274,7 +274,7 @@ public interface BarracudaTrialConfig extends Config
 
 	@ConfigItem(
 		keyName = "showPathTiles",
-		name = "Show Pathfinding Debug",
+		name = "Show Pathfinding Tiles",
 		description = "Highlight calculated path tiles, detected land tiles, and tile object IDs",
 		section = debugSection,
 		position = 4
