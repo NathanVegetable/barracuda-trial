@@ -11,16 +11,9 @@ import java.util.Set;
 public class BarracudaTileCostCalculator
 {
 	private static final int DISCOURAGED_TILE_COST = 100;
+	private static final int NEARBY_TILE_COST = 3;
 
-	private final int exclusionZoneMinX;
-	private final int exclusionZoneMaxX;
-	private final int exclusionZoneMinY;
-	private final int exclusionZoneMaxY;
 	private final RouteOptimization routeOptimization;
-	private final WorldPoint primaryObjectiveLocation;
-	private final WorldPoint secondaryObjectiveLocation;
-	private final int boatExclusionWidth;
-	private final int boatExclusionHeight;
 	private final Set<WorldPoint> pathfindingHintTiles;
 
 	private int speedBoostTilesRemaining = 0;
@@ -28,15 +21,10 @@ public class BarracudaTileCostCalculator
 	private boolean wasOnHintLastTile = false;
 	private final Set<WorldPoint> consumedBoosts = new HashSet<>();
 
-	// Precomputed spatial lookups for O(1) cost checks
-	private final Set<WorldPoint> landTileLocations;
-	private final Set<WorldPoint> rockLocations;
-	private final Set<WorldPoint> closeToRocks;
+	private final Set<WorldPoint> discouragedTiles;
+	private final Set<WorldPoint> nearDiscouragedTiles;
 	private final Set<WorldPoint> cloudDangerZones;
 	private final Map<WorldPoint, List<WorldPoint>> boostGrabbableTiles;
-	private final Set<WorldPoint> fetidPoolLocations;
-	private final Set<WorldPoint> toadPillarLocations;
-	private Set<WorldPoint> closeToFetidPoolsAndToadPillars = new HashSet<>();
 
 	public BarracudaTileCostCalculator(
 		Map<WorldPoint, List<WorldPoint>> knownSpeedBoostLocations,
@@ -56,26 +44,23 @@ public class BarracudaTileCostCalculator
 		Set<WorldPoint> pathfindingHintTiles,
 		Set<WorldPoint> knownLandTiles)
 	{
-		this.exclusionZoneMinX = exclusionZoneMinX;
-		this.exclusionZoneMaxX = exclusionZoneMaxX;
-		this.exclusionZoneMinY = exclusionZoneMinY;
-		this.exclusionZoneMaxY = exclusionZoneMaxY;
-		this.primaryObjectiveLocation = primaryObjectiveLocation;
-		this.secondaryObjectiveLocation = secondaryObjectiveLocation;
 		this.routeOptimization = routeOptimization;
-		this.boatExclusionWidth = boatExclusionWidth;
-		this.boatExclusionHeight = boatExclusionHeight;
 		this.pathfindingHintTiles = pathfindingHintTiles != null ? pathfindingHintTiles : new HashSet<>();
-
-		this.landTileLocations = new HashSet<>(knownLandTiles);
-		this.rockLocations = new HashSet<>(knownRockLocations);
-		this.fetidPoolLocations = new HashSet<>(knownFetidPoolLocations);
-		this.toadPillarLocations = new HashSet<>(knownToadPillarLocations);
-		this.closeToRocks = precomputeTileProximity(rockLocations, 1);
-		this.cloudDangerZones = precomputeCloudDangerZones(cloudLocations);
 		this.boostGrabbableTiles = knownSpeedBoostLocations;
-		this.closeToFetidPoolsAndToadPillars = precomputeTileProximity(fetidPoolLocations, 1);
-		this.closeToFetidPoolsAndToadPillars.addAll(precomputeTileProximity(toadPillarLocations, 1));
+
+		this.cloudDangerZones = precomputeCloudDangerZones(cloudLocations);
+
+		this.discouragedTiles = new HashSet<>();
+		discouragedTiles.addAll(knownLandTiles);
+		discouragedTiles.addAll(knownRockLocations);
+		discouragedTiles.addAll(knownFetidPoolLocations);
+		discouragedTiles.addAll(knownToadPillarLocations);
+		discouragedTiles.addAll(cloudDangerZones);
+		addExclusionZoneTiles(discouragedTiles, exclusionZoneMinX, exclusionZoneMaxX, exclusionZoneMinY, exclusionZoneMaxY);
+		addBoatExclusionZoneTiles(discouragedTiles, primaryObjectiveLocation, boatExclusionWidth, boatExclusionHeight);
+		addBoatExclusionZoneTiles(discouragedTiles, secondaryObjectiveLocation, boatExclusionWidth, boatExclusionHeight);
+
+		this.nearDiscouragedTiles = precomputeTileProximity(discouragedTiles, 1);
 	}
 
 	public double getTileCost(WorldPoint from, WorldPoint to)
@@ -119,58 +104,18 @@ public class BarracudaTileCostCalculator
 			speedBoostTilesRemaining--;
 		}
 
-		if (landTileLocations.contains(to))
+		if (discouragedTiles.contains(to))
 		{
 			cost += DISCOURAGED_TILE_COST;
-		}
-		else if (isInBoatExclusionZone(to))
-		{
-			cost += DISCOURAGED_TILE_COST;
-		}
-		else if (rockLocations.contains(to))
-		{
-			cost += DISCOURAGED_TILE_COST;
-		}
-		else if (closeToRocks.contains(to))
-		{
-			cost += 3;
-		}
-		else if (isInExclusionZone(to))
-		{
-			cost += DISCOURAGED_TILE_COST;
-		}
-		else if (cloudDangerZones.contains(to))
-		{
-			cost += DISCOURAGED_TILE_COST;
-			speedBoostTilesRemaining = 0;
-		}
-		else if (fetidPoolLocations.contains(to))
-		{
-			cost += DISCOURAGED_TILE_COST;
-		}
-		else if (toadPillarLocations.contains(to))
-		{
-			cost += DISCOURAGED_TILE_COST;
-		}
-		else if (closeToFetidPoolsAndToadPillars.contains(to))
-		{
-			cost += 3;
-		}
-		else
-		{
-			double distToZone = distanceToExclusionZone(to);
-			if (distToZone <= 1)
+			// Lightning clouds cancel any active speed boost
+			if (cloudDangerZones.contains(to))
 			{
-				cost += DISCOURAGED_TILE_COST;
+				speedBoostTilesRemaining = 0;
 			}
-			else if (distToZone <= 2)
-			{
-				cost += 50;
-			}
-			else if (distToZone <= 3)
-			{
-				cost += 25;
-			}
+		}
+		else if (nearDiscouragedTiles.contains(to))
+		{
+			cost += NEARBY_TILE_COST;
 		}
 
 		return cost;
@@ -187,69 +132,47 @@ public class BarracudaTileCostCalculator
 	}
 
 	/**
-	 * Get a snapshot of all current danger zones for path stability tracking
+	 * Get a snapshot of all current discouraged tiles for path stability tracking
 	 */
 	public Set<WorldPoint> getDangerZoneSnapshot()
 	{
-		Set<WorldPoint> snapshot = new HashSet<>();
-		snapshot.addAll(cloudDangerZones);
-		snapshot.addAll(rockLocations);
-		snapshot.addAll(fetidPoolLocations);
-		return snapshot;
+		return new HashSet<>(discouragedTiles);
 	}
 
-	private boolean isInExclusionZone(WorldPoint point)
+	private static void addExclusionZoneTiles(Set<WorldPoint> tiles, int minX, int maxX, int minY, int maxY)
 	{
-		return point.getX() >= exclusionZoneMinX
-			&& point.getX() <= exclusionZoneMaxX
-			&& point.getY() >= exclusionZoneMinY
-			&& point.getY() <= exclusionZoneMaxY;
-	}
-
-	private boolean isInBoatExclusionZone(WorldPoint point)
-	{
-		if (primaryObjectiveLocation == null && secondaryObjectiveLocation == null)
+		if (minX == 0 && maxX == 0 && minY == 0 && maxY == 0)
 		{
-			return false;
+			return;
 		}
 
-		boolean inPrimaryZone = primaryObjectiveLocation != null
-			&& isInRectangularZone(point, primaryObjectiveLocation, boatExclusionWidth, boatExclusionHeight);
-
-		boolean inSecondaryZone = secondaryObjectiveLocation != null
-			&& isInRectangularZone(point, secondaryObjectiveLocation, boatExclusionWidth, boatExclusionHeight);
-
-		return inPrimaryZone || inSecondaryZone;
+		for (int x = minX; x <= maxX; x++)
+		{
+			for (int y = minY; y <= maxY; y++)
+			{
+				tiles.add(new WorldPoint(x, y, 0));
+			}
+		}
 	}
 
-	private static boolean isInRectangularZone(WorldPoint point, WorldPoint center, int width, int height)
+	// Discourage tiles around objectives so the pathfinder doesn't try to cut through the boat
+	private static void addBoatExclusionZoneTiles(Set<WorldPoint> tiles, WorldPoint center, int width, int height)
 	{
+		if (center == null)
+		{
+			return;
+		}
+
 		int halfWidth = width / 2;
 		int halfHeight = height / 2;
 
-		int minX = center.getX() - halfWidth;
-		int maxX = center.getX() + halfWidth;
-		int minY = center.getY() - halfHeight;
-		int maxY = center.getY() + halfHeight;
-
-		return point.getX() >= minX && point.getX() <= maxX
-			&& point.getY() >= minY && point.getY() <= maxY;
-	}
-
-	private double distanceToExclusionZone(WorldPoint point)
-	{
-		if (isInExclusionZone(point))
+		for (int x = center.getX() - halfWidth; x <= center.getX() + halfWidth; x++)
 		{
-			return 0;
+			for (int y = center.getY() - halfHeight; y <= center.getY() + halfHeight; y++)
+			{
+				tiles.add(new WorldPoint(x, y, center.getPlane()));
+			}
 		}
-
-		int x = point.getX();
-		int y = point.getY();
-
-		int dx = Math.max(0, Math.max(exclusionZoneMinX - x, x - exclusionZoneMaxX));
-		int dy = Math.max(0, Math.max(exclusionZoneMinY - y, y - exclusionZoneMaxY));
-
-		return Math.sqrt(dx * dx + dy * dy);
 	}
 
 	private Set<WorldPoint> precomputeTileProximity(Set<WorldPoint> locations, int maxDistance)
