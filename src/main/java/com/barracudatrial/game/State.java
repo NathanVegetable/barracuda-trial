@@ -83,6 +83,8 @@ public class State
 
 	private final Set<WorldPoint> knownToadPillarLocations = new HashSet<>();
 
+	private final Set<WorldPoint> knownLandTiles = new HashSet<>();
+
 	// True if interacted with
 	private final Map<WorldPoint, Boolean> knownToadPillars = new HashMap<>();
 
@@ -116,6 +118,7 @@ public class State
 		lightningClouds.clear();
 		dangerousClouds.clear();
 		knownToadPillars.clear();
+		knownLandTiles.clear();
 		rumPickupLocation = null;
 		rumReturnLocation = null;
 		rumsCollected = 0;
@@ -227,6 +230,16 @@ public class State
 	{
 		knownToadPillarLocations.clear();
 		knownToadPillarLocations.addAll(locations);
+	}
+
+	public Set<WorldPoint> getKnownLandTiles()
+	{
+		return Collections.unmodifiableSet(knownLandTiles);
+	}
+
+	public void addKnownLandTiles(Set<WorldPoint> tiles)
+	{
+		knownLandTiles.addAll(tiles);
 	}
 
 	public Set<Integer> getCompletedWaypointIndices()

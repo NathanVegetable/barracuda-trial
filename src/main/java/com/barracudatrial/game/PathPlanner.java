@@ -855,7 +855,8 @@ public class PathPlanner
 			cachedConfig.getRouteOptimization(),
 			boatExclusionWidth,
 			boatExclusionHeight,
-			pathfindingHints
+			pathfindingHints,
+			state.getKnownLandTiles()
 		);
 	}
 

@@ -58,6 +58,7 @@ public class PathRenderer
 		if (cachedConfig.isShowPathTiles())
 		{
 			renderCalculatedPathTiles(graphics);
+			renderLandTiles(graphics);
 		}
 
 	}
@@ -455,6 +456,17 @@ public class PathRenderer
 		{
 			String label = String.format("FRONT BOAT\n(%d, %d)", frontBoatTile.getX(), frontBoatTile.getY());
 			RenderingUtils.renderTileHighlightAtWorldPoint(client, graphics, frontBoatTile, new Color(255, 0, 255, 180), label);
+		}
+	}
+
+	private void renderLandTiles(Graphics2D graphics)
+	{
+		Set<WorldPoint> landTiles = plugin.getGameState().getKnownLandTiles();
+		Color landColor = new Color(255, 0, 0, 30);
+
+		for (WorldPoint tile : landTiles)
+		{
+			RenderingUtils.renderTileHighlightAtWorldPoint(client, graphics, tile, landColor, null);
 		}
 	}
 

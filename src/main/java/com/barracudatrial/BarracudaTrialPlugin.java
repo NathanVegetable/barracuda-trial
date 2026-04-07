@@ -115,6 +115,8 @@ public class BarracudaTrialPlugin extends Plugin
 
 		if (cachedConfig.isShowOptimalPath())
 		{
+			objectTracker.updateLandTileDetection();
+
 			objectTracker.updatePlayerBoatLocation();
 
 			objectTracker.updateFrontBoatTile();

@@ -27,6 +27,7 @@ public class BarracudaTileCostCalculator
 	private final Set<WorldPoint> consumedBoosts = new HashSet<>();
 
 	// Precomputed spatial lookups for O(1) cost checks
+	private final Set<WorldPoint> landTileLocations;
 	private final Set<WorldPoint> rockLocations;
 	private final Set<WorldPoint> closeToRocks;
 	private final Set<WorldPoint> cloudDangerZones;
@@ -50,7 +51,8 @@ public class BarracudaTileCostCalculator
 		RouteOptimization routeOptimization,
 		int boatExclusionWidth,
 		int boatExclusionHeight,
-		Set<WorldPoint> pathfindingHintTiles)
+		Set<WorldPoint> pathfindingHintTiles,
+		Set<WorldPoint> knownLandTiles)
 	{
 		this.exclusionZoneMinX = exclusionZoneMinX;
 		this.exclusionZoneMaxX = exclusionZoneMaxX;
@@ -63,6 +65,7 @@ public class BarracudaTileCostCalculator
 		this.boatExclusionHeight = boatExclusionHeight;
 		this.pathfindingHintTiles = pathfindingHintTiles != null ? pathfindingHintTiles : new HashSet<>();
 
+		this.landTileLocations = new HashSet<>(knownLandTiles);
 		this.rockLocations = new HashSet<>(knownRockLocations);
 		this.fetidPoolLocations = new HashSet<>(knownFetidPoolLocations);
 		this.toadPillarLocations = new HashSet<>(knownToadPillarLocations);
@@ -115,7 +118,11 @@ public class BarracudaTileCostCalculator
 			speedBoostTilesRemaining--;
 		}
 
-		if (isInBoatExclusionZone(to))
+		if (landTileLocations.contains(to))
+		{
+			cost += 100;
+		}
+		else if (isInBoatExclusionZone(to))
 		{
 			cost += 100; // Discouraged but allowed for pathmaking
 		}

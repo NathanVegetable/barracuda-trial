@@ -4,6 +4,8 @@ import com.barracudatrial.game.route.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.*;
+import net.runelite.api.CollisionData;
+import net.runelite.api.CollisionDataFlag;
 import net.runelite.api.coords.LocalPoint;
 import net.runelite.api.coords.WorldPoint;
 import net.runelite.api.gameval.NpcID;
@@ -253,6 +255,70 @@ public class ObjectTracker
 		state.updateKnownSpeedBoostLocations(knownBoostTiles);
 		state.updateKnownFetidPoolLocations(knownFetidPoolTiles);
 		state.updateKnownToadPillarLocations(knownToadPillarTiles);
+	}
+
+	/**
+	 * Detects land tiles using collision map flags and accumulates them over time.
+	 * Water tiles have BLOCK_MOVEMENT_FLOOR set (blocks walking); tiles without it are land.
+	 * Land tiles persist for the session so the full coastline is mapped after one lap.
+	 */
+	public void updateLandTileDetection()
+	{
+		if (!state.isInTrial())
+		{
+			return;
+		}
+
+		WorldView topLevelWorldView = client.getTopLevelWorldView();
+		if (topLevelWorldView == null)
+		{
+			return;
+		}
+
+		int plane = topLevelWorldView.getPlane();
+		CollisionData[] collisionMaps = topLevelWorldView.getCollisionMaps();
+		if (collisionMaps == null || plane >= collisionMaps.length || collisionMaps[plane] == null)
+		{
+			return;
+		}
+
+		int[][] flags = collisionMaps[plane].getFlags();
+		if (flags == null)
+		{
+			return;
+		}
+
+		int baseX = topLevelWorldView.getBaseX();
+		int baseY = topLevelWorldView.getBaseY();
+		Set<WorldPoint> existingLandTiles = state.getKnownLandTiles();
+		Set<WorldPoint> newLandTiles = new HashSet<>();
+
+		for (int sceneX = 0; sceneX < flags.length; sceneX++)
+		{
+			for (int sceneY = 0; sceneY < flags[sceneX].length; sceneY++)
+			{
+				int flag = flags[sceneX][sceneY];
+
+				// Water tiles have BLOCK_MOVEMENT_FLOOR set (blocks walking).
+				// Tiles WITHOUT this flag are walkable land — impassable for boats.
+				boolean isFloorBlocked = (flag & CollisionDataFlag.BLOCK_MOVEMENT_FLOOR) != 0;
+
+				if (!isFloorBlocked)
+				{
+					WorldPoint worldPoint = new WorldPoint(baseX + sceneX, baseY + sceneY, plane);
+					if (!existingLandTiles.contains(worldPoint))
+					{
+						newLandTiles.add(worldPoint);
+					}
+				}
+			}
+		}
+
+		if (!newLandTiles.isEmpty())
+		{
+			state.addKnownLandTiles(newLandTiles);
+			log.debug("Detected {} new land tiles ({} total)", newLandTiles.size(), state.getKnownLandTiles().size());
+		}
 	}
 
 	public void onToadPillarTick(GameObject newToadPillarObj, JubblyJiveToadPillar toadPillar)
