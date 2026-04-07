@@ -10,6 +10,8 @@ import java.util.Set;
 
 public class BarracudaTileCostCalculator
 {
+	private static final int DISCOURAGED_TILE_COST = 100;
+
 	private final int exclusionZoneMinX;
 	private final int exclusionZoneMaxX;
 	private final int exclusionZoneMinY;
@@ -93,7 +95,6 @@ public class BarracudaTileCostCalculator
 			return -10.0;
 		}
 
-		int maxTileCost = 100000;
 		lastTile = to;
 
 		double cost = 1.0;
@@ -120,15 +121,15 @@ public class BarracudaTileCostCalculator
 
 		if (landTileLocations.contains(to))
 		{
-			cost += 100;
+			cost += DISCOURAGED_TILE_COST;
 		}
 		else if (isInBoatExclusionZone(to))
 		{
-			cost += 100; // Discouraged but allowed for pathmaking
+			cost += DISCOURAGED_TILE_COST;
 		}
 		else if (rockLocations.contains(to))
 		{
-			cost = maxTileCost;
+			cost += DISCOURAGED_TILE_COST;
 		}
 		else if (closeToRocks.contains(to))
 		{
@@ -136,20 +137,20 @@ public class BarracudaTileCostCalculator
 		}
 		else if (isInExclusionZone(to))
 		{
-			cost = maxTileCost;
+			cost += DISCOURAGED_TILE_COST;
 		}
 		else if (cloudDangerZones.contains(to))
 		{
-			cost += 200;
+			cost += DISCOURAGED_TILE_COST;
 			speedBoostTilesRemaining = 0;
 		}
 		else if (fetidPoolLocations.contains(to))
 		{
-			cost += 100;
+			cost += DISCOURAGED_TILE_COST;
 		}
 		else if (toadPillarLocations.contains(to))
 		{
-			cost = maxTileCost;
+			cost += DISCOURAGED_TILE_COST;
 		}
 		else if (closeToFetidPoolsAndToadPillars.contains(to))
 		{
@@ -160,7 +161,7 @@ public class BarracudaTileCostCalculator
 			double distToZone = distanceToExclusionZone(to);
 			if (distToZone <= 1)
 			{
-				cost += 100;
+				cost += DISCOURAGED_TILE_COST;
 			}
 			else if (distToZone <= 2)
 			{
