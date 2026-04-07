@@ -609,7 +609,7 @@ public class PathPlanner
 				currentPosition = result.newPosition;
 				isPlayerCurrentlyOnPath = false;
 
-				i = result.skipToIndex;
+				i = result.skipToIndex - 1;
 				continue;
 			}
 
