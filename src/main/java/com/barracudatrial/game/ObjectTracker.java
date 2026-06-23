@@ -242,7 +242,6 @@ public class ObjectTracker
 								knownToadPillarTiles.addAll(ObjectTracker.getObjectTiles(client, obj));
 							}
 
-							onToadPillarTick(obj, matchingToadPillarByParentId);
 							continue;
 						}
 					}
@@ -322,64 +321,81 @@ public class ObjectTracker
 		}
 	}
 
-	public void onToadPillarTick(GameObject newToadPillarObj, JubblyJiveToadPillar toadPillar)
+	public boolean updateToadPillarCatches()
 	{
-		var objectComposition = client.getObjectDefinition(newToadPillarObj.getId());
-		if (objectComposition == null)
-			return;
-
-		var isInteractedWith = false;
-
-		var impostorIds = objectComposition.getImpostorIds();
-		if (impostorIds != null)
-		{
-			var impostor = objectComposition.getImpostor();
-			isInteractedWith = impostor.getId() == toadPillar.getClickboxNoopObjectId();
-		}
-
-		var previousIsInteractedWith = state.updateKnownToadPillar(newToadPillarObj.getWorldLocation(), isInteractedWith);
-
-		if (previousIsInteractedWith == null) return; // first time
-		if (previousIsInteractedWith == isInteractedWith) return; // no change
-		if (previousIsInteractedWith && !isInteractedWith) return; // true -> false (reset)
-
 		var route = state.getCurrentStaticRoute();
-		if (route == null || route.isEmpty())
+		if (!state.isInTrial() || route == null || route.isEmpty())
 		{
-			return;
+			return false;
 		}
 
-		var objectId = newToadPillarObj.getId();
-		log.info("Detected change in pillar. Trying to find id {} in list of waypoints", objectId);
+		var trial = state.getCurrentTrial();
+		if (trial == null || trial.getTrialType() != TrialType.JUBBLY_JIVE)
+		{
+			return false;
+		}
+
+		boolean anyCaught = false;
+
+		for (JubblyJiveToadPillar pillar : JubblyJiveConfig.TOAD_PILLARS)
+		{
+			Boolean isCaught = readPillarCaughtState(pillar);
+			if (isCaught == null)
+			{
+				continue;
+			}
+
+			Boolean wasCaught = state.updateKnownToadPillar(pillar.getLocation(), isCaught);
+			boolean isNewCatch = Boolean.FALSE.equals(wasCaught) && isCaught;
+
+			if (isNewCatch && completeToadPillarWaypoint(pillar))
+			{
+				anyCaught = true;
+			}
+		}
+
+		return anyCaught;
+	}
+
+	private Boolean readPillarCaughtState(JubblyJiveToadPillar pillar)
+	{
+		var objectComposition = client.getObjectDefinition(pillar.getClickboxParentObjectId());
+		if (objectComposition == null || objectComposition.getImpostorIds() == null)
+		{
+			return null;
+		}
+
+		var impostor = objectComposition.getImpostor();
+		if (impostor == null)
+		{
+			return null;
+		}
+
+		return impostor.getId() == pillar.getClickboxNoopObjectId();
+	}
+
+	private boolean completeToadPillarWaypoint(JubblyJiveToadPillar pillar)
+	{
+		var route = state.getCurrentStaticRoute();
 
 		for (int index = 0; index < route.size(); index++)
 		{
-			var waypoint = route.get(index);
-
-			if (!(waypoint instanceof JubblyJiveToadPillarWaypoint))
+			if (!(route.get(index) instanceof JubblyJiveToadPillarWaypoint))
 			{
 				continue;
 			}
 
-			var pillarWaypoint = (JubblyJiveToadPillarWaypoint) waypoint;
-
-			if (!pillarWaypoint.getPillar().matchesAnyObjectId(objectId))
+			var pillarWaypoint = (JubblyJiveToadPillarWaypoint) route.get(index);
+			if (pillarWaypoint.getPillar() != pillar || state.isWaypointCompleted(index))
 			{
 				continue;
 			}
 
-			if (state.isWaypointCompleted(index))
-			{
-				log.info("Found match but it was already completed, seeing if there's more...");
-				continue;
-			}
-
-			log.info("Found match! Completing it in our waypoint list.");
 			state.markWaypointCompleted(index);
-			return;
+			return true;
 		}
 
-		log.warn("Couldn't find a match to update! That seems wrong - how did we update the impostor without it being in the list?");
+		return false;
 	}
 
 	/**

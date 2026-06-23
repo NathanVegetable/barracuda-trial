@@ -113,6 +113,14 @@ public class BarracudaTrialPlugin extends Plugin
 			objectTracker.updateHazardsSpeedBoostsAndToadPillars();
 		}
 
+		if (cachedConfig.isShowOptimalPath() || cachedConfig.isHighlightObjectives())
+		{
+			if (objectTracker.updateToadPillarCatches() && cachedConfig.isShowOptimalPath())
+			{
+				pathPlanner.recalculateOptimalPathFromCurrentState("toad pillar caught");
+			}
+		}
+
 		if (cachedConfig.isShowOptimalPath())
 		{
 			objectTracker.updateLandTileDetection();
