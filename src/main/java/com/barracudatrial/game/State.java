@@ -3,6 +3,7 @@ package com.barracudatrial.game;
 import com.barracudatrial.game.route.Difficulty;
 import com.barracudatrial.game.route.RouteWaypoint;
 import com.barracudatrial.game.route.TrialConfig;
+import com.barracudatrial.game.route.TrialType;
 
 import lombok.Getter;
 import lombok.Setter;
@@ -67,6 +68,9 @@ public class State
 	private LocalPoint frontBoatTileLocal = null;
 
 	@Setter
+	private int currentLap = 1;
+
+	@Setter
 	private List<WorldPoint> path = new ArrayList<>();
 
 	@Setter
@@ -123,6 +127,7 @@ public class State
 		lostSuppliesTotal = 0;
 		hasThrowableObjective = false;
 		boatLocation = null;
+		currentLap = 1;
 		path = new ArrayList<>();
 		ticksSinceLastPathRecalc = 0;
 		exclusionZoneMinX = 0;
@@ -308,11 +313,16 @@ public class State
 	 */
 	public int getCurrentLap()
 	{
-		if (currentStaticRoute == null || currentStaticRoute.isEmpty())
+		if (currentTrial != null && currentTrial.getTrialType() == TrialType.JUBBLY_JIVE)
 		{
-			return 1;
+			if (currentStaticRoute == null || currentStaticRoute.isEmpty())
+			{
+				return 1;
+			}
+			return currentStaticRoute.get(getNextNavigableWaypointIndex()).getLap();
 		}
-		return currentStaticRoute.get(getNextNavigableWaypointIndex()).getLap();
+
+		return currentLap;
 	}
 
 	public static Difficulty getCurrentDifficulty(Client client)
