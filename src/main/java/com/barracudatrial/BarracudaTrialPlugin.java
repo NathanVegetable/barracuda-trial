@@ -200,8 +200,6 @@ public class BarracudaTrialPlugin extends Plugin
 						&& !gameState.isWaypointCompleted(i))
 					{
 						gameState.markWaypointCompleted(i);
-						var lap = waypoint.getLap();
-						gameState.setCurrentLap(lap + 1);
 						log.info("Marked RUM_DROPOFF waypoint as completed at index {}: {}", i, waypoint.getLocation());
 						pathPlanner.recalculateOptimalPathFromCurrentState("chat: rum delivered");
 						break;
@@ -252,12 +250,6 @@ public class BarracudaTrialPlugin extends Plugin
 					{
 						gameState.markWaypointCompleted(i);
 						log.info("Marked PORTAL_ENTER waypoint as completed at index {}: {}", i, waypoint.getLocation());
-
-						if (waypoint.getLap() > gameState.getCurrentLap())
-						{
-							gameState.setCurrentLap(waypoint.getLap());
-							log.info("Advanced to lap {} (portal enter)", waypoint.getLap());
-						}
 
 						pathPlanner.recalculateOptimalPathFromCurrentState("chat: portal entered");
 
@@ -317,12 +309,6 @@ public class BarracudaTrialPlugin extends Plugin
 				{
 					gameState.markWaypointCompleted(i + 1);
 					log.info("Marked PORTAL_EXIT waypoint as completed at index {} (distance: {}): {}", i + 1, distance, nextWaypoint.getLocation());
-
-					if (nextWaypoint.getLap() > gameState.getCurrentLap())
-					{
-						gameState.setCurrentLap(nextWaypoint.getLap());
-						log.info("Advanced to lap {} (portal exit)", nextWaypoint.getLap());
-					}
 
 					pathPlanner.recalculateOptimalPathFromCurrentState("portal exit proximity");
 					return;

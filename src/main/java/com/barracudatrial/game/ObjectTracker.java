@@ -376,14 +376,6 @@ public class ObjectTracker
 
 			log.info("Found match! Completing it in our waypoint list.");
 			state.markWaypointCompleted(index);
-
-			var waypointLap = waypoint.getLap();
-			if (state.getCurrentLap() < waypointLap)
-			{
-				log.info("Advanced to lap {}", waypointLap);
-				state.setCurrentLap(waypointLap);
-			}
-
 			return;
 		}
 

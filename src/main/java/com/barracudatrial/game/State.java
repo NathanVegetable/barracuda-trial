@@ -67,9 +67,6 @@ public class State
 	private LocalPoint frontBoatTileLocal = null;
 
 	@Setter
-	private int currentLap = 1;
-
-	@Setter
 	private List<WorldPoint> path = new ArrayList<>();
 
 	@Setter
@@ -126,7 +123,6 @@ public class State
 		lostSuppliesTotal = 0;
 		hasThrowableObjective = false;
 		boatLocation = null;
-		currentLap = 1;
 		path = new ArrayList<>();
 		ticksSinceLastPathRecalc = 0;
 		exclusionZoneMinX = 0;
@@ -301,6 +297,22 @@ public class State
 		}
 
 		return 0;
+	}
+
+	/**
+	 * The current segment ("lap") is derived from the next uncompleted waypoint in route order
+	 * rather than tracked as independent mutable state. The segment number only ever exists to
+	 * window the markers shown to the player, so anchoring it to the next objective keeps that
+	 * window correct even when objectives (e.g. toad pillars) are completed out of order.
+	 * @return Segment of the next navigable waypoint, or 1 if route is empty/null
+	 */
+	public int getCurrentLap()
+	{
+		if (currentStaticRoute == null || currentStaticRoute.isEmpty())
+		{
+			return 1;
+		}
+		return currentStaticRoute.get(getNextNavigableWaypointIndex()).getLap();
 	}
 
 	public static Difficulty getCurrentDifficulty(Client client)
