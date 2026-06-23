@@ -229,13 +229,10 @@ public class ObjectTracker
 							continue;
 						}
 
-						var matchingToadPillarByParentId =
-								Arrays.stream(JubblyJiveConfig.TOAD_PILLARS)
-										.filter(v -> v.getClickboxParentObjectId() == id)
-										.findFirst()
-										.orElse(null);
+						boolean isToadPillar = Arrays.stream(JubblyJiveConfig.TOAD_PILLARS)
+								.anyMatch(v -> v.getClickboxParentObjectId() == id);
 
-						if (matchingToadPillarByParentId != null)
+						if (isToadPillar)
 						{
 							if (!knownToadPillarTiles.contains(tileWp))
 							{
