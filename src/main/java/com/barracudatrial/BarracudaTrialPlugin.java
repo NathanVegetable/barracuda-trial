@@ -113,6 +113,14 @@ public class BarracudaTrialPlugin extends Plugin
 			objectTracker.updateHazardsSpeedBoostsAndToadPillars();
 		}
 
+		if (cachedConfig.isShowOptimalPath() || cachedConfig.isHighlightObjectives())
+		{
+			if (objectTracker.updateToadPillarCatches() && cachedConfig.isShowOptimalPath())
+			{
+				pathPlanner.recalculateOptimalPathFromCurrentState("toad pillar caught");
+			}
+		}
+
 		if (cachedConfig.isShowOptimalPath())
 		{
 			objectTracker.updateLandTileDetection();
@@ -200,8 +208,7 @@ public class BarracudaTrialPlugin extends Plugin
 						&& !gameState.isWaypointCompleted(i))
 					{
 						gameState.markWaypointCompleted(i);
-						var lap = waypoint.getLap();
-						gameState.setCurrentLap(lap + 1);
+						gameState.setCurrentLap(waypoint.getLap() + 1);
 						log.info("Marked RUM_DROPOFF waypoint as completed at index {}: {}", i, waypoint.getLocation());
 						pathPlanner.recalculateOptimalPathFromCurrentState("chat: rum delivered");
 						break;

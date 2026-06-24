@@ -188,6 +188,9 @@ public class ObjectHighlightRenderer
 		var completed = state.getCompletedWaypointIndices();
 		int nextWaypointIndex = state.getNextNavigableWaypointIndex();
 
+		List<WorldPoint> nextWaypointLocations = RouteWaypointFilter.findNextNavigableWaypoints(
+				route, nextWaypointIndex, completed, 2);
+
 		for (int i = 0; i < route.size(); i++)
 		{
 			var waypoint = route.get(i);
@@ -203,7 +206,7 @@ public class ObjectHighlightRenderer
 			var loc = waypoint.getLocation();
 
 			Color color;
-			if (i == nextWaypointIndex)
+			if (nextWaypointLocations.contains(loc))
 			{
 				color = cached.getObjectivesColorCurrentWaypoint();
 			}

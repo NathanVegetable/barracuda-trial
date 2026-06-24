@@ -3,6 +3,7 @@ package com.barracudatrial.game;
 import com.barracudatrial.game.route.Difficulty;
 import com.barracudatrial.game.route.RouteWaypoint;
 import com.barracudatrial.game.route.TrialConfig;
+import com.barracudatrial.game.route.TrialType;
 
 import lombok.Getter;
 import lombok.Setter;
@@ -301,6 +302,27 @@ public class State
 		}
 
 		return 0;
+	}
+
+	/**
+	 * The current segment ("lap") is derived from the next uncompleted waypoint in route order
+	 * rather than tracked as independent mutable state. The segment number only ever exists to
+	 * window the markers shown to the player, so anchoring it to the next objective keeps that
+	 * window correct even when objectives (e.g. toad pillars) are completed out of order.
+	 * @return Segment of the next navigable waypoint, or 1 if route is empty/null
+	 */
+	public int getCurrentLap()
+	{
+		if (currentTrial != null && currentTrial.getTrialType() == TrialType.JUBBLY_JIVE)
+		{
+			if (currentStaticRoute == null || currentStaticRoute.isEmpty())
+			{
+				return 1;
+			}
+			return currentStaticRoute.get(getNextNavigableWaypointIndex()).getLap();
+		}
+
+		return currentLap;
 	}
 
 	public static Difficulty getCurrentDifficulty(Client client)
