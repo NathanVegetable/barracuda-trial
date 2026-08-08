@@ -25,6 +25,8 @@ public class CachedConfig
 	@Getter private Color objectivesColorCurrentLap;
 	@Getter private Color objectivesColorLaterLaps;
 	@Getter private Color windCatcherColor;
+	@Getter private boolean showShipmentPickupRadius;
+	@Getter private boolean showToadPillarThrowRadius;
 
 	// Object highlighting settings
 	@Getter private boolean highlightSpeedBoosts;
@@ -62,6 +64,8 @@ public class CachedConfig
 		objectivesColorCurrentLap = config.objectivesColorCurrentLap();
 		objectivesColorLaterLaps = config.objectivesColorLaterLaps();
 		windCatcherColor = config.windCatcherColor();
+		showShipmentPickupRadius = config.showShipmentPickupRadius();
+		showToadPillarThrowRadius = config.showToadPillarThrowRadius();
 
 		highlightSpeedBoosts = config.highlightSpeedBoosts();
 		speedBoostColor = config.speedBoostColor();

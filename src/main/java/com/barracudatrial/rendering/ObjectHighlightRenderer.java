@@ -107,6 +107,11 @@ public class ObjectHighlightRenderer
 				renderColor = cachedConfig.getObjectivesColorCurrentLap();
 			}
 
+			if (cachedConfig.isShowShipmentPickupRadius())
+			{
+				renderWaypointToleranceArea(graphics, shipmentObject, RouteWaypoint.WaypointType.SHIPMENT, renderColor);
+			}
+
 			renderGameObjectWithHighlight(graphics, shipmentObject, renderColor, false);
 		}
 	}
@@ -284,6 +289,11 @@ public class ObjectHighlightRenderer
 						return;
 					}
 
+					if (cached.isShowToadPillarThrowRadius())
+					{
+						renderWaypointToleranceArea(graphics, pillar, RouteWaypoint.WaypointType.TOAD_PILLAR, color);
+					}
+
 					renderGameObjectWithHighlight(graphics, pillar, color, false);
 				});
 	}
@@ -380,6 +390,23 @@ public class ObjectHighlightRenderer
 		else
 		{
 			renderTileHighlightAtWorldPoint(graphics, rumLocationPoint, highlightColor);
+		}
+	}
+
+	private void renderWaypointToleranceArea(Graphics2D graphics, TileObject tileObject, RouteWaypoint.WaypointType waypointType, Color areaColor)
+	{
+		LocalPoint objectLocalPoint = tileObject.getLocalLocation();
+		if (objectLocalPoint == null)
+		{
+			return;
+		}
+
+		int tilesAcross = waypointType.getToleranceTiles() * 2 + 1;
+
+		Polygon areaPolygon = Perspective.getCanvasTileAreaPoly(client, objectLocalPoint, tilesAcross);
+		if (areaPolygon != null)
+		{
+			OverlayUtil.renderPolygon(graphics, areaPolygon, areaColor);
 		}
 	}
 

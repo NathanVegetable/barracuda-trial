@@ -186,6 +186,30 @@ public interface BarracudaTrialConfig extends Config
 	}
 
 	@ConfigItem(
+		keyName = "showShipmentPickupRadius",
+		name = "Show Crate Radius",
+		description = "Outline the area around each crate from which it can be collected",
+		section = objectivesSection,
+		position = 5
+	)
+	default boolean showShipmentPickupRadius()
+	{
+		return false;
+	}
+
+	@ConfigItem(
+		keyName = "showToadPillarThrowRadius",
+		name = "Show Toad Pillar Radius",
+		description = "Outline the area around each toad pillar from which the toad can be thrown",
+		section = objectivesSection,
+		position = 6
+	)
+	default boolean showToadPillarThrowRadius()
+	{
+		return false;
+	}
+
+	@ConfigItem(
 		keyName = "highlightSpeedBoosts",
 		name = "Highlight Speed Boosts",
 		description = "Highlight speed boosts",
