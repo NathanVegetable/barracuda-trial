@@ -28,7 +28,7 @@ public class State
 	public static final int CLOUD_ANIM_HARMLESS = -1;
 	public static final int CLOUD_ANIM_HARMLESS_ALT = 8879;
 
-	private static final int FETID_POOL_IMMUNITY_TICKS = 5;
+	private static final int FETID_POOL_IMMUNITY_TICKS = 7;
 	private static final int TILES_PER_BOOSTED_TICK = 2;
 
 	@Setter
