@@ -2,6 +2,13 @@ plugins {
 	id 'java'
 }
 
+java {
+	toolchain {
+		languageVersion = JavaLanguageVersion.of(11)
+		vendor = JvmVendorSpec.ADOPTIUM
+	}
+}
+
 repositories {
 	mavenLocal()
 	maven {
