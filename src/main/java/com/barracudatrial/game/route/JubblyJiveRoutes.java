@@ -182,12 +182,7 @@ public class JubblyJiveRoutes
 			new RouteWaypoint(WaypointType.PATHFINDING_HINT, new WorldPoint(2265, 2990, 0)),
 			new RouteWaypoint(WaypointType.PATHFINDING_HINT, new WorldPoint(2260, 2992, 0)),
 			new RouteWaypoint(WaypointType.PATHFINDING_HINT, new WorldPoint(2255, 2992, 0)),
-			new RouteWaypoint(1, WaypointType.TOAD_PICKUP, TOAD_PICKUP_LOCATION,
-				List.of(
-					new WorldPoint(2270, 2987, 0),
-					new WorldPoint(2290, 2980, 0)
-				)
-			), //baseid 59169 impostor 59170
+			new RouteWaypoint(1, WaypointType.TOAD_PICKUP, TOAD_PICKUP_LOCATION), //baseid 59169 impostor 59170
 			new RouteWaypoint(WaypointType.USE_WIND_CATCHER, new WorldPoint(2250, 3005, 0)),
 			new RouteWaypoint(WaypointType.USE_WIND_CATCHER, new WorldPoint(2253, 3008, 0)),
 			new RouteWaypoint(WaypointType.USE_WIND_CATCHER, new WorldPoint(2259, 3011, 0)),
@@ -276,16 +271,7 @@ public class JubblyJiveRoutes
 			new RouteWaypoint(2, WaypointType.PATHFINDING_HINT, new WorldPoint(2267, 2989, 0)),
 			new RouteWaypoint(2, WaypointType.PATHFINDING_HINT, new WorldPoint(2260, 2992, 0)),
 			new RouteWaypoint(2, WaypointType.PATHFINDING_HINT, new WorldPoint(2256, 2994, 0)),
-			new RouteWaypoint(2, WaypointType.SHIPMENT, new WorldPoint(2250, 2992, 0),
-				List.of(
-					new WorldPoint(2266, 2990, 0),
-					new WorldPoint(2279, 2984, 0),
-					new WorldPoint(2298, 2978, 0),
-					new WorldPoint(2316, 2974, 0),
-					new WorldPoint(2330, 2974, 0),
-					new WorldPoint(2351, 2983, 0)
-				)
-			),
+			new RouteWaypoint(2, WaypointType.SHIPMENT, new WorldPoint(2250, 2992, 0)),
 			new RouteWaypoint(2, WaypointType.PATHFINDING_HINT, new WorldPoint(2243, 2997, 0)),
 			new RouteWaypoint(2, WaypointType.TOAD_PICKUP, TOAD_PICKUP_LOCATION), //baseid 59169 impostor 59170
 			new RouteWaypoint(2, WaypointType.PATHFINDING_HINT, new WorldPoint(2239, 3004, 0)),
