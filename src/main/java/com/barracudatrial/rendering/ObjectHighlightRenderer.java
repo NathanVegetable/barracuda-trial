@@ -22,6 +22,8 @@ import java.util.List;
 @RequiredArgsConstructor
 public class ObjectHighlightRenderer
 {
+	private static final Color TOLERANCE_AREA_FILL_COLOR = new Color(0, 0, 0, 25);
+
 	private final Client client;
 	private final BarracudaTrialPlugin plugin;
 	private final ModelOutlineRenderer modelOutlineRenderer;
@@ -406,8 +408,13 @@ public class ObjectHighlightRenderer
 		Polygon areaPolygon = Perspective.getCanvasTileAreaPoly(client, objectLocalPoint, tilesAcross);
 		if (areaPolygon != null)
 		{
-			OverlayUtil.renderPolygon(graphics, areaPolygon, areaColor);
+			OverlayUtil.renderPolygon(graphics, areaPolygon, halveAlpha(areaColor), TOLERANCE_AREA_FILL_COLOR, new BasicStroke(2f));
 		}
+	}
+
+	private static Color halveAlpha(Color color)
+	{
+		return new Color(color.getRed(), color.getGreen(), color.getBlue(), color.getAlpha() / 2);
 	}
 
 	private void renderGameObjectWithHighlight(Graphics2D graphics, TileObject tileObject, Color highlightColor, boolean shouldHighlightTile)
