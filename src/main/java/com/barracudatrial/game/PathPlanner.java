@@ -228,53 +228,55 @@ public class PathPlanner
 			return uncompletedWaypoints;
 		}
 
-		int routeSize = route.size();
 		int nextNavIndex = state.getNextNavigableWaypointIndex();
 
-		// Scan backwards from nextNavigableWaypointIndex to find uncompleted helpers that precede it
-		List<RouteWaypoint> precedingHelpers = new ArrayList<>();
-		for (int i = 1; i < routeSize; i++)
-		{
-			int checkIndex = (nextNavIndex - i + routeSize) % routeSize;
-			RouteWaypoint waypoint = route.get(checkIndex);
-
-			if (state.isWaypointCompleted(checkIndex))
-			{
-				break;
-			}
-
-			if (waypoint.getType().isNonNavigableHelper())
-			{
-				precedingHelpers.add(0, waypoint);
-			}
-			else
-			{
-				break;
-			}
-		}
-
-		uncompletedWaypoints.addAll(precedingHelpers);
-
-		int navigableWaypointCount = 0;
-
-		// Scan forward from nextNavigableWaypointIndex
-		for (int offset = 0; offset < routeSize && navigableWaypointCount < count; offset++)
-		{
-			int checkIndex = (nextNavIndex + offset) % routeSize;
-			RouteWaypoint waypoint = route.get(checkIndex);
-
-			if (!state.isWaypointCompleted(checkIndex))
-			{
-				uncompletedWaypoints.add(waypoint);
-
-				if (waypoint.getType() == RouteWaypoint.WaypointType.SHIPMENT)
-				{
-					navigableWaypointCount++;
-				}
-			}
-		}
+		uncompletedWaypoints.addAll(collectUncompletedHelpersBefore(route, nextNavIndex));
+		uncompletedWaypoints.addAll(collectUncompletedWaypointsFrom(route, nextNavIndex, count));
 
 		return uncompletedWaypoints;
+	}
+
+	private List<RouteWaypoint> collectUncompletedHelpersBefore(List<RouteWaypoint> route, int index)
+	{
+		List<RouteWaypoint> precedingHelpers = new ArrayList<>();
+
+		for (int checkIndex = index - 1; checkIndex >= 0; checkIndex--)
+		{
+			RouteWaypoint waypoint = route.get(checkIndex);
+
+			if (state.isWaypointCompleted(checkIndex) || !waypoint.getType().isNonNavigableHelper())
+			{
+				break;
+			}
+
+			precedingHelpers.add(0, waypoint);
+		}
+
+		return precedingHelpers;
+	}
+
+	private List<RouteWaypoint> collectUncompletedWaypointsFrom(List<RouteWaypoint> route, int startIndex, int shipmentLimit)
+	{
+		List<RouteWaypoint> waypoints = new ArrayList<>();
+		int shipmentCount = 0;
+
+		for (int checkIndex = startIndex; checkIndex < route.size() && shipmentCount < shipmentLimit; checkIndex++)
+		{
+			if (state.isWaypointCompleted(checkIndex))
+			{
+				continue;
+			}
+
+			RouteWaypoint waypoint = route.get(checkIndex);
+			waypoints.add(waypoint);
+
+			if (waypoint.getType() == RouteWaypoint.WaypointType.SHIPMENT)
+			{
+				shipmentCount++;
+			}
+		}
+
+		return waypoints;
 	}
 
 	private static class BoatHeading

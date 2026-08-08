@@ -13,7 +13,7 @@ import java.util.Set;
 public class RouteWaypointFilter
 {
 	/**
-	 * Finds the next N navigable waypoints starting from a given index (wrapping around)
+	 * Finds the next N navigable waypoints starting from a given index, stopping at the end of the route
 	 * Returns a list of waypoint locations
 	 */
 	public static List<WorldPoint> findNextNavigableWaypoints(
@@ -30,9 +30,8 @@ public class RouteWaypointFilter
 		}
 
 		int foundCount = 0;
-		for (int offset = 0; offset < route.size() && foundCount < count; offset++)
+		for (int checkIndex = startIndex; checkIndex < route.size() && foundCount < count; checkIndex++)
 		{
-			int checkIndex = (startIndex + offset) % route.size();
 			RouteWaypoint waypoint = route.get(checkIndex);
 
 			if (!completedIndices.contains(checkIndex) && !waypoint.getType().isNonNavigableHelper())

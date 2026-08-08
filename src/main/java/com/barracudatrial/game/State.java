@@ -279,7 +279,7 @@ public class State
 
 	/**
 	 * Calculates the next uncompleted navigable waypoint index by scanning the route.
-	 * @return Index of next navigable waypoint, or 0 if route is empty/null
+	 * @return Index of next navigable waypoint, or the route size if none remain
 	 */
 	public int getNextNavigableWaypointIndex()
 	{
@@ -301,7 +301,7 @@ public class State
 			}
 		}
 
-		return 0;
+		return routeSize;
 	}
 
 	/**
@@ -319,7 +319,8 @@ public class State
 			{
 				return 1;
 			}
-			return currentStaticRoute.get(getNextNavigableWaypointIndex()).getLap();
+			int waypointIndex = Math.min(getNextNavigableWaypointIndex(), currentStaticRoute.size() - 1);
+			return currentStaticRoute.get(waypointIndex).getLap();
 		}
 
 		return currentLap;
