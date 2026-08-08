@@ -194,7 +194,7 @@ public interface BarracudaTrialConfig extends Config
 	)
 	default boolean showShipmentPickupRadius()
 	{
-		return false;
+		return true;
 	}
 
 	@ConfigItem(
