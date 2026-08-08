@@ -25,8 +25,7 @@ public class BarracudaTileCostCalculator
 	private final Set<WorldPoint> discouragedTiles;
 	private final Set<WorldPoint> nearDiscouragedTiles;
 	private final Set<WorldPoint> cloudDangerZones;
-	private final Set<WorldPoint> discouragedTilesOtherThanFetidPools;
-	private final Set<WorldPoint> fetidPoolImmuneTiles;
+	private final Set<WorldPoint> harmlessFetidPoolTiles;
 	private final Map<WorldPoint, List<WorldPoint>> boostGrabbableTiles;
 
 	public BarracudaTileCostCalculator(
@@ -65,25 +64,38 @@ public class BarracudaTileCostCalculator
 		addBoatExclusionZoneTiles(discouragedTiles, primaryObjectiveLocation, boatExclusionWidth, boatExclusionHeight);
 		addBoatExclusionZoneTiles(discouragedTiles, secondaryObjectiveLocation, boatExclusionWidth, boatExclusionHeight);
 
-		this.nearDiscouragedTiles = precomputeTileProximity(discouragedTiles, 1);
-
-		this.discouragedTilesOtherThanFetidPools = new HashSet<>(discouragedTiles);
+		Set<WorldPoint> discouragedTilesOtherThanFetidPools = new HashSet<>(discouragedTiles);
 		discouragedTilesOtherThanFetidPools.removeAll(knownFetidPoolLocations);
 
-		this.fetidPoolImmuneTiles = precomputeFetidPoolImmuneTiles(knownFetidPoolLocations, boatLocation, fetidPoolImmuneTileRange);
+		this.harmlessFetidPoolTiles = precomputeHarmlessFetidPoolTiles(
+			knownFetidPoolLocations, discouragedTilesOtherThanFetidPools, boatLocation, fetidPoolImmuneTileRange);
+
+		Set<WorldPoint> stillHarmfulTiles = new HashSet<>(discouragedTiles);
+		stillHarmfulTiles.removeAll(harmlessFetidPoolTiles);
+
+		this.nearDiscouragedTiles = precomputeTileProximity(stillHarmfulTiles, 1);
 	}
 
-	private static Set<WorldPoint> precomputeFetidPoolImmuneTiles(Set<WorldPoint> fetidPoolLocations, WorldPoint boatLocation, int immuneTileRange)
+	private static Set<WorldPoint> precomputeHarmlessFetidPoolTiles(
+		Set<WorldPoint> fetidPoolLocations,
+		Set<WorldPoint> discouragedTilesOtherThanFetidPools,
+		WorldPoint boatLocation,
+		int immuneTileRange)
 	{
 		if (boatLocation == null || immuneTileRange <= 0)
 		{
 			return Collections.emptySet();
 		}
 
-		Set<WorldPoint> immuneTiles = new HashSet<>();
+		Set<WorldPoint> harmlessTiles = new HashSet<>();
 
 		for (WorldPoint pool : fetidPoolLocations)
 		{
+			if (discouragedTilesOtherThanFetidPools.contains(pool))
+			{
+				continue;
+			}
+
 			int distance = Math.max(
 				Math.abs(pool.getX() - boatLocation.getX()),
 				Math.abs(pool.getY() - boatLocation.getY())
@@ -91,16 +103,11 @@ public class BarracudaTileCostCalculator
 
 			if (distance <= immuneTileRange)
 			{
-				immuneTiles.add(pool);
+				harmlessTiles.add(pool);
 			}
 		}
 
-		return immuneTiles;
-	}
-
-	private boolean isFetidPoolCurrentlyHarmless(WorldPoint tile)
-	{
-		return fetidPoolImmuneTiles.contains(tile) && !discouragedTilesOtherThanFetidPools.contains(tile);
+		return harmlessTiles;
 	}
 
 	public double getTileCost(WorldPoint from, WorldPoint to, int objectiveIndex)
@@ -144,7 +151,7 @@ public class BarracudaTileCostCalculator
 			speedBoostTilesRemaining--;
 		}
 
-		if (discouragedTiles.contains(to) && !isFetidPoolCurrentlyHarmless(to))
+		if (discouragedTiles.contains(to) && !harmlessFetidPoolTiles.contains(to))
 		{
 			cost += DISCOURAGED_TILE_COST;
 			// Lightning clouds cancel any active speed boost
