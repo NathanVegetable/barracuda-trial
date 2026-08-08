@@ -89,6 +89,8 @@ public class State
 
 	private final Set<WorldPoint> knownLandTiles = new HashSet<>();
 
+	private TrialType learnedTerrainTrialType = null;
+
 	// True if interacted with
 	private final Map<WorldPoint, Boolean> knownToadPillars = new HashMap<>();
 
@@ -142,7 +144,6 @@ public class State
 		lightningClouds.clear();
 		dangerousClouds.clear();
 		knownToadPillars.clear();
-		knownLandTiles.clear();
 		rumPickupLocation = null;
 		rumReturnLocation = null;
 		rumsCollected = 0;
@@ -160,6 +161,27 @@ public class State
 		exclusionZoneMaxY = 0;
 		currentStaticRoute = null;
 		completedWaypointIndices.clear();
+	}
+
+	public void discardLearnedTerrainIfTrialTypeChanged(TrialType trialType)
+	{
+		if (learnedTerrainTrialType == trialType)
+		{
+			return;
+		}
+
+		clearLearnedTerrain();
+		learnedTerrainTrialType = trialType;
+	}
+
+	public void clearLearnedTerrain()
+	{
+		knownLandTiles.clear();
+		knownRockLocations.clear();
+		knownSpeedBoostLocations.clear();
+		knownFetidPoolLocations.clear();
+		knownToadPillarLocations.clear();
+		learnedTerrainTrialType = null;
 	}
 
 	public void clearLightningClouds()

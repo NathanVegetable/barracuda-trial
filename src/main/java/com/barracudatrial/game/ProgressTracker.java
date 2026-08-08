@@ -61,6 +61,7 @@ public class ProgressTracker
 		if (!wasinTrialBefore && isInTrialNow)
 		{
 			log.info("Entered Barracuda Trial: {}", activeTrialType);
+			state.discardLearnedTerrainIfTrialTypeChanged(activeTrialType);
 			TrialConfig trialConfig = createTrialConfig(activeTrialType);
 			state.setCurrentTrial(trialConfig);
 			return true;

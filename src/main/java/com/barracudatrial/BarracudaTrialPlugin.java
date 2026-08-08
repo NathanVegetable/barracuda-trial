@@ -79,6 +79,7 @@ public class BarracudaTrialPlugin extends Plugin
 		log.info("Barracuda Trial plugin stopped!");
 		overlayManager.remove(overlay);
 		gameState.resetAllTemporaryState();
+		gameState.clearLearnedTerrain();
 		pathPlanner.shutdown();
 	}
 
