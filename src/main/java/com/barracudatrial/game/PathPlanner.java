@@ -5,6 +5,7 @@ import com.barracudatrial.game.route.*;
 import com.barracudatrial.pathfinding.AStarPathfinder;
 import com.barracudatrial.pathfinding.BarracudaTileCostCalculator;
 import com.barracudatrial.pathfinding.PathNode;
+import com.barracudatrial.pathfinding.PathObjective;
 import com.barracudatrial.pathfinding.PathResult;
 import com.barracudatrial.pathfinding.PathStabilizer;
 
@@ -30,6 +31,8 @@ public class PathPlanner
 	private final PathStabilizer pathStabilizer;
 	private final ExecutorService pathfindingExecutor;
 	private final AtomicBoolean pathfindingInProgress = new AtomicBoolean(false);
+	private static final int MAX_OBJECTIVES_PER_RUN = 4;
+
 	private final AtomicBoolean pendingRecalculation = new AtomicBoolean(false);
 	private volatile PathfindingRequest pendingRequest;
 	private Set<WorldPoint> activeCloudLocationSnapshot = new HashSet<>();
@@ -612,14 +615,14 @@ public class PathPlanner
 				continue;
 			}
 
-			WaypointHandlingResult result = handleSingleWaypoint(
+			WaypointHandlingResult result = handleSoftWaypointRun(
 				currentPosition,
-				waypoint,
+				waypoints,
+				i,
 				isPlayerCurrentlyOnPath,
 				initialBoatDx,
 				initialBoatDy,
-				pathfindingHints,
-				false
+				pathfindingHints
 			);
 
 			pathfindingHints.clear();
@@ -632,9 +635,100 @@ public class PathPlanner
 
 			currentPosition = result.newPosition;
 			isPlayerCurrentlyOnPath = false;
+
+			i = result.skipToIndex - 1;
 		}
 
 		return fullPath;
+	}
+
+	/**
+	 * Plans one continuous route that grazes each objective in a run, rather than stopping at each
+	 * in turn. Planning them together lets the search trade a wider approach to one objective for a
+	 * cheaper exit toward the next, which per-objective searches cannot see.
+	 */
+	private WaypointHandlingResult handleSoftWaypointRun(
+		WorldPoint currentPosition,
+		List<RouteWaypoint> waypoints,
+		int startIndex,
+		boolean isPlayerCurrentlyOnPath,
+		int initialBoatDx,
+		int initialBoatDy,
+		Set<WorldPoint> pendingHints)
+	{
+		SoftWaypointRun run = collectSoftWaypointRun(waypoints, startIndex, pendingHints);
+
+		if (run.objectives.isEmpty())
+		{
+			return new WaypointHandlingResult(new ArrayList<>(), currentPosition, false, startIndex + 1);
+		}
+
+		PathResult runResult = pathThroughObjectives(
+			currentPosition,
+			run.objectives,
+			isPlayerCurrentlyOnPath,
+			initialBoatDx,
+			initialBoatDy
+		);
+
+		List<WorldPoint> segmentPath = runResult.getPath();
+		WorldPoint newPosition = segmentPath.isEmpty() ? currentPosition : segmentPath.get(segmentPath.size() - 1);
+
+		return new WaypointHandlingResult(segmentPath, newPosition, !runResult.isReachedGoal(), run.indexAfterRun);
+	}
+
+	private static class SoftWaypointRun
+	{
+		final List<PathObjective> objectives;
+		final int indexAfterRun;
+
+		SoftWaypointRun(List<PathObjective> objectives, int indexAfterRun)
+		{
+			this.objectives = objectives;
+			this.indexAfterRun = indexAfterRun;
+		}
+	}
+
+	/**
+	 * Gathers the consecutive waypoints that can be reached in a single continuous route, stopping
+	 * before anything that forces a break in the path. Hints are attached to the objective they
+	 * precede so they only discount that objective's approach.
+	 */
+	private SoftWaypointRun collectSoftWaypointRun(List<RouteWaypoint> waypoints, int startIndex, Set<WorldPoint> pendingHints)
+	{
+		List<PathObjective> objectives = new ArrayList<>();
+		Set<WorldPoint> approachHints = new HashSet<>(pendingHints);
+		int indexAfterRun = startIndex;
+
+		for (int i = startIndex; i < waypoints.size() && objectives.size() < MAX_OBJECTIVES_PER_RUN; i++)
+		{
+			RouteWaypoint waypoint = waypoints.get(i);
+			var waypointType = waypoint.getType();
+
+			if (waypointType == RouteWaypoint.WaypointType.PATHFINDING_HINT)
+			{
+				approachHints.add(waypoint.getLocation());
+				continue;
+			}
+
+			if (breaksContinuousRoute(waypointType))
+			{
+				break;
+			}
+
+			objectives.add(new PathObjective(waypoint.getLocation(), waypointType.getToleranceTiles(), approachHints));
+			approachHints = new HashSet<>();
+			indexAfterRun = i + 1;
+		}
+
+		return new SoftWaypointRun(objectives, indexAfterRun);
+	}
+
+	private boolean breaksContinuousRoute(RouteWaypoint.WaypointType waypointType)
+	{
+		return waypointType == RouteWaypoint.WaypointType.PORTAL_ENTER
+			|| waypointType == RouteWaypoint.WaypointType.PORTAL_EXIT
+			|| waypointType == RouteWaypoint.WaypointType.USE_WIND_CATCHER;
 	}
 
 	private static class WindCatcherPathResult
@@ -767,11 +861,29 @@ public class PathPlanner
 	 */
 	private PathResult pathToSingleTarget(WorldPoint start, WorldPoint target, int goalTolerance, boolean isPlayerCurrentlyOnPath, int initialBoatDx, int initialBoatDy, Set<WorldPoint> pathfindingHints)
 	{
-		log.debug("pathToSingleTarget: {} -> {} (distance: {}, tolerance: {})", start, target, start.distanceTo(target), goalTolerance);
+		return pathThroughObjectives(
+			start,
+			List.of(new PathObjective(target, goalTolerance, pathfindingHints)),
+			isPlayerCurrentlyOnPath,
+			initialBoatDx,
+			initialBoatDy
+		);
+	}
 
-		var tileCostCalculator = getBarracudaTileCostCalculator(pathfindingHints);
+	/**
+	 * Paths from current position through every objective in order. Each objective is a constraint
+	 * the path must pass within tolerance of, not a point the path stops at, so a run of objectives
+	 * is planned as one continuous route that grazes each one rather than a stop at each in turn.
+	 */
+	private PathResult pathThroughObjectives(WorldPoint start, List<PathObjective> objectives, boolean isPlayerCurrentlyOnPath, int initialBoatDx, int initialBoatDy)
+	{
+		WorldPoint finalTarget = objectives.get(objectives.size() - 1).getLocation();
 
-        int tileDistance = start.distanceTo(target);
+		log.debug("pathThroughObjectives: {} -> {} objectives ending at {} (distance: {})", start, objectives.size(), finalTarget, start.distanceTo(finalTarget));
+
+		var tileCostCalculator = getBarracudaTileCostCalculator(objectives);
+
+		int tileDistance = start.distanceTo(finalTarget);
 
 		var pathfindingEffort = cachedConfig.getPathfindingEffort();
 		int maxSearchDistance = pathfindingEffort.getMaxSearchNodes();
@@ -780,23 +892,23 @@ public class PathPlanner
 		int maximumAStarSearchDistance = Math.max(35, Math.min(maxSearchDistance, tileDistance * 8));
 
 		long segmentStart = System.currentTimeMillis();
-		PathResult pathResult = pathStabilizer.findPath(tileCostCalculator, cachedConfig.getRouteOptimization(), start, target, maximumAStarSearchDistance, minSpatialDistance, initialBoatDx, initialBoatDy, goalTolerance, isPlayerCurrentlyOnPath);
+		PathResult pathResult = pathStabilizer.findPath(tileCostCalculator, cachedConfig.getRouteOptimization(), start, objectives, maximumAStarSearchDistance, minSpatialDistance, initialBoatDx, initialBoatDy, isPlayerCurrentlyOnPath);
 		long segmentElapsed = System.currentTimeMillis() - segmentStart;
 
-		log.debug("pathToSingleTarget result: {} tiles in {}ms, goalReached={}", pathResult.getPath().size(), segmentElapsed, pathResult.isReachedGoal());
+		log.debug("pathThroughObjectives result: {} tiles in {}ms, goalReached={}", pathResult.getPath().size(), segmentElapsed, pathResult.isReachedGoal());
 
 		if (pathResult.getPath().isEmpty())
 		{
 			List<PathNode> fallbackPath = new ArrayList<>();
 			fallbackPath.add(new PathNode(start, 0));
-			fallbackPath.add(new PathNode(target, Double.POSITIVE_INFINITY));
+			fallbackPath.add(new PathNode(finalTarget, Double.POSITIVE_INFINITY));
 			return new PathResult(fallbackPath, Double.POSITIVE_INFINITY, false);
 		}
 
 		return pathResult;
 	}
 
-	private BarracudaTileCostCalculator getBarracudaTileCostCalculator(Set<WorldPoint> pathfindingHints)
+	private BarracudaTileCostCalculator getBarracudaTileCostCalculator(List<PathObjective> objectives)
 	{
 
 		var trial = state.getCurrentTrial();
@@ -854,7 +966,7 @@ public class PathPlanner
 			cachedConfig.getRouteOptimization(),
 			boatExclusionWidth,
 			boatExclusionHeight,
-			pathfindingHints,
+			objectives,
 			state.getKnownLandTiles()
 		);
 	}

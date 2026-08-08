@@ -14,7 +14,7 @@ public class BarracudaTileCostCalculator
 	private static final int NEARBY_TILE_COST = 3;
 
 	private final RouteOptimization routeOptimization;
-	private final Set<WorldPoint> pathfindingHintTiles;
+	private final List<PathObjective> objectives;
 
 	private int speedBoostTilesRemaining = 0;
 	private WorldPoint lastTile = null;
@@ -41,11 +41,11 @@ public class BarracudaTileCostCalculator
 		RouteOptimization routeOptimization,
 		int boatExclusionWidth,
 		int boatExclusionHeight,
-		Set<WorldPoint> pathfindingHintTiles,
+		List<PathObjective> objectives,
 		Set<WorldPoint> knownLandTiles)
 	{
 		this.routeOptimization = routeOptimization;
-		this.pathfindingHintTiles = pathfindingHintTiles != null ? pathfindingHintTiles : new HashSet<>();
+		this.objectives = objectives != null ? objectives : List.of();
 		this.boostGrabbableTiles = knownSpeedBoostLocations;
 
 		this.cloudDangerZones = precomputeCloudDangerZones(cloudLocations);
@@ -63,9 +63,9 @@ public class BarracudaTileCostCalculator
 		this.nearDiscouragedTiles = precomputeTileProximity(discouragedTiles, 1);
 	}
 
-	public double getTileCost(WorldPoint from, WorldPoint to)
+	public double getTileCost(WorldPoint from, WorldPoint to, int objectiveIndex)
 	{
-		boolean isHintTile = pathfindingHintTiles.contains(to);
+		boolean isHintTile = isApproachHintFor(to, objectiveIndex);
 
 		if (lastTile == null || !lastTile.equals(from))
 		{
@@ -119,6 +119,20 @@ public class BarracudaTileCostCalculator
 		}
 
 		return cost;
+	}
+
+	/**
+	 * Hints only discount the leg that approaches the objective they were written for, so a hint
+	 * placed beyond an objective cannot pull the path toward it before that objective is cleared.
+	 */
+	private boolean isApproachHintFor(WorldPoint tile, int objectiveIndex)
+	{
+		if (objectiveIndex < 0 || objectiveIndex >= objectives.size())
+		{
+			return false;
+		}
+
+		return objectives.get(objectiveIndex).getApproachHints().contains(tile);
 	}
 
 	private WorldPoint getUnconsumedBoost(WorldPoint tile)
