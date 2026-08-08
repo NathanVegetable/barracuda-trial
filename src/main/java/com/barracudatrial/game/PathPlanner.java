@@ -850,7 +850,7 @@ public class PathPlanner
 		PathResult pathToFirst = pathToSingleTarget(
 			start,
 			firstWindCatcherTarget,
-			1,
+			firstWindCatcher.getType().getToleranceTiles(),
 			isPlayerCurrentlyOnPath,
 			initialBoatDx,
 			initialBoatDy,
@@ -878,6 +878,8 @@ public class PathPlanner
 		{
 			segmentPath.add(windCatcherSequence.get(i).getLocation());
 		}
+
+		totalCost += cachedConfig.getRouteOptimization().getSpeedBoostCost() * windCatcherSequence.size();
 
 		// Step 3: Pathfind FROM last wind catcher TO next normal waypoint (if exists)
 		if (nextNormalWaypoint != null)

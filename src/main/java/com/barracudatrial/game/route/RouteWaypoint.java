@@ -36,7 +36,7 @@ public class RouteWaypoint
 		PORTAL_ENTER(1, 150),
 		PORTAL_EXIT(0, 150),
 		PATHFINDING_HINT(0, 50),
-		USE_WIND_CATCHER(0, 150);
+		USE_WIND_CATCHER(2, 150);
 
 		private final int toleranceTiles;
 		private final int alpha;
