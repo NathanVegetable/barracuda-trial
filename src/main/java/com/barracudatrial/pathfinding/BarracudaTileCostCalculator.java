@@ -3,6 +3,7 @@ package com.barracudatrial.pathfinding;
 import com.barracudatrial.RouteOptimization;
 import net.runelite.api.coords.WorldPoint;
 
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -24,6 +25,8 @@ public class BarracudaTileCostCalculator
 	private final Set<WorldPoint> discouragedTiles;
 	private final Set<WorldPoint> nearDiscouragedTiles;
 	private final Set<WorldPoint> cloudDangerZones;
+	private final Set<WorldPoint> discouragedTilesOtherThanFetidPools;
+	private final Set<WorldPoint> fetidPoolImmuneTiles;
 	private final Map<WorldPoint, List<WorldPoint>> boostGrabbableTiles;
 
 	public BarracudaTileCostCalculator(
@@ -42,7 +45,9 @@ public class BarracudaTileCostCalculator
 		int boatExclusionWidth,
 		int boatExclusionHeight,
 		List<PathObjective> objectives,
-		Set<WorldPoint> knownLandTiles)
+		Set<WorldPoint> knownLandTiles,
+		WorldPoint boatLocation,
+		int fetidPoolImmuneTileRange)
 	{
 		this.routeOptimization = routeOptimization;
 		this.objectives = objectives != null ? objectives : List.of();
@@ -61,6 +66,41 @@ public class BarracudaTileCostCalculator
 		addBoatExclusionZoneTiles(discouragedTiles, secondaryObjectiveLocation, boatExclusionWidth, boatExclusionHeight);
 
 		this.nearDiscouragedTiles = precomputeTileProximity(discouragedTiles, 1);
+
+		this.discouragedTilesOtherThanFetidPools = new HashSet<>(discouragedTiles);
+		discouragedTilesOtherThanFetidPools.removeAll(knownFetidPoolLocations);
+
+		this.fetidPoolImmuneTiles = precomputeFetidPoolImmuneTiles(knownFetidPoolLocations, boatLocation, fetidPoolImmuneTileRange);
+	}
+
+	private static Set<WorldPoint> precomputeFetidPoolImmuneTiles(Set<WorldPoint> fetidPoolLocations, WorldPoint boatLocation, int immuneTileRange)
+	{
+		if (boatLocation == null || immuneTileRange <= 0)
+		{
+			return Collections.emptySet();
+		}
+
+		Set<WorldPoint> immuneTiles = new HashSet<>();
+
+		for (WorldPoint pool : fetidPoolLocations)
+		{
+			int distance = Math.max(
+				Math.abs(pool.getX() - boatLocation.getX()),
+				Math.abs(pool.getY() - boatLocation.getY())
+			);
+
+			if (distance <= immuneTileRange)
+			{
+				immuneTiles.add(pool);
+			}
+		}
+
+		return immuneTiles;
+	}
+
+	private boolean isFetidPoolCurrentlyHarmless(WorldPoint tile)
+	{
+		return fetidPoolImmuneTiles.contains(tile) && !discouragedTilesOtherThanFetidPools.contains(tile);
 	}
 
 	public double getTileCost(WorldPoint from, WorldPoint to, int objectiveIndex)
@@ -104,7 +144,7 @@ public class BarracudaTileCostCalculator
 			speedBoostTilesRemaining--;
 		}
 
-		if (discouragedTiles.contains(to))
+		if (discouragedTiles.contains(to) && !isFetidPoolCurrentlyHarmless(to))
 		{
 			cost += DISCOURAGED_TILE_COST;
 			// Lightning clouds cancel any active speed boost
@@ -121,10 +161,6 @@ public class BarracudaTileCostCalculator
 		return cost;
 	}
 
-	/**
-	 * Hints only discount the leg that approaches the objective they were written for, so a hint
-	 * placed beyond an objective cannot pull the path toward it before that objective is cleared.
-	 */
 	private boolean isApproachHintFor(WorldPoint tile, int objectiveIndex)
 	{
 		if (objectiveIndex < 0 || objectiveIndex >= objectives.size())

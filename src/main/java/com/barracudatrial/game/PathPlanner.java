@@ -32,6 +32,7 @@ public class PathPlanner
 	private final ExecutorService pathfindingExecutor;
 	private final AtomicBoolean pathfindingInProgress = new AtomicBoolean(false);
 	private static final int MAX_OBJECTIVES_PER_RUN = 4;
+	private static final double WIND_CATCHER_FLIGHT_CORRIDOR_WIDTH = 5.0;
 
 	private final AtomicBoolean pendingRecalculation = new AtomicBoolean(false);
 	private volatile PathfindingRequest pendingRequest;
@@ -416,9 +417,10 @@ public class PathPlanner
 		int initialBoatDy,
 		Set<WorldPoint> pathfindingHints)
 	{
-		List<RouteWaypoint> windCatcherSequence = collectConsecutiveWindCatchers(waypoints, currentIndex);
+		List<RouteWaypoint> fullWindCatcherSequence = collectConsecutiveWindCatchers(waypoints, currentIndex);
+		List<RouteWaypoint> windCatcherSequence = dropWindCatchersAlreadyPassed(fullWindCatcherSequence, currentPosition);
 
-		int indexAfterWindCatchers = currentIndex + windCatcherSequence.size();
+		int indexAfterWindCatchers = currentIndex + fullWindCatcherSequence.size();
 		RouteWaypoint destinationAfterWindCatchers = findDestinationAfterWindCatchers(waypoints, indexAfterWindCatchers);
 		Set<WorldPoint> hintsAfterWindCatchers = collectPathfindingHints(waypoints, indexAfterWindCatchers);
 
@@ -458,6 +460,87 @@ public class PathPlanner
 		WorldPoint finalPosition = winningPath.isEmpty() ? currentPosition : winningPath.get(winningPath.size() - 1);
 
 		return new WaypointHandlingResult(winningPath, finalPosition, false, nextWaypointIndex);
+	}
+
+	private List<RouteWaypoint> dropWindCatchersAlreadyPassed(List<RouteWaypoint> windCatcherSequence, WorldPoint currentPosition)
+	{
+		if (windCatcherSequence.size() < 2)
+		{
+			return windCatcherSequence;
+		}
+
+		double[] arcLengthAtCatcher = cumulativeArcLengths(windCatcherSequence);
+
+		double nearestOffsetFromChain = Double.POSITIVE_INFINITY;
+		double arcLengthTravelled = 0;
+
+		for (int i = 0; i < windCatcherSequence.size() - 1; i++)
+		{
+			WorldPoint from = windCatcherSequence.get(i).getLocation();
+			WorldPoint to = windCatcherSequence.get(i + 1).getLocation();
+
+			double fractionAlongSegment = fractionAlongSegment(currentPosition, from, to);
+			double offsetFromChain = offsetFromSegment(currentPosition, from, to, fractionAlongSegment);
+
+			if (offsetFromChain < nearestOffsetFromChain)
+			{
+				nearestOffsetFromChain = offsetFromChain;
+				arcLengthTravelled = arcLengthAtCatcher[i] + fractionAlongSegment * (arcLengthAtCatcher[i + 1] - arcLengthAtCatcher[i]);
+			}
+		}
+
+		if (nearestOffsetFromChain > WIND_CATCHER_FLIGHT_CORRIDOR_WIDTH)
+		{
+			return windCatcherSequence;
+		}
+
+		for (int i = 0; i < windCatcherSequence.size(); i++)
+		{
+			if (arcLengthAtCatcher[i] >= arcLengthTravelled)
+			{
+				return windCatcherSequence.subList(i, windCatcherSequence.size());
+			}
+		}
+
+		return windCatcherSequence.subList(windCatcherSequence.size() - 1, windCatcherSequence.size());
+	}
+
+	private double[] cumulativeArcLengths(List<RouteWaypoint> windCatcherSequence)
+	{
+		double[] arcLengths = new double[windCatcherSequence.size()];
+
+		for (int i = 1; i < windCatcherSequence.size(); i++)
+		{
+			WorldPoint previous = windCatcherSequence.get(i - 1).getLocation();
+			WorldPoint current = windCatcherSequence.get(i).getLocation();
+			arcLengths[i] = arcLengths[i - 1] + Math.hypot(current.getX() - previous.getX(), current.getY() - previous.getY());
+		}
+
+		return arcLengths;
+	}
+
+	private double fractionAlongSegment(WorldPoint position, WorldPoint from, WorldPoint to)
+	{
+		double segmentDx = to.getX() - from.getX();
+		double segmentDy = to.getY() - from.getY();
+		double segmentLengthSquared = segmentDx * segmentDx + segmentDy * segmentDy;
+
+		if (segmentLengthSquared == 0)
+		{
+			return 0;
+		}
+
+		double fraction = ((position.getX() - from.getX()) * segmentDx + (position.getY() - from.getY()) * segmentDy) / segmentLengthSquared;
+
+		return Math.max(0, Math.min(1, fraction));
+	}
+
+	private double offsetFromSegment(WorldPoint position, WorldPoint from, WorldPoint to, double fractionAlongSegment)
+	{
+		double closestX = from.getX() + fractionAlongSegment * (to.getX() - from.getX());
+		double closestY = from.getY() + fractionAlongSegment * (to.getY() - from.getY());
+
+		return Math.hypot(position.getX() - closestX, position.getY() - closestY);
 	}
 
 	private List<RouteWaypoint> collectConsecutiveWindCatchers(List<RouteWaypoint> waypoints, int startIndex)
@@ -642,11 +725,6 @@ public class PathPlanner
 		return fullPath;
 	}
 
-	/**
-	 * Plans one continuous route that grazes each objective in a run, rather than stopping at each
-	 * in turn. Planning them together lets the search trade a wider approach to one objective for a
-	 * cheaper exit toward the next, which per-objective searches cannot see.
-	 */
 	private WaypointHandlingResult handleSoftWaypointRun(
 		WorldPoint currentPosition,
 		List<RouteWaypoint> waypoints,
@@ -689,11 +767,6 @@ public class PathPlanner
 		}
 	}
 
-	/**
-	 * Gathers the consecutive waypoints that can be reached in a single continuous route, stopping
-	 * before anything that forces a break in the path. Hints are attached to the objective they
-	 * precede so they only discount that objective's approach.
-	 */
 	private SoftWaypointRun collectSoftWaypointRun(List<RouteWaypoint> waypoints, int startIndex, Set<WorldPoint> pendingHints)
 	{
 		List<PathObjective> objectives = new ArrayList<>();
@@ -870,11 +943,6 @@ public class PathPlanner
 		);
 	}
 
-	/**
-	 * Paths from current position through every objective in order. Each objective is a constraint
-	 * the path must pass within tolerance of, not a point the path stops at, so a run of objectives
-	 * is planned as one continuous route that grazes each one rather than a stop at each in turn.
-	 */
 	private PathResult pathThroughObjectives(WorldPoint start, List<PathObjective> objectives, boolean isPlayerCurrentlyOnPath, int initialBoatDx, int initialBoatDy)
 	{
 		WorldPoint finalTarget = objectives.get(objectives.size() - 1).getLocation();
@@ -967,7 +1035,9 @@ public class PathPlanner
 			boatExclusionWidth,
 			boatExclusionHeight,
 			objectives,
-			state.getKnownLandTiles()
+			state.getKnownLandTiles(),
+			state.getFrontBoatTileEstimatedActual(),
+			state.getFetidPoolImmuneTileRange()
 		);
 	}
 

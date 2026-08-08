@@ -10,10 +10,6 @@ import java.util.*;
 /**
  * A* pathfinding algorithm for finding optimal routes between points
  * considering variable tile costs (speed boosts, clouds, rocks, etc.)
- *
- * Objectives are ordered constraints rather than stopping points: the search advances
- * through them as the path passes within each one's tolerance, and only completes once
- * every objective has been cleared.
  */
 @Slf4j
 public class AStarPathfinder
@@ -149,10 +145,6 @@ public class AStarPathfinder
 			return node.objectiveIndex >= objectives.size();
 		}
 
-		/**
-		 * Objectives are ordered, so passing within one's tolerance advances to the next.
-		 * Overlapping tolerances can clear several from a single tile.
-		 */
 		private int advanceObjectiveIndex(WorldPoint position, int objectiveIndex)
 		{
 			int index = objectiveIndex;

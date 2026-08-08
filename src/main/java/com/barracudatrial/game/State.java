@@ -28,6 +28,9 @@ public class State
 	public static final int CLOUD_ANIM_HARMLESS = -1;
 	public static final int CLOUD_ANIM_HARMLESS_ALT = 8879;
 
+	private static final int FETID_POOL_IMMUNITY_TICKS = 5;
+	private static final int TILES_PER_BOOSTED_TICK = 2;
+
 	@Setter
 	private boolean inTrial = false;
 
@@ -92,6 +95,8 @@ public class State
 	@Setter
 	private int ticksSinceLastPathRecalc = 0;
 
+	private int fetidPoolImmunityTicksRemaining = 0;
+
 	@Setter
 	private int exclusionZoneMinX = 0;
 
@@ -108,6 +113,24 @@ public class State
 	private List<RouteWaypoint> currentStaticRoute = null;
 
 	private final Set<Integer> completedWaypointIndices = new HashSet<>();
+
+	public void startFetidPoolImmunity()
+	{
+		fetidPoolImmunityTicksRemaining = FETID_POOL_IMMUNITY_TICKS;
+	}
+
+	public void decayFetidPoolImmunity()
+	{
+		if (fetidPoolImmunityTicksRemaining > 0)
+		{
+			fetidPoolImmunityTicksRemaining--;
+		}
+	}
+
+	public int getFetidPoolImmuneTileRange()
+	{
+		return fetidPoolImmunityTicksRemaining * TILES_PER_BOOSTED_TICK;
+	}
 
 	/**
 	 * Clears all temporary state (called when leaving trial area)
@@ -130,6 +153,7 @@ public class State
 		currentLap = 1;
 		path = new ArrayList<>();
 		ticksSinceLastPathRecalc = 0;
+		fetidPoolImmunityTicksRemaining = 0;
 		exclusionZoneMinX = 0;
 		exclusionZoneMaxX = 0;
 		exclusionZoneMinY = 0;

@@ -50,6 +50,8 @@ public class BarracudaTrialPlugin extends Plugin
 	@Getter
 	private CachedConfig cachedConfig;
 
+	private static final String CHAT_WIND_MOTE_RELEASED = "You release the wind mote for a burst of speed!";
+
 	private ObjectTracker objectTracker;
 	private LocationManager locationManager;
 	private ProgressTracker progressTracker;
@@ -92,6 +94,8 @@ public class BarracudaTrialPlugin extends Plugin
 		{
 			return;
 		}
+
+		gameState.decayFetidPoolImmunity();
 
 		var trial = gameState.getCurrentTrial();
 		if (trial != null && trial.getTrialType() == TrialType.TEMPOR_TANTRUM
@@ -167,7 +171,17 @@ public class BarracudaTrialPlugin extends Plugin
 
 		String chatMessage = event.getMessage();
 
-		if (chatMessage.contains("You collect the rum"))
+		if (chatMessage.contains(CHAT_WIND_MOTE_RELEASED))
+		{
+			log.debug("Wind mote released! Message: {}", chatMessage);
+			gameState.startFetidPoolImmunity();
+
+			if (cachedConfig.isShowOptimalPath())
+			{
+				pathPlanner.recalculateOptimalPathFromCurrentState("chat: wind mote released");
+			}
+		}
+		else if (chatMessage.contains("You collect the rum"))
 		{
 			log.debug("Rum collected! Message: {}", chatMessage);
 			gameState.setHasThrowableObjective(true);
