@@ -92,7 +92,7 @@ public interface BarracudaTrialConfig extends Config
 	)
 	default PathfindingEffort pathfindingEffort()
 	{
-		return PathfindingEffort.MEDIUM;
+		return PathfindingEffort.HIGH;
 	}
 
 	@ConfigItem(
