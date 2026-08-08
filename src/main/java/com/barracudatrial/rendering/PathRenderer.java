@@ -179,34 +179,40 @@ public class PathRenderer
 
 		List<Point> canvasPoints = new ArrayList<>();
 		List<Boolean> isWindCatcherSegment = new ArrayList<>();
+		List<Boolean> resumesAfterOffSceneGap = new ArrayList<>();
+
+		boolean previousWaypointWasOffScene = false;
 
 		for (int wpIdx = 0; wpIdx < waypoints.size(); wpIdx++)
 		{
 			WorldPoint wp = waypoints.get(wpIdx);
 			LocalPoint lp = RenderingUtils.localPointFromWorldIncludingExtended(topLevelWorldView, wp);
-			if (lp != null)
+			Point cp = lp != null ? Perspective.localToCanvas(client, lp, wp.getPlane(), 0) : null;
+
+			if (cp == null)
 			{
-				Point cp = Perspective.localToCanvas(client, lp, wp.getPlane(), 0);
-				if (cp != null)
+				previousWaypointWasOffScene = true;
+				continue;
+			}
+
+			canvasPoints.add(cp);
+			resumesAfterOffSceneGap.add(previousWaypointWasOffScene);
+			previousWaypointWasOffScene = false;
+
+			boolean isWindCatcher = false;
+			for (WindCatcherGroup group : windCatcherGroups)
+			{
+				int firstIdx = waypoints.indexOf(group.firstLocation);
+				int lastIdx = waypoints.lastIndexOf(group.lastLocation);
+
+				if (firstIdx != -1 && lastIdx != -1 && wpIdx >= firstIdx && wpIdx <= lastIdx)
 				{
-					canvasPoints.add(cp);
-
-					boolean isWindCatcher = false;
-					for (WindCatcherGroup group : windCatcherGroups)
-					{
-						int firstIdx = waypoints.indexOf(group.firstLocation);
-						int lastIdx = waypoints.lastIndexOf(group.lastLocation);
-
-						if (firstIdx != -1 && lastIdx != -1 && wpIdx >= firstIdx && wpIdx <= lastIdx)
-						{
-							isWindCatcher = true;
-							break;
-						}
-					}
-
-					isWindCatcherSegment.add(isWindCatcher);
+					isWindCatcher = true;
+					break;
 				}
 			}
+
+			isWindCatcherSegment.add(isWindCatcher);
 		}
 
 		if (canvasPoints.isEmpty())
@@ -216,10 +222,11 @@ public class PathRenderer
 
 		graphics.setStroke(new BasicStroke(cachedConfig.getPathWidth(), BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
 
-		drawPathSegments(graphics, canvasPoints, isWindCatcherSegment, startCanvas, cachedConfig);
+		drawPathSegments(graphics, canvasPoints, isWindCatcherSegment, resumesAfterOffSceneGap, startCanvas, cachedConfig);
 	}
 
-	private void drawPathSegments(Graphics2D graphics, List<Point> canvasPoints, List<Boolean> isWindCatcherSegment, Point startCanvas, CachedConfig cachedConfig)
+	private void drawPathSegments(Graphics2D graphics, List<Point> canvasPoints, List<Boolean> isWindCatcherSegment,
+	                              List<Boolean> resumesAfterOffSceneGap, Point startCanvas, CachedConfig cachedConfig)
 	{
 		Color normalColor = cachedConfig.getPathColor();
 		Color windCatcherColor = cachedConfig.getWindCatcherColor();
@@ -230,17 +237,18 @@ public class PathRenderer
 		for (int i = 0; i <= canvasPoints.size(); i++)
 		{
 			boolean isLastPoint = (i == canvasPoints.size());
+			boolean gapPrecedesPoint = !isLastPoint && i > 0 && resumesAfterOffSceneGap.get(i);
 			boolean colorChanged = !isLastPoint && i > 0 &&
 				(!isWindCatcherSegment.get(i).equals(isWindCatcherSegment.get(i - 1)));
 
-			if (colorChanged || isLastPoint)
+			if (gapPrecedesPoint || colorChanged || isLastPoint)
 			{
 				int segmentEnd = i - 1;
 				drawSinglePathSegment(graphics, canvasPoints, segmentStart, segmentEnd, startCanvas, currentColor);
 
 				if (!isLastPoint)
 				{
-					segmentStart = i - 1;
+					segmentStart = gapPrecedesPoint ? i : i - 1;
 					currentColor = isWindCatcherSegment.get(i) ? windCatcherColor : normalColor;
 				}
 			}
@@ -279,10 +287,10 @@ public class PathRenderer
 		{
 			for (int i = startIdx; i < endIdx; i++)
 			{
-				Point p0 = i > 0 ? canvasPoints.get(i - 1) : canvasPoints.get(i);
 				Point p1 = canvasPoints.get(i);
 				Point p2 = canvasPoints.get(i + 1);
-				Point p3 = (i + 2 < canvasPoints.size()) ? canvasPoints.get(i + 2) : p2;
+				Point p0 = i > startIdx ? canvasPoints.get(i - 1) : p1;
+				Point p3 = (i + 2 <= endIdx) ? canvasPoints.get(i + 2) : p2;
 
 				double tension = 0.1;
 
