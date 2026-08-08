@@ -7,13 +7,11 @@ import com.barracudatrial.pathfinding.BarracudaTileCostCalculator;
 import com.barracudatrial.pathfinding.PathNode;
 import com.barracudatrial.pathfinding.PathResult;
 import com.barracudatrial.pathfinding.PathStabilizer;
-import com.barracudatrial.rendering.RenderingUtils;
 
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.Client;
 import net.runelite.api.NPC;
 import net.runelite.api.WorldView;
-import net.runelite.api.coords.LocalPoint;
 import net.runelite.api.coords.WorldPoint;
 import net.runelite.client.callback.ClientThread;
 
@@ -21,7 +19,6 @@ import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.function.Predicate;
 
 @Slf4j
 public class PathPlanner
@@ -385,7 +382,7 @@ public class PathPlanner
 		Set<WorldPoint> pathfindingHints,
 		boolean stopAfterPathing)
 	{
-		WorldPoint pathfindingTarget = getInSceneTarget(currentPosition, waypoint);
+		WorldPoint pathfindingTarget = waypoint.getLocation();
 		PathResult segmentResult = pathToSingleTarget(
 			currentPosition,
 			pathfindingTarget,
@@ -442,7 +439,7 @@ public class PathPlanner
 		PathResult pathSkippingWindCatchers = null;
 		if (destinationAfterWindCatchers != null)
 		{
-			WorldPoint directTarget = getInSceneTarget(currentPosition, destinationAfterWindCatchers);
+			WorldPoint directTarget = destinationAfterWindCatchers.getLocation();
 			pathSkippingWindCatchers = pathToSingleTarget(
 				currentPosition,
 				directTarget,
@@ -681,7 +678,7 @@ public class PathPlanner
 
 		// Step 1: Pathfind TO the first wind catcher
 		RouteWaypoint firstWindCatcher = windCatcherSequence.get(0);
-		WorldPoint firstWindCatcherTarget = getInSceneTarget(start, firstWindCatcher);
+		WorldPoint firstWindCatcherTarget = firstWindCatcher.getLocation();
 
 		PathResult pathToFirst = pathToSingleTarget(
 			start,
@@ -719,7 +716,7 @@ public class PathPlanner
 		if (nextNormalWaypoint != null)
 		{
 			WorldPoint lastWindCatcherLocation = windCatcherSequence.get(windCatcherSequence.size() - 1).getLocation();
-			WorldPoint nextTarget = getInSceneTarget(lastWindCatcherLocation, nextNormalWaypoint);
+			WorldPoint nextTarget = nextNormalWaypoint.getLocation();
 
 			// Derive heading from the last wind catcher transition
 			int nextBoatDx = 0;
@@ -860,108 +857,6 @@ public class PathPlanner
 			pathfindingHints,
 			state.getKnownLandTiles()
 		);
-	}
-
-	private WorldPoint getInSceneTarget(WorldPoint start, RouteWaypoint target)
-	{
-		WorldView worldView = client.getTopLevelWorldView();
-		if (worldView == null)
-		{
-			return target.getLocation();
-		}
-
-		int worldPlane = worldView.getPlane();
-		WorldPoint targetLocation = target.getLocation();
-
-		List<WorldPoint> candidates = new ArrayList<>();
-		candidates.add(targetLocation);
-
-		var fallbackLocations = target.getFallbackLocations();
-		if (fallbackLocations != null)
-		{
-			for (WorldPoint fallback : fallbackLocations)
-			{
-				if (!fallback.equals(targetLocation))
-				{
-					candidates.add(fallback);
-				}
-			}
-		}
-
-		// 1. Prefer same-plane tiles in the normal scene
-		for (WorldPoint p : candidates)
-		{
-			if (p.getPlane() != worldPlane)
-			{
-				continue;
-			}
-
-			if (LocalPoint.fromWorld(worldView, p) != null)
-			{
-				return p;
-			}
-		}
-
-		// 2. Any tile that exists in the extended scene
-		for (WorldPoint p : candidates)
-		{
-			if (RenderingUtils.localPointFromWorldIncludingExtended(worldView, p) != null)
-			{
-				return p;
-			}
-		}
-
-		// 3. Fall back to nearest valid along the line toward the target
-		return findNearestValidPoint(
-			start,
-			targetLocation,
-			p -> RenderingUtils.localPointFromWorldIncludingExtended(worldView, p) != null
-		);
-	}
-
-	/**
-	 * Finds the furthest point from start toward target that satisfies the given validation function.
-	 * Uses binary search for O(log n) efficiency.
-	 * @param start Starting position
-	 * @param target Desired target position
-	 * @param isValid Function that returns true if a candidate point is valid
-	 * @return The furthest valid point toward target, or start if none found
-	 */
-	private static WorldPoint findNearestValidPoint(WorldPoint start, WorldPoint target, Predicate<WorldPoint> isValid)
-	{
-		int dx = target.getX() - start.getX();
-		int dy = target.getY() - start.getY();
-		int maxDistance = Math.max(Math.abs(dx), Math.abs(dy));
-
-		if (maxDistance < 1)
-		{
-			return start;
-		}
-
-		int plane = start.getPlane();
-		int low = 0;
-		int high = maxDistance;
-		WorldPoint bestCandidate = start;
-
-		while (low <= high)
-		{
-			int mid = (low + high) / 2;
-			int x = start.getX() + (dx * mid / maxDistance);
-			int y = start.getY() + (dy * mid / maxDistance);
-			WorldPoint candidate = new WorldPoint(x, y, plane);
-
-			if (isValid.test(candidate))
-			{
-				bestCandidate = candidate;
-				low = mid + 1;
-			}
-			else
-			{
-				high = mid - 1;
-			}
-		}
-
-		return bestCandidate;
 	}
 
 	public void reset()
