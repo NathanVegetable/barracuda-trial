@@ -132,7 +132,7 @@ public interface BarracudaTrialConfig extends Config
 	@ConfigItem(
 		keyName = KEY_TEMPOR_TANTRUM_MARLIN_ROUTE,
 		name = "Tempor Tantrum Marlin",
-		description = "Smoother: the wiki's smoother route.<br>Faster: the wiki's faster route.",
+		description = "Smoother: the wiki's smoother route.<br>Faster: the wiki's faster route.<br>Changing it after collecting anything applies from the next trial.",
 		section = routesSection,
 		position = 0
 	)

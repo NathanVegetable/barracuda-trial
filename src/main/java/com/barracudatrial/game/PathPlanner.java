@@ -196,47 +196,19 @@ public class PathPlanner
 			return;
 		}
 
-		state.setCurrentStaticRoute(findConfiguredRoute(trial));
-	}
-
-	/**
-	 * Swaps the current trial onto the route chosen in config, keeping the progress made so far.
-	 * Does nothing before the first route is loaded, since that load already uses the chosen route.
-	 */
-	public void switchToConfiguredRoute()
-	{
-		var trial = state.getCurrentTrial();
-		var currentRoute = state.getCurrentStaticRoute();
-		if (trial == null || currentRoute == null)
-		{
-			return;
-		}
-
-		List<RouteWaypoint> configuredRoute = findConfiguredRoute(trial);
-		// Same instance when the change doesn't affect this difficulty
-		if (configuredRoute.isEmpty() || configuredRoute == currentRoute)
-		{
-			return;
-		}
-
-		state.replaceStaticRoute(configuredRoute);
-		recalculateOptimalPathFromCurrentState("config: route changed");
-	}
-
-	private List<RouteWaypoint> findConfiguredRoute(TrialConfig trial)
-	{
 		Difficulty difficulty = State.getCurrentDifficulty(client);
 		List<RouteWaypoint> staticRoute = trial.getRoute(difficulty, cachedConfig);
 
-		if (staticRoute.isEmpty())
+		if (staticRoute == null || staticRoute.isEmpty())
 		{
 			log.warn("No static route found for trial {} difficulty: {}", trial.getTrialType(), difficulty);
-			return staticRoute;
+			state.setCurrentStaticRoute(new ArrayList<>());
+			return;
 		}
 
+		state.setCurrentStaticRoute(staticRoute);
 		log.info("Loaded static route for {} difficulty {} with {} waypoints",
 			trial.getTrialType(), difficulty, staticRoute.size());
-		return staticRoute;
 	}
 
 	/**
