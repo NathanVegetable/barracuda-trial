@@ -26,25 +26,25 @@ public interface BarracudaTrialConfig extends Config
 	String pathSection = "pathSection";
 
 	@ConfigSection(
+		name = "Routes",
+		description = "Choose between routes for trial difficulties that have more than one",
+		position = 1
+	)
+	String routesSection = "routesSection";
+
+	@ConfigSection(
 		name = "Objectives",
 		description = "Settings for objective highlighting",
-		position = 1
+		position = 2
 	)
 	String objectivesSection = "objectivesSection";
 
 	@ConfigSection(
 		name = "Object Highlighting",
 		description = "Settings for object highlighting",
-		position = 2
-	)
-	String objectHighlightingSection = "objectHighlightingSection";
-
-	@ConfigSection(
-		name = "Routes",
-		description = "Choose between routes for trial difficulties that have more than one",
 		position = 3
 	)
-	String routesSection = "routesSection";
+	String objectHighlightingSection = "objectHighlightingSection";
 
 	@ConfigSection(
 		name = "Debug",
@@ -127,6 +127,18 @@ public interface BarracudaTrialConfig extends Config
 	default int pathWidth()
 	{
 		return 2;
+	}
+
+	@ConfigItem(
+		keyName = KEY_TEMPOR_TANTRUM_MARLIN_ROUTE,
+		name = "Tempor Tantrum Marlin",
+		description = "Standard: the default route.<br>Faster: the wiki's faster, riskier route.",
+		section = routesSection,
+		position = 0
+	)
+	default RouteVariant temporTantrumMarlinRoute()
+	{
+		return RouteVariant.STANDARD;
 	}
 
 	@ConfigItem(
@@ -303,18 +315,6 @@ public interface BarracudaTrialConfig extends Config
 	default Color rockColor()
 	{
 		return new Color(255, 0, 255, 255);
-	}
-
-	@ConfigItem(
-		keyName = KEY_TEMPOR_TANTRUM_MARLIN_ROUTE,
-		name = "Tempor Tantrum Marlin",
-		description = "Standard: the default route.<br>Faster: the wiki's faster, riskier route.",
-		section = routesSection,
-		position = 0
-	)
-	default RouteVariant temporTantrumMarlinRoute()
-	{
-		return RouteVariant.STANDARD;
 	}
 
 	@ConfigItem(
