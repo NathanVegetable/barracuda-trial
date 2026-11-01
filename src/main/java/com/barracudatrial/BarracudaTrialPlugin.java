@@ -308,6 +308,19 @@ public class BarracudaTrialPlugin extends Plugin
 		{
 			clientThread.invoke(() -> pathPlanner.recalculateOptimalPathFromCurrentState("config: " + key + " changed"));
 		}
+
+		if (gameState.isInTrial() && key.equals(BarracudaTrialConfig.KEY_TEMPOR_TANTRUM_MARLIN_ROUTE))
+		{
+			clientThread.invoke(() ->
+			{
+				// Progress is tracked by route index, so only swap routes before anything is completed
+				if (gameState.getCompletedWaypointIndices().isEmpty())
+				{
+					gameState.setCurrentStaticRoute(null);
+					pathPlanner.recalculateOptimalPathFromCurrentState("config: " + key + " changed");
+				}
+			});
+		}
 	}
 
 	private void checkPortalExitProximity()

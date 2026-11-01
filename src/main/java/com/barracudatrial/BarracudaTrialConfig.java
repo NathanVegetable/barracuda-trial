@@ -16,6 +16,7 @@ public interface BarracudaTrialConfig extends Config
 	String KEY_ROUTE_OPTIMIZATION = "routeOptimization";
 	String KEY_PATH_LOOKAHEAD = "pathLookahead";
 	String KEY_PATHFINDING_EFFORT = "pathfindingEffort";
+	String KEY_TEMPOR_TANTRUM_MARLIN_ROUTE = "temporTantrumMarlinRoute";
 
 	@ConfigSection(
 		name = "Path Display",
@@ -25,23 +26,30 @@ public interface BarracudaTrialConfig extends Config
 	String pathSection = "pathSection";
 
 	@ConfigSection(
+		name = "Routes",
+		description = "Choose between routes for trial difficulties that have more than one. Changing a route after collecting anything applies from the next trial.",
+		position = 1
+	)
+	String routesSection = "routesSection";
+
+	@ConfigSection(
 		name = "Objectives",
 		description = "Settings for objective highlighting",
-		position = 1
+		position = 2
 	)
 	String objectivesSection = "objectivesSection";
 
 	@ConfigSection(
 		name = "Object Highlighting",
 		description = "Settings for object highlighting",
-		position = 2
+		position = 3
 	)
 	String objectHighlightingSection = "objectHighlightingSection";
 
 	@ConfigSection(
 		name = "Debug",
 		description = "Debug and diagnostic settings",
-		position = 3
+		position = 4
 	)
 	String debugSection = "debugSection";
 
@@ -119,6 +127,18 @@ public interface BarracudaTrialConfig extends Config
 	default int pathWidth()
 	{
 		return 2;
+	}
+
+	@ConfigItem(
+		keyName = KEY_TEMPOR_TANTRUM_MARLIN_ROUTE,
+		name = "Tempor Tantrum Marlin",
+		description = "Smoother: the wiki's smoother route.<br>Faster: the wiki's faster route.",
+		section = routesSection,
+		position = 0
+	)
+	default TemporTantrumMarlinRoute temporTantrumMarlinRoute()
+	{
+		return TemporTantrumMarlinRoute.SMOOTHER;
 	}
 
 	@ConfigItem(

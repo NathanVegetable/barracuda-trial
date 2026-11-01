@@ -197,7 +197,7 @@ public class PathPlanner
 		}
 
 		Difficulty difficulty = State.getCurrentDifficulty(client);
-		List<RouteWaypoint> staticRoute = trial.getRoute(difficulty);
+		List<RouteWaypoint> staticRoute = trial.getRoute(difficulty, cachedConfig);
 
 		if (staticRoute == null || staticRoute.isEmpty())
 		{

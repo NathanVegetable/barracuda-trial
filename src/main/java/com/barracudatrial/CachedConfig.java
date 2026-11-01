@@ -37,6 +37,9 @@ public class CachedConfig
 	@Getter private boolean highlightRocks;
 	@Getter private Color rockColor;
 
+	// Route settings
+	@Getter private TemporTantrumMarlinRoute temporTantrumMarlinRoute;
+
 	// Debug settings
 	@Getter private int pathLookahead;
 	@Getter private PathfindingEffort pathfindingEffort;
@@ -76,6 +79,8 @@ public class CachedConfig
 		cloudDangerRadius = config.cloudDangerRadius();
 		highlightRocks = config.highlightRocks();
 		rockColor = config.rockColor();
+
+		temporTantrumMarlinRoute = config.temporTantrumMarlinRoute();
 
 		pathLookahead = config.pathLookahead();
 		pathfindingEffort = config.pathfindingEffort();

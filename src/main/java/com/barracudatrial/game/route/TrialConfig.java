@@ -1,5 +1,7 @@
 package com.barracudatrial.game.route;
 
+import com.barracudatrial.CachedConfig;
+
 import java.util.List;
 import java.util.Set;
 
@@ -12,5 +14,5 @@ public interface TrialConfig
 	int getShipmentImpostorId();
 
 	// Routes
-	List<RouteWaypoint> getRoute(Difficulty difficulty);
+	List<RouteWaypoint> getRoute(Difficulty difficulty, CachedConfig config);
 }

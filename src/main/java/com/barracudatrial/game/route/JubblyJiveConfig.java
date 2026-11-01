@@ -1,5 +1,6 @@
 package com.barracudatrial.game.route;
 
+import com.barracudatrial.CachedConfig;
 import net.runelite.api.coords.WorldPoint;
 import net.runelite.api.gameval.ObjectID;
 
@@ -177,7 +178,7 @@ public class JubblyJiveConfig implements TrialConfig
 	}
 
 	@Override
-	public List<RouteWaypoint> getRoute(Difficulty difficulty)
+	public List<RouteWaypoint> getRoute(Difficulty difficulty, CachedConfig config)
 	{
 		return JubblyJiveRoutes.getRoute(difficulty);
 	}
