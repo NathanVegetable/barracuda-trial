@@ -16,6 +16,7 @@ public interface BarracudaTrialConfig extends Config
 	String KEY_ROUTE_OPTIMIZATION = "routeOptimization";
 	String KEY_PATH_LOOKAHEAD = "pathLookahead";
 	String KEY_PATHFINDING_EFFORT = "pathfindingEffort";
+	String KEY_TEMPOR_TANTRUM_ROUTE = "temporTantrumRoute";
 
 	@ConfigSection(
 		name = "Path Display",
@@ -39,9 +40,16 @@ public interface BarracudaTrialConfig extends Config
 	String objectHighlightingSection = "objectHighlightingSection";
 
 	@ConfigSection(
+		name = "Routes",
+		description = "Choose between routes for trials that have more than one",
+		position = 3
+	)
+	String routesSection = "routesSection";
+
+	@ConfigSection(
 		name = "Debug",
 		description = "Debug and diagnostic settings",
-		position = 3
+		position = 4
 	)
 	String debugSection = "debugSection";
 
@@ -295,6 +303,18 @@ public interface BarracudaTrialConfig extends Config
 	default Color rockColor()
 	{
 		return new Color(255, 0, 255, 255);
+	}
+
+	@ConfigItem(
+		keyName = KEY_TEMPOR_TANTRUM_ROUTE,
+		name = "Tempor Tantrum",
+		description = "Standard: the default route.<br>Faster: the wiki's faster, riskier route. Marlin only, other difficulties use Standard.",
+		section = routesSection,
+		position = 0
+	)
+	default RouteVariant temporTantrumRoute()
+	{
+		return RouteVariant.STANDARD;
 	}
 
 	@ConfigItem(

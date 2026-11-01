@@ -1,5 +1,6 @@
 package com.barracudatrial.game.route;
 
+import com.barracudatrial.RouteVariant;
 import net.runelite.api.coords.WorldPoint;
 
 import java.util.ArrayList;
@@ -14,13 +15,15 @@ import static com.barracudatrial.game.route.RouteWaypoint.WaypointType;
 // S 931.10 SailingBtHud.BT_PARTIAL_TEXT text = holding toad count
 public class JubblyJiveRoutes
 {
-	private static final Map<Difficulty, List<RouteWaypoint>> ROUTES = new HashMap<>();
+	private static final Map<Difficulty, List<RouteWaypoint>> STANDARD_ROUTES = new HashMap<>();
+
+	private static final Map<RouteVariant, Map<Difficulty, List<RouteWaypoint>>> ROUTES = Map.of(RouteVariant.STANDARD, STANDARD_ROUTES);
 
 	static
 	{
 		// SWORDFISH difficulty - 1 lap, 20 shipments + 4 toads
 		// Captured 2025-11-23
-		ROUTES.put(Difficulty.SWORDFISH, List.of(
+		STANDARD_ROUTES.put(Difficulty.SWORDFISH, List.of(
 			new RouteWaypoint(WaypointType.SHIPMENT, new WorldPoint(2413, 3016, 0)),
 			new RouteWaypoint(WaypointType.SHIPMENT, new WorldPoint(2396, 3010, 0)),
 			new RouteWaypoint(WaypointType.SHIPMENT, new WorldPoint(2378, 3008, 0)),
@@ -75,7 +78,7 @@ public class JubblyJiveRoutes
 		
 		// SHARK difficulty - 2 lap, 38 shipments + 12 toads
 		// Captured 2025-11-23
-		ROUTES.put(Difficulty.SHARK, List.of(
+		STANDARD_ROUTES.put(Difficulty.SHARK, List.of(
 			new RouteWaypoint(WaypointType.SHIPMENT, new WorldPoint(2413, 3016, 0)),
 			new RouteWaypoint(WaypointType.SHIPMENT, new WorldPoint(2396, 3010, 0)),
 			new RouteWaypoint(WaypointType.SHIPMENT, new WorldPoint(2378, 3008, 0)),
@@ -165,7 +168,7 @@ public class JubblyJiveRoutes
 		));
 
 		// MARLIN difficulty - 3 laps, 56 shipments + 12 toads
-		ROUTES.put(Difficulty.MARLIN, 
+		STANDARD_ROUTES.put(Difficulty.MARLIN, 
 			List.of(
 			new RouteWaypoint(WaypointType.SHIPMENT, new WorldPoint(2412, 3026, 0)),
 			new RouteWaypoint(WaypointType.SHIPMENT, new WorldPoint(2396, 3010, 0)),
@@ -372,13 +375,14 @@ public class JubblyJiveRoutes
 	}
 
 	/**
-	 * Get the static route for a given difficulty.
+	 * Get the static route for a given difficulty and route variant.
 	 * @param difficulty The difficulty level
+	 * @param variant The route variant
 	 * @return List of RouteWaypoints representing the optimal waypoint sequence,
-	 *         or empty list if no route is defined for this difficulty
+	 *         or empty list if no route is defined for this difficulty and variant
 	 */
-	public static List<RouteWaypoint> getRoute(Difficulty difficulty)
+	public static List<RouteWaypoint> getRoute(Difficulty difficulty, RouteVariant variant)
 	{
-		return ROUTES.getOrDefault(difficulty, new ArrayList<>());
+		return ROUTES.getOrDefault(variant, Map.of()).getOrDefault(difficulty, new ArrayList<>());
 	}
 }

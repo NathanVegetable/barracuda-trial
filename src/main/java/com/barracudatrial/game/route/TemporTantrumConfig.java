@@ -1,5 +1,6 @@
 package com.barracudatrial.game.route;
 
+import com.barracudatrial.RouteVariant;
 import net.runelite.api.gameval.NpcID;
 import net.runelite.api.gameval.ObjectID;
 
@@ -87,8 +88,8 @@ public class TemporTantrumConfig implements TrialConfig
 	}
 
 	@Override
-	public List<RouteWaypoint> getRoute(Difficulty difficulty)
+	public List<RouteWaypoint> getRoute(Difficulty difficulty, RouteVariant variant)
 	{
-		return TemporTantrumRoutes.getRoute(difficulty);
+		return TemporTantrumRoutes.getRoute(difficulty, variant);
 	}
 }

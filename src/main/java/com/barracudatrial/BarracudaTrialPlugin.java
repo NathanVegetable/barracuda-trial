@@ -308,6 +308,11 @@ public class BarracudaTrialPlugin extends Plugin
 		{
 			clientThread.invoke(() -> pathPlanner.recalculateOptimalPathFromCurrentState("config: " + key + " changed"));
 		}
+
+		if (gameState.isInTrial() && key.equals(BarracudaTrialConfig.KEY_TEMPOR_TANTRUM_ROUTE))
+		{
+			clientThread.invoke(() -> pathPlanner.switchToConfiguredRoute());
+		}
 	}
 
 	private void checkPortalExitProximity()

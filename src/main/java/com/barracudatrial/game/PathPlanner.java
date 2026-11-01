@@ -1,6 +1,7 @@
 package com.barracudatrial.game;
 
 import com.barracudatrial.CachedConfig;
+import com.barracudatrial.RouteVariant;
 import com.barracudatrial.game.route.*;
 import com.barracudatrial.pathfinding.AStarPathfinder;
 import com.barracudatrial.pathfinding.BarracudaTileCostCalculator;
@@ -196,19 +197,62 @@ public class PathPlanner
 			return;
 		}
 
-		Difficulty difficulty = State.getCurrentDifficulty(client);
-		List<RouteWaypoint> staticRoute = trial.getRoute(difficulty);
-
-		if (staticRoute == null || staticRoute.isEmpty())
+		List<RouteWaypoint> staticRoute = findConfiguredRoute(trial);
+		if (staticRoute.isEmpty())
 		{
-			log.warn("No static route found for trial {} difficulty: {}", trial.getTrialType(), difficulty);
 			state.setCurrentStaticRoute(new ArrayList<>());
 			return;
 		}
 
 		state.setCurrentStaticRoute(staticRoute);
-		log.info("Loaded static route for {} difficulty {} with {} waypoints",
-			trial.getTrialType(), difficulty, staticRoute.size());
+	}
+
+	/**
+	 * Swaps the current trial onto the route chosen in config, keeping the progress made so far.
+	 * Does nothing before the first route is loaded, since that load already uses the chosen route.
+	 */
+	public void switchToConfiguredRoute()
+	{
+		var trial = state.getCurrentTrial();
+		var currentRoute = state.getCurrentStaticRoute();
+		if (trial == null || currentRoute == null)
+		{
+			return;
+		}
+
+		List<RouteWaypoint> configuredRoute = findConfiguredRoute(trial);
+		// Same instance when this difficulty has no route for the chosen variant
+		if (configuredRoute.isEmpty() || configuredRoute == currentRoute)
+		{
+			return;
+		}
+
+		state.replaceStaticRoute(configuredRoute);
+		recalculateOptimalPathFromCurrentState("config: route changed");
+	}
+
+	private List<RouteWaypoint> findConfiguredRoute(TrialConfig trial)
+	{
+		Difficulty difficulty = State.getCurrentDifficulty(client);
+		RouteVariant variant = cachedConfig.getRouteVariant(trial.getTrialType());
+		List<RouteWaypoint> staticRoute = trial.getRoute(difficulty, variant);
+
+		if (staticRoute.isEmpty() && variant != RouteVariant.STANDARD)
+		{
+			log.info("No {} route for trial {} difficulty {}, using STANDARD", variant, trial.getTrialType(), difficulty);
+			variant = RouteVariant.STANDARD;
+			staticRoute = trial.getRoute(difficulty, variant);
+		}
+
+		if (staticRoute.isEmpty())
+		{
+			log.warn("No static route found for trial {} difficulty: {}", trial.getTrialType(), difficulty);
+			return staticRoute;
+		}
+
+		log.info("Using {} static route for {} difficulty {} with {} waypoints",
+			variant, trial.getTrialType(), difficulty, staticRoute.size());
+		return staticRoute;
 	}
 
 	/**

@@ -318,6 +318,51 @@ public class State
 		}
 	}
 
+	/**
+	 * Swaps in a different route for the current trial and carries progress over. Each objective is
+	 * matched by type and tile: if it was completed N times on the old route, its first N occurrences
+	 * on the new route are marked complete. Pathfinding hints are left to markWaypointCompleted.
+	 */
+	public void replaceStaticRoute(List<RouteWaypoint> newRoute)
+	{
+		var oldRoute = currentStaticRoute;
+		var oldCompletedIndices = new HashSet<>(completedWaypointIndices);
+
+		currentStaticRoute = newRoute;
+		completedWaypointIndices.clear();
+
+		if (oldRoute == null)
+		{
+			return;
+		}
+
+		var completedCounts = new HashMap<Map.Entry<RouteWaypoint.WaypointType, WorldPoint>, Integer>();
+		for (int index : oldCompletedIndices)
+		{
+			var waypoint = oldRoute.get(index);
+			if (waypoint.getType() != RouteWaypoint.WaypointType.PATHFINDING_HINT)
+			{
+				completedCounts.merge(objectiveKey(waypoint), 1, Integer::sum);
+			}
+		}
+
+		for (int i = 0; i < newRoute.size(); i++)
+		{
+			var key = objectiveKey(newRoute.get(i));
+			int remaining = completedCounts.getOrDefault(key, 0);
+			if (remaining > 0)
+			{
+				markWaypointCompleted(i);
+				completedCounts.put(key, remaining - 1);
+			}
+		}
+	}
+
+	private static Map.Entry<RouteWaypoint.WaypointType, WorldPoint> objectiveKey(RouteWaypoint waypoint)
+	{
+		return new AbstractMap.SimpleImmutableEntry<>(waypoint.getType(), waypoint.getLocation());
+	}
+
 	public boolean isWaypointCompleted(int waypointIndex)
 	{
 		return completedWaypointIndices.contains(waypointIndex);

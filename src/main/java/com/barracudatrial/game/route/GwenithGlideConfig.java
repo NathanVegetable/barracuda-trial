@@ -1,5 +1,6 @@
 package com.barracudatrial.game.route;
 
+import com.barracudatrial.RouteVariant;
 import net.runelite.api.gameval.ObjectID;
 
 import java.util.List;
@@ -138,8 +139,8 @@ public class GwenithGlideConfig implements TrialConfig
 	}
 
 	@Override
-	public List<RouteWaypoint> getRoute(Difficulty difficulty)
+	public List<RouteWaypoint> getRoute(Difficulty difficulty, RouteVariant variant)
 	{
-		return GwenithGlideRoutes.getRoute(difficulty);
+		return GwenithGlideRoutes.getRoute(difficulty, variant);
 	}
 }

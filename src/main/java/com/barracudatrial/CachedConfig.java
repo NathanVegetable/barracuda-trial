@@ -1,5 +1,6 @@
 package com.barracudatrial;
 
+import com.barracudatrial.game.route.TrialType;
 import lombok.Getter;
 
 import java.awt.Color;
@@ -36,6 +37,9 @@ public class CachedConfig
 	@Getter private int cloudDangerRadius;
 	@Getter private boolean highlightRocks;
 	@Getter private Color rockColor;
+
+	// Route settings
+	private RouteVariant temporTantrumRoute;
 
 	// Debug settings
 	@Getter private int pathLookahead;
@@ -77,9 +81,20 @@ public class CachedConfig
 		highlightRocks = config.highlightRocks();
 		rockColor = config.rockColor();
 
+		temporTantrumRoute = config.temporTantrumRoute();
+
 		pathLookahead = config.pathLookahead();
 		pathfindingEffort = config.pathfindingEffort();
 		showWaypointDetails = config.showWaypointDetails();
 		showBoatTiles = config.showBoatTiles();
+	}
+
+	public RouteVariant getRouteVariant(TrialType trialType)
+	{
+		if (trialType == TrialType.TEMPOR_TANTRUM)
+		{
+			return temporTantrumRoute;
+		}
+		return RouteVariant.STANDARD;
 	}
 }
