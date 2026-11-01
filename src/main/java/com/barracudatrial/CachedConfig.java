@@ -1,7 +1,5 @@
 package com.barracudatrial;
 
-import com.barracudatrial.game.route.Difficulty;
-import com.barracudatrial.game.route.TrialType;
 import lombok.Getter;
 
 import java.awt.Color;
@@ -40,7 +38,7 @@ public class CachedConfig
 	@Getter private Color rockColor;
 
 	// Route settings
-	private RouteVariant temporTantrumMarlinRoute;
+	@Getter private TemporTantrumMarlinRoute temporTantrumMarlinRoute;
 
 	// Debug settings
 	@Getter private int pathLookahead;
@@ -88,14 +86,5 @@ public class CachedConfig
 		pathfindingEffort = config.pathfindingEffort();
 		showWaypointDetails = config.showWaypointDetails();
 		showBoatTiles = config.showBoatTiles();
-	}
-
-	public RouteVariant getRouteVariant(TrialType trialType, Difficulty difficulty)
-	{
-		if (trialType == TrialType.TEMPOR_TANTRUM && difficulty == Difficulty.MARLIN)
-		{
-			return temporTantrumMarlinRoute;
-		}
-		return RouteVariant.STANDARD;
 	}
 }

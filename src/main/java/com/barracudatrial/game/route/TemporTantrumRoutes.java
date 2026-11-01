@@ -1,9 +1,10 @@
 package com.barracudatrial.game.route;
-import com.barracudatrial.RouteVariant;
+import com.barracudatrial.TemporTantrumMarlinRoute;
 import com.barracudatrial.game.route.RouteWaypoint.WaypointType;
 import net.runelite.api.coords.WorldPoint;
 
 import java.util.ArrayList;
+import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -30,16 +31,15 @@ public class TemporTantrumRoutes
 	private static final WorldPoint RUM_PICKUP_LOCATION = new WorldPoint(3037, 2767, 0);
 	private static final WorldPoint RUM_DROPOFF_LOCATION = new WorldPoint(3035, 2926, 0);
 
-	private static final Map<Difficulty, List<RouteWaypoint>> STANDARD_ROUTES = new HashMap<>();
-	private static final Map<Difficulty, List<RouteWaypoint>> FASTER_ROUTES = new HashMap<>();
+	private static final Map<Difficulty, List<RouteWaypoint>> ROUTES = new HashMap<>();
 
-	private static final Map<RouteVariant, Map<Difficulty, List<RouteWaypoint>>> ROUTES = Map.of(RouteVariant.STANDARD, STANDARD_ROUTES, RouteVariant.FASTER, FASTER_ROUTES);
+	private static final Map<TemporTantrumMarlinRoute, List<RouteWaypoint>> MARLIN_ROUTES = new EnumMap<>(TemporTantrumMarlinRoute.class);
 
 	static
 	{
 		// SWORDFISH difficulty - 1 lap, 14 shipments + rum pickup/dropoff
 		// Captured 2025-11-21
-		STANDARD_ROUTES.put(Difficulty.SWORDFISH, List.of(
+		ROUTES.put(Difficulty.SWORDFISH, List.of(
 			new RouteWaypoint(WaypointType.SHIPMENT, new WorldPoint(2994, 2891, 0)),
 			new RouteWaypoint(WaypointType.SHIPMENT, new WorldPoint(2978, 2866, 0)),
 			new RouteWaypoint(WaypointType.SHIPMENT, new WorldPoint(2981, 2848, 0)),
@@ -66,7 +66,7 @@ public class TemporTantrumRoutes
 
 		// SHARK difficulty - 2 laps
 		// Captured 2025-11-22
-		STANDARD_ROUTES.put(Difficulty.SHARK, List.of(
+		ROUTES.put(Difficulty.SHARK, List.of(
 			new RouteWaypoint(WaypointType.SHIPMENT, new WorldPoint(2994, 2891, 0)),
 			new RouteWaypoint(WaypointType.SHIPMENT, new WorldPoint(2978, 2866, 0)),
 			new RouteWaypoint(WaypointType.SHIPMENT, new WorldPoint(2981, 2848, 0)),
@@ -118,9 +118,9 @@ public class TemporTantrumRoutes
 			new RouteWaypoint(2, WaypointType.RUM_DROPOFF, RUM_DROPOFF_LOCATION)
 		));
 
-		// MARLIN difficulty - 3 laps
+		// MARLIN difficulty - 3 laps, the wiki's smoother route
 		// Captured 2025-11-22
-		STANDARD_ROUTES.put(Difficulty.MARLIN, List.of(
+		MARLIN_ROUTES.put(TemporTantrumMarlinRoute.SMOOTHER, List.of(
 			new RouteWaypoint(WaypointType.SHIPMENT, new WorldPoint(3018, 2889, 0)),
 			new RouteWaypoint(WaypointType.SHIPMENT, new WorldPoint(3001, 2866, 0)),
 			new RouteWaypoint(WaypointType.SHIPMENT, new WorldPoint(3004, 2834, 0)),
@@ -191,8 +191,8 @@ public class TemporTantrumRoutes
 			new RouteWaypoint(3, WaypointType.RUM_DROPOFF, RUM_DROPOFF_LOCATION)
 		));
 
-		// MARLIN difficulty - 3 laps, faster route from the wiki
-		FASTER_ROUTES.put(Difficulty.MARLIN, List.of(
+		// MARLIN difficulty - 3 laps, the wiki's faster route
+		MARLIN_ROUTES.put(TemporTantrumMarlinRoute.FASTER, List.of(
 			new RouteWaypoint(WaypointType.SHIPMENT, new WorldPoint(3018, 2889, 0)),
 			new RouteWaypoint(WaypointType.SHIPMENT, new WorldPoint(3001, 2866, 0)),
 			new RouteWaypoint(WaypointType.SHIPMENT, new WorldPoint(3004, 2834, 0)),
@@ -252,14 +252,18 @@ public class TemporTantrumRoutes
 	}
 
 	/**
-	 * Get the static route for a given difficulty and route variant.
+	 * Get the static route for a given difficulty. Marlin has more than one, see getMarlinRoute.
 	 * @param difficulty The difficulty level
-	 * @param variant The route variant
 	 * @return List of RouteWaypoints representing the optimal waypoint sequence,
-	 *         or empty list if no route is defined for this difficulty and variant
+	 *         or empty list if no route is defined for this difficulty
 	 */
-	public static List<RouteWaypoint> getRoute(Difficulty difficulty, RouteVariant variant)
+	public static List<RouteWaypoint> getRoute(Difficulty difficulty)
 	{
-		return ROUTES.getOrDefault(variant, Map.of()).getOrDefault(difficulty, new ArrayList<>());
+		return ROUTES.getOrDefault(difficulty, new ArrayList<>());
+	}
+
+	public static List<RouteWaypoint> getMarlinRoute(TemporTantrumMarlinRoute route)
+	{
+		return MARLIN_ROUTES.get(route);
 	}
 }

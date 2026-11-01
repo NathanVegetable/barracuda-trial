@@ -1,7 +1,6 @@
 package com.barracudatrial.game;
 
 import com.barracudatrial.CachedConfig;
-import com.barracudatrial.RouteVariant;
 import com.barracudatrial.game.route.*;
 import com.barracudatrial.pathfinding.AStarPathfinder;
 import com.barracudatrial.pathfinding.BarracudaTileCostCalculator;
@@ -197,14 +196,7 @@ public class PathPlanner
 			return;
 		}
 
-		List<RouteWaypoint> staticRoute = findConfiguredRoute(trial);
-		if (staticRoute.isEmpty())
-		{
-			state.setCurrentStaticRoute(new ArrayList<>());
-			return;
-		}
-
-		state.setCurrentStaticRoute(staticRoute);
+		state.setCurrentStaticRoute(findConfiguredRoute(trial));
 	}
 
 	/**
@@ -221,7 +213,7 @@ public class PathPlanner
 		}
 
 		List<RouteWaypoint> configuredRoute = findConfiguredRoute(trial);
-		// Same instance when this difficulty has no route for the chosen variant
+		// Same instance when the change doesn't affect this difficulty
 		if (configuredRoute.isEmpty() || configuredRoute == currentRoute)
 		{
 			return;
@@ -234,15 +226,7 @@ public class PathPlanner
 	private List<RouteWaypoint> findConfiguredRoute(TrialConfig trial)
 	{
 		Difficulty difficulty = State.getCurrentDifficulty(client);
-		RouteVariant variant = cachedConfig.getRouteVariant(trial.getTrialType(), difficulty);
-		List<RouteWaypoint> staticRoute = trial.getRoute(difficulty, variant);
-
-		if (staticRoute.isEmpty() && variant != RouteVariant.STANDARD)
-		{
-			log.info("No {} route for trial {} difficulty {}, using STANDARD", variant, trial.getTrialType(), difficulty);
-			variant = RouteVariant.STANDARD;
-			staticRoute = trial.getRoute(difficulty, variant);
-		}
+		List<RouteWaypoint> staticRoute = trial.getRoute(difficulty, cachedConfig);
 
 		if (staticRoute.isEmpty())
 		{
@@ -250,8 +234,8 @@ public class PathPlanner
 			return staticRoute;
 		}
 
-		log.info("Using {} static route for {} difficulty {} with {} waypoints",
-			variant, trial.getTrialType(), difficulty, staticRoute.size());
+		log.info("Loaded static route for {} difficulty {} with {} waypoints",
+			trial.getTrialType(), difficulty, staticRoute.size());
 		return staticRoute;
 	}
 

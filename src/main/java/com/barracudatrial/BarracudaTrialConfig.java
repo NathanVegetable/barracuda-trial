@@ -132,13 +132,13 @@ public interface BarracudaTrialConfig extends Config
 	@ConfigItem(
 		keyName = KEY_TEMPOR_TANTRUM_MARLIN_ROUTE,
 		name = "Tempor Tantrum Marlin",
-		description = "Standard: the default route.<br>Faster: the wiki's faster, riskier route.",
+		description = "Smoother: the wiki's smoother route.<br>Faster: the wiki's faster route.",
 		section = routesSection,
 		position = 0
 	)
-	default RouteVariant temporTantrumMarlinRoute()
+	default TemporTantrumMarlinRoute temporTantrumMarlinRoute()
 	{
-		return RouteVariant.STANDARD;
+		return TemporTantrumMarlinRoute.SMOOTHER;
 	}
 
 	@ConfigItem(
