@@ -41,6 +41,11 @@ public class BarracudaTrialOverlay extends Overlay
 
 		CachedConfig cachedConfig = plugin.getCachedConfig();
 
+		if (cachedConfig.isHighlightRocks())
+		{
+			highlightRenderer.renderRocks(graphics);
+		}
+
 		if (cachedConfig.isShowOptimalPath())
 		{
 			pathRenderer.renderOptimalPath(graphics);

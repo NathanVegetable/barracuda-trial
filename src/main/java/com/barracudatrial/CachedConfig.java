@@ -34,6 +34,8 @@ public class CachedConfig
 	@Getter private boolean highlightClouds;
 	@Getter private Color cloudColor;
 	@Getter private int cloudDangerRadius;
+	@Getter private boolean highlightRocks;
+	@Getter private Color rockColor;
 
 	// Debug settings
 	@Getter private int pathLookahead;
@@ -72,6 +74,8 @@ public class CachedConfig
 		highlightClouds = config.highlightClouds();
 		cloudColor = config.cloudColor();
 		cloudDangerRadius = config.cloudDangerRadius();
+		highlightRocks = config.highlightRocks();
+		rockColor = config.rockColor();
 
 		pathLookahead = config.pathLookahead();
 		pathfindingEffort = config.pathfindingEffort();

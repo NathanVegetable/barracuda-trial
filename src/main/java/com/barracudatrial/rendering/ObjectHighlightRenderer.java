@@ -152,6 +152,15 @@ public class ObjectHighlightRenderer
 		return null;
 	}
 
+	public void renderRocks(Graphics2D graphics)
+	{
+		Color rockColor = plugin.getCachedConfig().getRockColor();
+		for (WorldPoint rockTile : plugin.getGameState().getKnownRockLocations())
+		{
+			renderTileHighlightAtWorldPoint(graphics, rockTile, rockColor, null);
+		}
+	}
+
 	public void renderSpeedBoosts(Graphics2D graphics)
 	{
 		CachedConfig cachedConfig = plugin.getCachedConfig();

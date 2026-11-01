@@ -273,6 +273,31 @@ public interface BarracudaTrialConfig extends Config
 	}
 
 	@ConfigItem(
+		keyName = "highlightRocks",
+		name = "Highlight Rocks",
+		description = "Highlight the rock tiles the path steers around",
+		section = objectHighlightingSection,
+		position = 5
+	)
+	default boolean highlightRocks()
+	{
+		return false;
+	}
+
+	@ConfigItem(
+		keyName = "rockColor",
+		name = "Rock",
+		description = "Color for rock obstacles",
+		section = objectHighlightingSection,
+		position = 6
+	)
+	@Alpha
+	default Color rockColor()
+	{
+		return new Color(255, 0, 255, 255);
+	}
+
+	@ConfigItem(
 		keyName = "showWaypointDetails",
 		name = "Show Waypoint Details",
 		description = "Show detailed waypoint information (type, status, coordinates)",
