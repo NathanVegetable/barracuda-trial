@@ -309,7 +309,7 @@ public class BarracudaTrialPlugin extends Plugin
 			clientThread.invoke(() -> pathPlanner.recalculateOptimalPathFromCurrentState("config: " + key + " changed"));
 		}
 
-		if (gameState.isInTrial() && key.equals(BarracudaTrialConfig.KEY_TEMPOR_TANTRUM_ROUTE))
+		if (gameState.isInTrial() && key.equals(BarracudaTrialConfig.KEY_TEMPOR_TANTRUM_MARLIN_ROUTE))
 		{
 			clientThread.invoke(() -> pathPlanner.switchToConfiguredRoute());
 		}

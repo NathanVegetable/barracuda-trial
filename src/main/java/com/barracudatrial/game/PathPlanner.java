@@ -234,7 +234,7 @@ public class PathPlanner
 	private List<RouteWaypoint> findConfiguredRoute(TrialConfig trial)
 	{
 		Difficulty difficulty = State.getCurrentDifficulty(client);
-		RouteVariant variant = cachedConfig.getRouteVariant(trial.getTrialType());
+		RouteVariant variant = cachedConfig.getRouteVariant(trial.getTrialType(), difficulty);
 		List<RouteWaypoint> staticRoute = trial.getRoute(difficulty, variant);
 
 		if (staticRoute.isEmpty() && variant != RouteVariant.STANDARD)

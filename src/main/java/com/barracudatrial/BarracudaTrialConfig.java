@@ -16,7 +16,7 @@ public interface BarracudaTrialConfig extends Config
 	String KEY_ROUTE_OPTIMIZATION = "routeOptimization";
 	String KEY_PATH_LOOKAHEAD = "pathLookahead";
 	String KEY_PATHFINDING_EFFORT = "pathfindingEffort";
-	String KEY_TEMPOR_TANTRUM_ROUTE = "temporTantrumRoute";
+	String KEY_TEMPOR_TANTRUM_MARLIN_ROUTE = "temporTantrumMarlinRoute";
 
 	@ConfigSection(
 		name = "Path Display",
@@ -41,7 +41,7 @@ public interface BarracudaTrialConfig extends Config
 
 	@ConfigSection(
 		name = "Routes",
-		description = "Choose between routes for trials that have more than one",
+		description = "Choose between routes for trial difficulties that have more than one",
 		position = 3
 	)
 	String routesSection = "routesSection";
@@ -306,13 +306,13 @@ public interface BarracudaTrialConfig extends Config
 	}
 
 	@ConfigItem(
-		keyName = KEY_TEMPOR_TANTRUM_ROUTE,
-		name = "Tempor Tantrum",
-		description = "Standard: the default route.<br>Faster: the wiki's faster, riskier route. Marlin only, other difficulties use Standard.",
+		keyName = KEY_TEMPOR_TANTRUM_MARLIN_ROUTE,
+		name = "Tempor Tantrum Marlin",
+		description = "Standard: the default route.<br>Faster: the wiki's faster, riskier route.",
 		section = routesSection,
 		position = 0
 	)
-	default RouteVariant temporTantrumRoute()
+	default RouteVariant temporTantrumMarlinRoute()
 	{
 		return RouteVariant.STANDARD;
 	}
