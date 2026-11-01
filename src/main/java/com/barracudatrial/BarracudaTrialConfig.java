@@ -27,7 +27,7 @@ public interface BarracudaTrialConfig extends Config
 
 	@ConfigSection(
 		name = "Routes",
-		description = "Choose between routes for trial difficulties that have more than one",
+		description = "Choose between routes for trial difficulties that have more than one. Changing a route after collecting anything applies from the next trial.",
 		position = 1
 	)
 	String routesSection = "routesSection";
@@ -132,7 +132,7 @@ public interface BarracudaTrialConfig extends Config
 	@ConfigItem(
 		keyName = KEY_TEMPOR_TANTRUM_MARLIN_ROUTE,
 		name = "Tempor Tantrum Marlin",
-		description = "Smoother: the wiki's smoother route.<br>Faster: the wiki's faster route.<br>Changing it after collecting anything applies from the next trial.",
+		description = "Smoother: the wiki's smoother route.<br>Faster: the wiki's faster route.",
 		section = routesSection,
 		position = 0
 	)
